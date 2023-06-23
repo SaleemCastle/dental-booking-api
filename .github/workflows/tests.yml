@@ -30,7 +30,7 @@ jobs:
       - name: Setup PHP
         uses: shivammathur/setup-php@v2
         with:
-          php-version: ${{ matrix.php }}
+          php-version: ${{ matrix.php }}https://github.com/SaleemCastle/dental-booking-api/edit/authentication-manager/.github/workflows/tests.yml#
           extensions: dom, curl, libxml, mbstring, zip, pcntl, pdo, sqlite, pdo_sqlite
           coverage: none
 
@@ -43,5 +43,8 @@ jobs:
       - name: Generate app key
         run: php artisan key:generate
 
+      - name: Connect laravel
+        run: php artisan serve
+ 
       - name: Execute tests
         run: php artisan test
