@@ -42,9 +42,6 @@ jobs:
 
       - name: Generate app key
         run: php artisan key:generate
-
-      - name: Connect laravel
-        run: php artisan serve
  
       - name: Execute tests
         run: php artisan test
