@@ -1,0 +1,1433 @@
+openapi: 3.0.3
+info:
+  title: Dental Booking Backend API
+  version: 1.2.0
+  description: Laravel Sanctum API for dental clinic booking, scheduling, billing, messaging, and dashboard workflows. All JSON endpoints return the standard ApiEnvelope shape with success, statusCode, message, code, data, errors, meta, and requestId.
+servers:
+  - url: http://localhost:8000
+    description: Local Laravel server
+security:
+  - sanctumBearer: []
+tags:
+  - name: Auth
+  - name: Health
+  - name: Dashboard
+  - name: Patients
+  - name: Appointments
+  - name: Dentists
+  - name: Treatments
+  - name: Invoices
+  - name: Payments
+  - name: Clinical Notes
+  - name: Messages
+  - name: Referrals
+  - name: Users
+paths:
+  /sanctum/csrf-cookie:
+    get:
+      tags: [Auth]
+      summary: Initialize CSRF and session cookies for browser clients
+      description: Browser clients should call this endpoint with credentials enabled before posting to /login or /register.
+      security: []
+      responses:
+        "200":
+          description: CSRF and session cookies were queued.
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/ApiEnvelope"
+                  - type: object
+                    properties:
+                      data: { nullable: true, example: null }
+  /login:
+    post:
+      tags: [Auth]
+      summary: Log in with a browser session
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/LoginRequest"
+      responses:
+        "200":
+          description: User authenticated and session regenerated.
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/ApiEnvelope"
+                  - type: object
+                    properties:
+                      data:
+                        type: object
+                        properties:
+                          user: { $ref: "#/components/schemas/User" }
+        "409":
+          $ref: "#/components/responses/AlreadyAuthenticated"
+        "422":
+          $ref: "#/components/responses/ValidationError"
+  /register:
+    post:
+      tags: [Auth]
+      summary: Register and log in with a browser session
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RegisterRequest"
+      responses:
+        "201":
+          description: User created, authenticated, and session regenerated.
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/ApiEnvelope"
+                  - type: object
+                    properties:
+                      data:
+                        type: object
+                        properties:
+                          user: { $ref: "#/components/schemas/User" }
+        "409":
+          $ref: "#/components/responses/AlreadyAuthenticated"
+        "422":
+          $ref: "#/components/responses/ValidationError"
+  /logout:
+    post:
+      tags: [Auth]
+      summary: Log out of the current browser session
+      security:
+        - sanctumCookie: []
+      responses:
+        "200":
+          description: User logged out and session invalidated.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiEnvelope"
+        "401":
+          $ref: "#/components/responses/Unauthenticated"
+  /api/health:
+    get:
+      tags: [Health]
+      summary: Check service health
+      security: []
+      responses:
+        "200":
+          description: Service is healthy.
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/ApiEnvelope"
+                  - type: object
+                    properties:
+                      data: { $ref: "#/components/schemas/HealthResponse" }
+  /api/user:
+    get:
+      tags: [Users]
+      summary: Get authenticated user
+      responses:
+        "200":
+          description: Authenticated user.
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/ApiEnvelope"
+                  - type: object
+                    properties:
+                      data: { $ref: "#/components/schemas/User" }
+        "401":
+          $ref: "#/components/responses/Unauthenticated"
+  /api/auth/token:
+    post:
+      tags: [Users]
+      summary: Create a Sanctum bearer token
+      description: Use this for Swagger UI testing. The Next.js frontend can continue using the cookie-based Sanctum flow.
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [email, password]
+              properties:
+                email:
+                  type: string
+                  format: email
+                  example: test@example.com
+                password:
+                  type: string
+                  format: password
+                  example: password
+                token_name:
+                  type: string
+                  nullable: true
+                  example: swagger
+      responses:
+        "201":
+          description: Token created.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success: { type: boolean, example: true }
+                  statusCode: { type: integer, example: 201 }
+                  message: { type: string, example: Token created. }
+                  code: { type: string, nullable: true, example: null }
+                  data:
+                    type: object
+                    properties:
+                      token_type: { type: string, example: Bearer }
+                      access_token: { type: string, example: 1|example-token-value }
+                  errors: { type: object, nullable: true, example: null }
+                  meta: { type: object, nullable: true, example: null }
+                  requestId: { type: string, nullable: true, example: 018fe4f3-8b34-7cc9-9f3f-b37a2d5f7c6e }
+        "422":
+          $ref: "#/components/responses/ValidationError"
+    delete:
+      tags: [Users]
+      summary: Revoke the current Sanctum bearer token
+      responses:
+        "200":
+          $ref: "#/components/responses/DeleteMessage"
+  /api/dashboard/summary:
+    get:
+      tags: [Dashboard]
+      summary: Get overview dashboard metrics
+      responses:
+        "200":
+          description: Dashboard summary.
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/ApiEnvelope"
+                  - type: object
+                    properties:
+                      data: { $ref: "#/components/schemas/DashboardSummary" }
+  /api/patients:
+    get:
+      tags: [Patients]
+      summary: List patients
+      responses:
+        "200":
+          description: Patient list in the current frontend shape.
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/ApiEnvelope"
+                  - type: object
+                    properties:
+                      data:
+                        type: object
+                        properties:
+                          patients:
+                            type: array
+                            items:
+                              $ref: "#/components/schemas/Patient"
+    post:
+      tags: [Patients]
+      summary: Create patient
+      requestBody:
+        $ref: "#/components/requestBodies/PatientBody"
+      responses:
+        "201":
+          description: Created patient.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PatientEnvelope"
+        "422":
+          $ref: "#/components/responses/ValidationError"
+  /api/patients/{patient}:
+    parameters:
+      - $ref: "#/components/parameters/PatientId"
+    get:
+      tags: [Patients]
+      summary: Get patient
+      responses:
+        "200":
+          description: Patient object.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PatientEnvelope"
+        "404":
+          $ref: "#/components/responses/NotFound"
+    patch:
+      tags: [Patients]
+      summary: Update patient
+      requestBody:
+        $ref: "#/components/requestBodies/PatientUpdateBody"
+      responses:
+        "200":
+          description: Updated patient object.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PatientEnvelope"
+        "422":
+          $ref: "#/components/responses/ValidationError"
+    put:
+      tags: [Patients]
+      summary: Update patient
+      requestBody:
+        $ref: "#/components/requestBodies/PatientUpdateBody"
+      responses:
+        "200":
+          description: Updated patient object.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PatientEnvelope"
+        "422":
+          $ref: "#/components/responses/ValidationError"
+    delete:
+      tags: [Patients]
+      summary: Delete patient
+      responses:
+        "200":
+          $ref: "#/components/responses/DeleteMessage"
+  /api/patients/{patient}/update:
+    parameters:
+      - $ref: "#/components/parameters/PatientId"
+    put:
+      tags: [Patients]
+      summary: Legacy patient update endpoint
+      deprecated: true
+      requestBody:
+        $ref: "#/components/requestBodies/PatientUpdateBody"
+      responses:
+        "200":
+          description: Updated patient object.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PatientEnvelope"
+  /api/patients/{patient}/delete:
+    parameters:
+      - $ref: "#/components/parameters/PatientId"
+    delete:
+      tags: [Patients]
+      summary: Legacy patient delete endpoint
+      deprecated: true
+      responses:
+        "200":
+          $ref: "#/components/responses/DeleteMessage"
+  /api/appointments:
+    get:
+      tags: [Appointments]
+      summary: List appointments
+      parameters:
+        - name: date
+          in: query
+          required: false
+          schema:
+            type: string
+            format: date
+            example: "2026-10-05"
+      responses:
+        "200":
+          description: Appointment list with display-ready fields.
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/ApiEnvelope"
+                  - type: object
+                    properties:
+                      data:
+                        type: object
+                        properties:
+                          appointments:
+                            type: array
+                            items:
+                              $ref: "#/components/schemas/Appointment"
+    post:
+      tags: [Appointments]
+      summary: Create appointment
+      description: Accepts snake_case fields and frontend camelCase aliases such as startsAt, patientId, dentistId, treatmentId, durationMinutes, and appointmentType.
+      requestBody:
+        $ref: "#/components/requestBodies/AppointmentBody"
+      responses:
+        "201":
+          description: Appointment created.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AppointmentEnvelope"
+        "422":
+          $ref: "#/components/responses/ValidationError"
+  /api/appointments/{appointment}:
+    parameters:
+      - $ref: "#/components/parameters/AppointmentId"
+    get:
+      tags: [Appointments]
+      summary: Get appointment
+      responses:
+        "200":
+          description: Appointment details.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AppointmentEnvelope"
+    patch:
+      tags: [Appointments]
+      summary: Update appointment
+      requestBody:
+        $ref: "#/components/requestBodies/AppointmentUpdateBody"
+      responses:
+        "200":
+          description: Appointment updated.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AppointmentEnvelope"
+    put:
+      tags: [Appointments]
+      summary: Update appointment
+      requestBody:
+        $ref: "#/components/requestBodies/AppointmentUpdateBody"
+      responses:
+        "200":
+          description: Appointment updated.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AppointmentEnvelope"
+    delete:
+      tags: [Appointments]
+      summary: Delete appointment
+      responses:
+        "200":
+          $ref: "#/components/responses/DeleteMessage"
+  /api/appointments/{appointment}/check-in:
+    parameters:
+      - $ref: "#/components/parameters/AppointmentId"
+    post:
+      tags: [Appointments]
+      summary: Mark appointment as checked in
+      responses:
+        "200":
+          description: Appointment status changed to checked_in.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AppointmentEnvelope"
+  /api/appointments/{appointment}/complete:
+    parameters:
+      - $ref: "#/components/parameters/AppointmentId"
+    post:
+      tags: [Appointments]
+      summary: Mark appointment as completed
+      responses:
+        "200":
+          description: Appointment status changed to completed.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AppointmentEnvelope"
+  /api/appointments/{appointment}/cancel:
+    parameters:
+      - $ref: "#/components/parameters/AppointmentId"
+    post:
+      tags: [Appointments]
+      summary: Cancel appointment
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                reason:
+                  type: string
+                  example: Patient requested cancellation.
+      responses:
+        "200":
+          description: Appointment status changed to cancelled.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AppointmentEnvelope"
+  /api/dentists:
+    get:
+      tags: [Dentists]
+      summary: List dentists
+      responses:
+        "200":
+          $ref: "#/components/responses/DentistList"
+    post:
+      tags: [Dentists]
+      summary: Create dentist
+      requestBody:
+        $ref: "#/components/requestBodies/DentistBody"
+      responses:
+        "201":
+          $ref: "#/components/responses/DentistEnvelope"
+  /api/dentists/{dentist}:
+    parameters:
+      - $ref: "#/components/parameters/DentistId"
+    get:
+      tags: [Dentists]
+      summary: Get dentist
+      responses:
+        "200":
+          $ref: "#/components/responses/DentistEnvelope"
+    patch:
+      tags: [Dentists]
+      summary: Update dentist
+      requestBody:
+        $ref: "#/components/requestBodies/DentistUpdateBody"
+      responses:
+        "200":
+          $ref: "#/components/responses/DentistEnvelope"
+    put:
+      tags: [Dentists]
+      summary: Update dentist
+      requestBody:
+        $ref: "#/components/requestBodies/DentistUpdateBody"
+      responses:
+        "200":
+          $ref: "#/components/responses/DentistEnvelope"
+    delete:
+      tags: [Dentists]
+      summary: Delete dentist
+      responses:
+        "200":
+          $ref: "#/components/responses/DeleteMessage"
+  /api/treatments:
+    get:
+      tags: [Treatments]
+      summary: List treatments
+      responses:
+        "200":
+          $ref: "#/components/responses/TreatmentList"
+    post:
+      tags: [Treatments]
+      summary: Create treatment
+      requestBody:
+        $ref: "#/components/requestBodies/TreatmentBody"
+      responses:
+        "201":
+          $ref: "#/components/responses/TreatmentEnvelope"
+  /api/treatments/{treatment}:
+    parameters:
+      - $ref: "#/components/parameters/TreatmentId"
+    get:
+      tags: [Treatments]
+      summary: Get treatment
+      responses:
+        "200":
+          $ref: "#/components/responses/TreatmentEnvelope"
+    patch:
+      tags: [Treatments]
+      summary: Update treatment
+      requestBody:
+        $ref: "#/components/requestBodies/TreatmentUpdateBody"
+      responses:
+        "200":
+          $ref: "#/components/responses/TreatmentEnvelope"
+    put:
+      tags: [Treatments]
+      summary: Update treatment
+      requestBody:
+        $ref: "#/components/requestBodies/TreatmentUpdateBody"
+      responses:
+        "200":
+          $ref: "#/components/responses/TreatmentEnvelope"
+    delete:
+      tags: [Treatments]
+      summary: Delete treatment
+      responses:
+        "200":
+          $ref: "#/components/responses/DeleteMessage"
+  /api/invoices:
+    get:
+      tags: [Invoices]
+      summary: List invoices
+      responses:
+        "200":
+          $ref: "#/components/responses/InvoiceList"
+    post:
+      tags: [Invoices]
+      summary: Create invoice
+      requestBody:
+        $ref: "#/components/requestBodies/InvoiceBody"
+      responses:
+        "201":
+          $ref: "#/components/responses/InvoiceEnvelope"
+  /api/invoices/{invoice}:
+    parameters:
+      - $ref: "#/components/parameters/InvoiceId"
+    get:
+      tags: [Invoices]
+      summary: Get invoice
+      responses:
+        "200":
+          $ref: "#/components/responses/InvoiceEnvelope"
+    patch:
+      tags: [Invoices]
+      summary: Update invoice
+      requestBody:
+        $ref: "#/components/requestBodies/InvoiceUpdateBody"
+      responses:
+        "200":
+          $ref: "#/components/responses/InvoiceEnvelope"
+    put:
+      tags: [Invoices]
+      summary: Update invoice
+      requestBody:
+        $ref: "#/components/requestBodies/InvoiceUpdateBody"
+      responses:
+        "200":
+          $ref: "#/components/responses/InvoiceEnvelope"
+    delete:
+      tags: [Invoices]
+      summary: Delete invoice
+      responses:
+        "200":
+          $ref: "#/components/responses/DeleteMessage"
+  /api/payments:
+    get:
+      tags: [Payments]
+      summary: List payments
+      responses:
+        "200":
+          $ref: "#/components/responses/PaymentList"
+    post:
+      tags: [Payments]
+      summary: Create payment
+      requestBody:
+        $ref: "#/components/requestBodies/PaymentBody"
+      responses:
+        "201":
+          $ref: "#/components/responses/PaymentEnvelope"
+  /api/payments/{payment}:
+    parameters:
+      - $ref: "#/components/parameters/PaymentId"
+    get:
+      tags: [Payments]
+      summary: Get payment
+      responses:
+        "200":
+          $ref: "#/components/responses/PaymentEnvelope"
+    patch:
+      tags: [Payments]
+      summary: Update payment
+      requestBody:
+        $ref: "#/components/requestBodies/PaymentUpdateBody"
+      responses:
+        "200":
+          $ref: "#/components/responses/PaymentEnvelope"
+    put:
+      tags: [Payments]
+      summary: Update payment
+      requestBody:
+        $ref: "#/components/requestBodies/PaymentUpdateBody"
+      responses:
+        "200":
+          $ref: "#/components/responses/PaymentEnvelope"
+    delete:
+      tags: [Payments]
+      summary: Delete payment
+      responses:
+        "200":
+          $ref: "#/components/responses/DeleteMessage"
+  /api/clinical-notes:
+    get:
+      tags: [Clinical Notes]
+      summary: List clinical notes
+      responses:
+        "200":
+          $ref: "#/components/responses/ClinicalNoteList"
+    post:
+      tags: [Clinical Notes]
+      summary: Create clinical note
+      requestBody:
+        $ref: "#/components/requestBodies/ClinicalNoteBody"
+      responses:
+        "201":
+          $ref: "#/components/responses/ClinicalNoteEnvelope"
+  /api/clinical-notes/{clinical_note}:
+    parameters:
+      - $ref: "#/components/parameters/ClinicalNoteId"
+    get:
+      tags: [Clinical Notes]
+      summary: Get clinical note
+      responses:
+        "200":
+          $ref: "#/components/responses/ClinicalNoteEnvelope"
+    patch:
+      tags: [Clinical Notes]
+      summary: Update clinical note
+      requestBody:
+        $ref: "#/components/requestBodies/ClinicalNoteUpdateBody"
+      responses:
+        "200":
+          $ref: "#/components/responses/ClinicalNoteEnvelope"
+    put:
+      tags: [Clinical Notes]
+      summary: Update clinical note
+      requestBody:
+        $ref: "#/components/requestBodies/ClinicalNoteUpdateBody"
+      responses:
+        "200":
+          $ref: "#/components/responses/ClinicalNoteEnvelope"
+    delete:
+      tags: [Clinical Notes]
+      summary: Delete clinical note
+      responses:
+        "200":
+          $ref: "#/components/responses/DeleteMessage"
+  /api/messages:
+    get:
+      tags: [Messages]
+      summary: List messages
+      responses:
+        "200":
+          description: Message list.
+    post:
+      tags: [Messages]
+      summary: Create message
+      responses:
+        "201":
+          description: Message created.
+  /api/messages/{message}:
+    parameters:
+      - $ref: "#/components/parameters/MessageId"
+    get:
+      tags: [Messages]
+      summary: Get message
+      responses:
+        "200":
+          description: Message details.
+    patch:
+      tags: [Messages]
+      summary: Update message
+      responses:
+        "200":
+          description: Message updated.
+    put:
+      tags: [Messages]
+      summary: Update message
+      responses:
+        "200":
+          description: Message updated.
+    delete:
+      tags: [Messages]
+      summary: Delete message
+      responses:
+        "200":
+          $ref: "#/components/responses/DeleteMessage"
+  /api/referrals:
+    get:
+      tags: [Referrals]
+      summary: List referrals
+      responses:
+        "200":
+          description: Referral list.
+    post:
+      tags: [Referrals]
+      summary: Create referral
+      responses:
+        "201":
+          description: Referral created.
+  /api/referrals/{referral}:
+    parameters:
+      - $ref: "#/components/parameters/ReferralId"
+    get:
+      tags: [Referrals]
+      summary: Get referral
+      responses:
+        "200":
+          description: Referral details.
+    patch:
+      tags: [Referrals]
+      summary: Update referral
+      responses:
+        "200":
+          description: Referral updated.
+    put:
+      tags: [Referrals]
+      summary: Update referral
+      responses:
+        "200":
+          description: Referral updated.
+    delete:
+      tags: [Referrals]
+      summary: Delete referral
+      responses:
+        "200":
+          $ref: "#/components/responses/DeleteMessage"
+  /api/users:
+    get:
+      tags: [Users]
+      summary: List users
+      responses:
+        "200":
+          description: User list.
+    post:
+      tags: [Users]
+      summary: Create user
+      responses:
+        "201":
+          description: User created.
+  /api/users/{user}:
+    parameters:
+      - $ref: "#/components/parameters/UserId"
+    get:
+      tags: [Users]
+      summary: Get user
+      responses:
+        "200":
+          description: User details.
+    patch:
+      tags: [Users]
+      summary: Update user
+      responses:
+        "200":
+          description: User updated.
+    put:
+      tags: [Users]
+      summary: Update user
+      responses:
+        "200":
+          description: User updated.
+    delete:
+      tags: [Users]
+      summary: Delete user
+      responses:
+        "200":
+          $ref: "#/components/responses/DeleteMessage"
+components:
+  securitySchemes:
+    sanctumBearer:
+      type: http
+      scheme: bearer
+      bearerFormat: Sanctum token
+    sanctumCookie:
+      type: apiKey
+      in: cookie
+      name: laravel_session
+  parameters:
+    AppointmentId: { name: appointment, in: path, required: true, schema: { type: integer, example: 1 } }
+    ClinicalNoteId: { name: clinical_note, in: path, required: true, schema: { type: integer, example: 1 } }
+    DentistId: { name: dentist, in: path, required: true, schema: { type: integer, example: 1 } }
+    InvoiceId: { name: invoice, in: path, required: true, schema: { type: integer, example: 1 } }
+    MessageId: { name: message, in: path, required: true, schema: { type: integer, example: 1 } }
+    PatientId: { name: patient, in: path, required: true, schema: { type: integer, example: 1 } }
+    PaymentId: { name: payment, in: path, required: true, schema: { type: integer, example: 1 } }
+    ReferralId: { name: referral, in: path, required: true, schema: { type: integer, example: 1 } }
+    TreatmentId: { name: treatment, in: path, required: true, schema: { type: integer, example: 1 } }
+    UserId: { name: user, in: path, required: true, schema: { type: integer, example: 1 } }
+  requestBodies:
+    PatientBody:
+      required: true
+      content: { application/json: { schema: { $ref: "#/components/schemas/PatientRequest" } } }
+    PatientUpdateBody:
+      required: true
+      content: { application/json: { schema: { $ref: "#/components/schemas/PatientUpdateRequest" } } }
+    AppointmentBody:
+      required: true
+      content: { application/json: { schema: { $ref: "#/components/schemas/AppointmentRequest" } } }
+    AppointmentUpdateBody:
+      required: true
+      content: { application/json: { schema: { $ref: "#/components/schemas/AppointmentUpdateRequest" } } }
+    DentistBody:
+      required: true
+      content: { application/json: { schema: { $ref: "#/components/schemas/DentistRequest" } } }
+    DentistUpdateBody:
+      required: true
+      content: { application/json: { schema: { $ref: "#/components/schemas/DentistUpdateRequest" } } }
+    TreatmentBody:
+      required: true
+      content: { application/json: { schema: { $ref: "#/components/schemas/TreatmentRequest" } } }
+    TreatmentUpdateBody:
+      required: true
+      content: { application/json: { schema: { $ref: "#/components/schemas/TreatmentUpdateRequest" } } }
+    InvoiceBody:
+      required: true
+      content: { application/json: { schema: { $ref: "#/components/schemas/InvoiceRequest" } } }
+    InvoiceUpdateBody:
+      required: true
+      content: { application/json: { schema: { $ref: "#/components/schemas/InvoiceUpdateRequest" } } }
+    PaymentBody:
+      required: true
+      content: { application/json: { schema: { $ref: "#/components/schemas/PaymentRequest" } } }
+    PaymentUpdateBody:
+      required: true
+      content: { application/json: { schema: { $ref: "#/components/schemas/PaymentUpdateRequest" } } }
+    ClinicalNoteBody:
+      required: true
+      content: { application/json: { schema: { $ref: "#/components/schemas/ClinicalNoteRequest" } } }
+    ClinicalNoteUpdateBody:
+      required: true
+      content: { application/json: { schema: { $ref: "#/components/schemas/ClinicalNoteUpdateRequest" } } }
+  responses:
+    DeleteMessage:
+      description: Resource deleted.
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ApiEnvelope"
+    Unauthenticated:
+      description: Authentication is required.
+      content:
+        application/json:
+          schema:
+            allOf:
+              - $ref: "#/components/schemas/ApiErrorEnvelope"
+              - type: object
+                properties:
+                  statusCode: { type: integer, example: 401 }
+                  message: { type: string, example: Unauthenticated. }
+                  code: { type: string, example: UNAUTHENTICATED }
+    AlreadyAuthenticated:
+      description: The browser session is already authenticated.
+      content:
+        application/json:
+          schema:
+            allOf:
+              - $ref: "#/components/schemas/ApiErrorEnvelope"
+              - type: object
+                properties:
+                  statusCode: { type: integer, example: 409 }
+                  message: { type: string, example: Already authenticated. }
+                  code: { type: string, example: ALREADY_AUTHENTICATED }
+    NotFound:
+      description: Resource not found.
+      content:
+        application/json:
+          schema:
+            allOf:
+              - $ref: "#/components/schemas/ApiErrorEnvelope"
+              - type: object
+                properties:
+                  statusCode: { type: integer, example: 404 }
+                  message: { type: string, example: Resource not found. }
+                  code: { type: string, example: NOT_FOUND }
+    ValidationError:
+      description: Validation failed.
+      content:
+        application/json:
+          schema:
+            allOf:
+              - $ref: "#/components/schemas/ApiErrorEnvelope"
+              - type: object
+                properties:
+                  statusCode: { type: integer, example: 422 }
+                  message: { type: string, example: The given data was invalid. }
+                  code: { type: string, example: VALIDATION_ERROR }
+                  errors:
+                    type: object
+                    additionalProperties:
+                      type: array
+                      items: { type: string }
+    DentistList:
+      description: Dentist list.
+      content:
+        application/json:
+          schema:
+            allOf:
+              - $ref: "#/components/schemas/ApiEnvelope"
+              - type: object
+                properties:
+                  data:
+                    type: object
+                    properties:
+                      dentists: { type: array, items: { $ref: "#/components/schemas/Dentist" } }
+    DentistEnvelope:
+      description: Dentist envelope.
+      content:
+        application/json:
+          schema:
+            allOf:
+              - $ref: "#/components/schemas/ApiEnvelope"
+              - type: object
+                properties:
+                  data:
+                    type: object
+                    properties:
+                      dentist: { $ref: "#/components/schemas/Dentist" }
+    TreatmentList:
+      description: Treatment list.
+      content:
+        application/json:
+          schema:
+            allOf:
+              - $ref: "#/components/schemas/ApiEnvelope"
+              - type: object
+                properties:
+                  data:
+                    type: object
+                    properties:
+                      treatments: { type: array, items: { $ref: "#/components/schemas/Treatment" } }
+    TreatmentEnvelope:
+      description: Treatment envelope.
+      content:
+        application/json:
+          schema:
+            allOf:
+              - $ref: "#/components/schemas/ApiEnvelope"
+              - type: object
+                properties:
+                  data:
+                    type: object
+                    properties:
+                      treatment: { $ref: "#/components/schemas/Treatment" }
+    InvoiceList:
+      description: Invoice list.
+      content:
+        application/json:
+          schema:
+            allOf:
+              - $ref: "#/components/schemas/ApiEnvelope"
+              - type: object
+                properties:
+                  data:
+                    type: object
+                    properties:
+                      invoices: { type: array, items: { $ref: "#/components/schemas/Invoice" } }
+    InvoiceEnvelope:
+      description: Invoice envelope.
+      content:
+        application/json:
+          schema:
+            allOf:
+              - $ref: "#/components/schemas/ApiEnvelope"
+              - type: object
+                properties:
+                  data:
+                    type: object
+                    properties:
+                      invoice: { $ref: "#/components/schemas/Invoice" }
+    PaymentList:
+      description: Payment list.
+      content:
+        application/json:
+          schema:
+            allOf:
+              - $ref: "#/components/schemas/ApiEnvelope"
+              - type: object
+                properties:
+                  data:
+                    type: object
+                    properties:
+                      payments: { type: array, items: { $ref: "#/components/schemas/Payment" } }
+    PaymentEnvelope:
+      description: Payment envelope.
+      content:
+        application/json:
+          schema:
+            allOf:
+              - $ref: "#/components/schemas/ApiEnvelope"
+              - type: object
+                properties:
+                  data:
+                    type: object
+                    properties:
+                      payment: { $ref: "#/components/schemas/Payment" }
+    ClinicalNoteList:
+      description: Clinical note list.
+      content:
+        application/json:
+          schema:
+            allOf:
+              - $ref: "#/components/schemas/ApiEnvelope"
+              - type: object
+                properties:
+                  data:
+                    type: object
+                    properties:
+                      clinicalNotes: { type: array, items: { $ref: "#/components/schemas/ClinicalNote" } }
+    ClinicalNoteEnvelope:
+      description: Clinical note envelope.
+      content:
+        application/json:
+          schema:
+            allOf:
+              - $ref: "#/components/schemas/ApiEnvelope"
+              - type: object
+                properties:
+                  data:
+                    type: object
+                    properties:
+                      clinicalNote: { $ref: "#/components/schemas/ClinicalNote" }
+  schemas:
+    ApiEnvelope:
+      type: object
+      required: [success, statusCode, message, code, data, errors, meta, requestId]
+      properties:
+        success: { type: boolean, example: true }
+        statusCode: { type: integer, example: 200 }
+        message: { type: string, example: OK }
+        code: { type: string, nullable: true, example: null }
+        data:
+          nullable: true
+          oneOf:
+            - type: object
+            - type: array
+        errors: { type: object, nullable: true, example: null }
+        meta:
+          nullable: true
+          oneOf:
+            - $ref: "#/components/schemas/PaginationMeta"
+            - type: object
+        requestId: { type: string, nullable: true, example: 018fe4f3-8b34-7cc9-9f3f-b37a2d5f7c6e }
+    ApiErrorEnvelope:
+      allOf:
+        - $ref: "#/components/schemas/ApiEnvelope"
+        - type: object
+          properties:
+            success: { type: boolean, example: false }
+            data: { nullable: true, example: null }
+            errors:
+              nullable: true
+              type: object
+    PaginationMeta:
+      type: object
+      properties:
+        pagination:
+          type: object
+          properties:
+            currentPage: { type: integer, example: 1 }
+            perPage: { type: integer, example: 15 }
+            total: { type: integer, example: 100 }
+            lastPage: { type: integer, example: 7 }
+            from: { type: integer, nullable: true, example: 1 }
+            to: { type: integer, nullable: true, example: 15 }
+            hasMorePages: { type: boolean, example: true }
+    HealthResponse:
+      type: object
+      properties:
+        status: { type: string, example: ok }
+        service: { type: string, example: Laravel }
+        timestamp: { type: string, format: date-time }
+    LoginRequest:
+      type: object
+      required: [email, password]
+      properties:
+        email: { type: string, format: email, example: test@example.com }
+        password: { type: string, format: password, example: password }
+        remember: { type: boolean, example: false }
+    RegisterRequest:
+      type: object
+      required: [name, email, password, password_confirmation]
+      properties:
+        name: { type: string, maxLength: 255, example: Test User }
+        email: { type: string, format: email, maxLength: 255, example: test@example.com }
+        password: { type: string, format: password, example: password }
+        password_confirmation: { type: string, format: password, example: password }
+    Patient:
+      type: object
+      properties:
+        id: { type: integer, example: 1 }
+        firstName: { type: string, example: Jane }
+        lastName: { type: string, example: Doe }
+        appointments: { type: string, example: Cleaning }
+        streetAddress: { type: string, example: 123 Main Street }
+        town: { type: string, example: Midtown }
+        city: { type: string, example: Bogota }
+        sex: { type: string, example: Female }
+        notes: { type: string, example: Prefers morning appointments. }
+        created_at: { type: string, format: date-time, nullable: true }
+        updated_at: { type: string, format: date-time, nullable: true }
+    PatientEnvelope:
+      allOf:
+        - $ref: "#/components/schemas/ApiEnvelope"
+        - type: object
+          properties:
+            data:
+              type: object
+              properties:
+                patient: { $ref: "#/components/schemas/Patient" }
+    PatientRequest:
+      type: object
+      required: [firstName, lastName, appointments, sex, streetAddress, town, city, notes]
+      properties:
+        firstName: { type: string, maxLength: 100, example: Jane }
+        lastName: { type: string, maxLength: 100, example: Doe }
+        appointments: { type: string, maxLength: 255, example: Cleaning }
+        sex: { type: string, maxLength: 255, example: Female }
+        streetAddress: { type: string, maxLength: 255, example: 123 Main Street }
+        town: { type: string, maxLength: 255, example: Midtown }
+        city: { type: string, maxLength: 255, example: Bogota }
+        notes: { type: string, example: Prefers morning appointments. }
+    PatientUpdateRequest:
+      type: object
+      properties:
+        firstName: { type: string, maxLength: 100 }
+        lastName: { type: string, maxLength: 100 }
+        appointments: { type: string, maxLength: 255 }
+        sex: { type: string, maxLength: 255 }
+        streetAddress: { type: string, maxLength: 255 }
+        town: { type: string, maxLength: 255 }
+        city: { type: string, maxLength: 255 }
+        notes: { type: string }
+    Dentist:
+      type: object
+      properties:
+        id: { type: integer, example: 1 }
+        first_name: { type: string, example: Alex }
+        last_name: { type: string, example: Rivera }
+        name: { type: string, example: Alex Rivera }
+        email: { type: string, format: email, example: alex@example.com }
+        contact_number: { type: string, example: "+15551234567" }
+        specialization: { type: string, nullable: true, example: Orthodontics }
+        created_at: { type: string, format: date-time, nullable: true }
+        updated_at: { type: string, format: date-time, nullable: true }
+    DentistRequest:
+      type: object
+      required: [first_name, last_name, email, contact_number]
+      properties:
+        first_name: { type: string, maxLength: 100 }
+        last_name: { type: string, maxLength: 100 }
+        email: { type: string, format: email, maxLength: 255 }
+        contact_number: { type: string, maxLength: 255 }
+        specialization: { type: string, nullable: true, maxLength: 255 }
+    DentistUpdateRequest:
+      type: object
+      properties:
+        first_name: { type: string, maxLength: 100 }
+        last_name: { type: string, maxLength: 100 }
+        email: { type: string, format: email, maxLength: 255 }
+        contact_number: { type: string, maxLength: 255 }
+        specialization: { type: string, nullable: true, maxLength: 255 }
+    Treatment:
+      type: object
+      properties:
+        id: { type: integer, example: 1 }
+        name: { type: string, example: Cleaning }
+        description: { type: string, nullable: true }
+        duration_minutes: { type: integer, example: 30 }
+        price: { type: string, example: "125.00" }
+        created_at: { type: string, format: date-time, nullable: true }
+        updated_at: { type: string, format: date-time, nullable: true }
+    TreatmentRequest:
+      type: object
+      required: [name, duration_minutes, price]
+      properties:
+        name: { type: string, maxLength: 255 }
+        description: { type: string, nullable: true }
+        duration_minutes: { type: integer, minimum: 1, maximum: 1440 }
+        price: { type: number, minimum: 0 }
+    TreatmentUpdateRequest:
+      type: object
+      properties:
+        name: { type: string, maxLength: 255 }
+        description: { type: string, nullable: true }
+        duration_minutes: { type: integer, minimum: 1, maximum: 1440 }
+        price: { type: number, minimum: 0 }
+    Appointment:
+      type: object
+      properties:
+        id: { type: integer, example: 1 }
+        patient_id: { type: integer, example: 1 }
+        dentist_id: { type: integer, example: 1 }
+        treatment_id: { type: integer, nullable: true, example: 1 }
+        appointment_date_time: { type: string, format: date-time }
+        appointment_type: { type: string, example: Cleaning }
+        description: { type: string, example: Routine cleaning. }
+        status: { $ref: "#/components/schemas/AppointmentStatus" }
+        duration_minutes: { type: integer, example: 30 }
+        patientName: { type: string, example: Jane Doe }
+        dentistName: { type: string, example: Alex Rivera }
+        treatmentName: { type: string, nullable: true, example: Cleaning }
+        startsAt: { type: string, format: date-time }
+        duration: { type: integer, example: 30 }
+        appointmentStatus: { $ref: "#/components/schemas/AppointmentStatus" }
+        paymentStatus: { $ref: "#/components/schemas/PaymentStatus" }
+        checked_in_at: { type: string, format: date-time, nullable: true }
+        completed_at: { type: string, format: date-time, nullable: true }
+        cancelled_at: { type: string, format: date-time, nullable: true }
+        cancellation_reason: { type: string, nullable: true }
+    AppointmentRequest:
+      type: object
+      required: [patient_id, dentist_id, appointment_date_time, appointment_type, description, status]
+      properties:
+        patient_id: { type: integer, example: 1 }
+        dentist_id: { type: integer, example: 1 }
+        treatment_id: { type: integer, nullable: true, example: 1 }
+        appointment_date_time: { type: string, format: date-time }
+        appointment_type: { type: string, maxLength: 255 }
+        description: { type: string }
+        status: { $ref: "#/components/schemas/AppointmentStatus" }
+        duration_minutes: { type: integer, minimum: 1, maximum: 1440 }
+        patientId: { type: integer, description: Frontend alias for patient_id }
+        dentistId: { type: integer, description: Frontend alias for dentist_id }
+        treatmentId: { type: integer, description: Frontend alias for treatment_id }
+        startsAt: { type: string, format: date-time, description: Frontend alias for appointment_date_time }
+        appointmentType: { type: string, description: Frontend alias for appointment_type }
+        durationMinutes: { type: integer, description: Frontend alias for duration_minutes }
+    AppointmentUpdateRequest:
+      type: object
+      properties:
+        patient_id: { type: integer }
+        dentist_id: { type: integer }
+        treatment_id: { type: integer, nullable: true }
+        appointment_date_time: { type: string, format: date-time }
+        appointment_type: { type: string }
+        description: { type: string }
+        status: { $ref: "#/components/schemas/AppointmentStatus" }
+        duration_minutes: { type: integer, minimum: 1, maximum: 1440 }
+        patientId: { type: integer }
+        dentistId: { type: integer }
+        treatmentId: { type: integer }
+        startsAt: { type: string, format: date-time }
+        appointmentType: { type: string }
+        durationMinutes: { type: integer }
+    AppointmentEnvelope:
+      allOf:
+        - $ref: "#/components/schemas/ApiEnvelope"
+        - type: object
+          properties:
+            data:
+              type: object
+              properties:
+                appointment: { $ref: "#/components/schemas/Appointment" }
+    Invoice:
+      type: object
+      properties:
+        id: { type: integer, example: 1 }
+        patient_id: { type: integer, example: 1 }
+        appointment_id: { type: integer, nullable: true, example: 1 }
+        invoice_number: { type: string, example: INV-1001 }
+        amount_due: { type: string, example: "250.00" }
+        amount_paid: { type: string, example: "100.00" }
+        status: { $ref: "#/components/schemas/PaymentStatus" }
+        issued_at: { type: string, format: date-time, nullable: true }
+        due_date: { type: string, format: date, nullable: true }
+        created_at: { type: string, format: date-time, nullable: true }
+        updated_at: { type: string, format: date-time, nullable: true }
+    InvoiceRequest:
+      type: object
+      required: [patient_id, invoice_number, amount_due, status]
+      properties:
+        patient_id: { type: integer }
+        appointment_id: { type: integer, nullable: true }
+        invoice_number: { type: string }
+        amount_due: { type: number, minimum: 0 }
+        amount_paid: { type: number, minimum: 0 }
+        status: { $ref: "#/components/schemas/PaymentStatus" }
+        issued_at: { type: string, format: date-time, nullable: true }
+        due_date: { type: string, format: date, nullable: true }
+    InvoiceUpdateRequest:
+      type: object
+      properties:
+        patient_id: { type: integer }
+        appointment_id: { type: integer, nullable: true }
+        invoice_number: { type: string }
+        amount_due: { type: number, minimum: 0 }
+        amount_paid: { type: number, minimum: 0 }
+        status: { $ref: "#/components/schemas/PaymentStatus" }
+        issued_at: { type: string, format: date-time, nullable: true }
+        due_date: { type: string, format: date, nullable: true }
+    Payment:
+      type: object
+      properties:
+        id: { type: integer, example: 1 }
+        invoice_id: { type: integer, example: 1 }
+        amount: { type: string, example: "100.00" }
+        payment_method: { type: string, nullable: true, example: card }
+        status: { $ref: "#/components/schemas/PaymentStatus" }
+        paid_at: { type: string, format: date-time, nullable: true }
+        reference: { type: string, nullable: true }
+        created_at: { type: string, format: date-time, nullable: true }
+        updated_at: { type: string, format: date-time, nullable: true }
+    PaymentRequest:
+      type: object
+      required: [invoice_id, amount, status]
+      properties:
+        invoice_id: { type: integer }
+        amount: { type: number, minimum: 0 }
+        payment_method: { type: string, nullable: true }
+        status: { $ref: "#/components/schemas/PaymentStatus" }
+        paid_at: { type: string, format: date-time, nullable: true }
+        reference: { type: string, nullable: true }
+    PaymentUpdateRequest:
+      type: object
+      properties:
+        invoice_id: { type: integer }
+        amount: { type: number, minimum: 0 }
+        payment_method: { type: string, nullable: true }
+        status: { $ref: "#/components/schemas/PaymentStatus" }
+        paid_at: { type: string, format: date-time, nullable: true }
+        reference: { type: string, nullable: true }
+    ClinicalNote:
+      type: object
+      properties:
+        id: { type: integer, example: 1 }
+        patient_id: { type: integer, example: 1 }
+        dentist_id: { type: integer, example: 1 }
+        appointment_id: { type: integer, nullable: true, example: 1 }
+        note_text: { type: string, example: Patient reported sensitivity. }
+        created_at: { type: string, format: date-time, nullable: true }
+        updated_at: { type: string, format: date-time, nullable: true }
+    ClinicalNoteRequest:
+      type: object
+      required: [patient_id, dentist_id, note_text]
+      properties:
+        patient_id: { type: integer }
+        dentist_id: { type: integer }
+        appointment_id: { type: integer, nullable: true }
+        note_text: { type: string }
+    ClinicalNoteUpdateRequest:
+      type: object
+      properties:
+        patient_id: { type: integer }
+        dentist_id: { type: integer }
+        appointment_id: { type: integer, nullable: true }
+        note_text: { type: string }
+    DashboardSummary:
+      type: object
+      required: [bookedToday, waitingRoom, treatmentsDone, unpaidInvoiceAmount, collectionRate, todayAppointments, staffWorklist]
+      properties:
+        bookedToday: { type: integer, example: 12 }
+        waitingRoom: { type: integer, example: 3 }
+        treatmentsDone: { type: integer, example: 8 }
+        unpaidInvoiceAmount: { type: number, example: 1250.5 }
+        collectionRate: { type: number, example: 82.4 }
+        todayAppointments:
+          type: array
+          items: { $ref: "#/components/schemas/Appointment" }
+        staffWorklist:
+          type: array
+          items:
+            $ref: "#/components/schemas/StaffWorklistItem"
+    StaffWorklistItem:
+      type: object
+      properties:
+        dentistId: { type: integer, example: 1 }
+        dentistName: { type: string, example: Alex Rivera }
+        scheduled: { type: integer, example: 4 }
+        checkedIn: { type: integer, example: 1 }
+        completed: { type: integer, example: 3 }
+    User:
+      type: object
+      properties:
+        id: { type: integer, example: 1 }
+        name: { type: string, example: Test User }
+        email: { type: string, format: email, example: test@example.com }
+        email_verified_at: { type: string, format: date-time, nullable: true }
+        created_at: { type: string, format: date-time, nullable: true }
+        updated_at: { type: string, format: date-time, nullable: true }
+    AppointmentStatus:
+      type: string
+      enum: [scheduled, checked_in, in_progress, completed, cancelled, no_show]
+      example: scheduled
+    PaymentStatus:
+      type: string
+      enum: [unpaid, partial, paid, refunded]
+      example: unpaid

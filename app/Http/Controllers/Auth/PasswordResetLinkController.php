@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Auth;
 
 use App\Http\Controllers\Controller;
+use App\Support\ApiResponse;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Password;
@@ -34,6 +35,10 @@ class PasswordResetLinkController extends Controller
             ]);
         }
 
-        return response()->json(['status' => __($status)]);
+        return ApiResponse::success(
+            data: ['status' => __($status)],
+            message: 'Password reset link sent.',
+            request: $request,
+        );
     }
 }

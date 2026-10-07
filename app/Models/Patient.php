@@ -19,6 +19,36 @@ class Patient extends Model
         'streetAddress',
         'town',
         'city',
-        'notes'
+        'notes',
     ];
+
+    public function appointments()
+    {
+        return $this->hasMany(Appointment::class);
+    }
+
+    public function sentMessages()
+    {
+        return $this->hasMany(Message::class, 'sender_id');
+    }
+
+    public function receivedMessages()
+    {
+        return $this->hasMany(Message::class, 'receiver_id');
+    }
+
+    public function referrals()
+    {
+        return $this->hasMany(Referral::class);
+    }
+
+    public function invoices()
+    {
+        return $this->hasMany(Invoice::class);
+    }
+
+    public function clinicalNotes()
+    {
+        return $this->hasMany(ClinicalNote::class);
+    }
 }

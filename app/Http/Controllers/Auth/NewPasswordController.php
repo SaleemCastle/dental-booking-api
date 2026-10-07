@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Auth;
 
 use App\Http\Controllers\Controller;
+use App\Support\ApiResponse;
 use Illuminate\Auth\Events\PasswordReset;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -48,6 +49,10 @@ class NewPasswordController extends Controller
             ]);
         }
 
-        return response()->json(['status' => __($status)]);
+        return ApiResponse::success(
+            data: ['status' => __($status)],
+            message: 'Password reset successful.',
+            request: $request,
+        );
     }
 }

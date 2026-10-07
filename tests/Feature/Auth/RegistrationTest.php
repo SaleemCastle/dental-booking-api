@@ -19,6 +19,10 @@ class RegistrationTest extends TestCase
         ]);
 
         $this->assertAuthenticated();
-        $response->assertNoContent();
+        $response
+            ->assertCreated()
+            ->assertJsonPath('success', true)
+            ->assertJsonPath('statusCode', 201)
+            ->assertJsonPath('data.user.email', 'test@example.com');
     }
 }

@@ -1,5 +1,7 @@
 <?php
 
+use App\Support\ApiResponse;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -16,5 +18,12 @@ use Illuminate\Support\Facades\Route;
 Route::get('/', function () {
     return ['Laravel' => app()->version()];
 });
+
+Route::get('/sanctum/csrf-cookie', function (Request $request) {
+    return ApiResponse::success(
+        message: 'CSRF cookie initialized.',
+        request: $request,
+    );
+})->name('sanctum.csrf-cookie');
 
 require __DIR__.'/auth.php';
