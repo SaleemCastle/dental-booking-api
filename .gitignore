@@ -17,3 +17,19 @@ yarn-error.log
 /.fleet
 /.idea
 /.vscode
+
+# Local environment files
+.env.*
+!.env.example
+
+# Local Docker overrides and ad hoc services
+docker-compose.yml
+docker-compose.override.yml
+
+# OS and editor metadata
+.DS_Store
+Thumbs.db
+
+# Test and coverage output
+/coverage
+/build/coverage

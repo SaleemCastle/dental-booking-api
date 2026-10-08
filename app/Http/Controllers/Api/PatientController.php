@@ -3,59 +3,85 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Http\Resources\PatientResource;
 use App\Models\Patient;
+use App\Support\ApiResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Validator;
 
 class PatientController extends Controller
 {
-    public function index() {
-        $patients = Patient::all();
-        if ($patients->count() > 0) {
-            $data = [
-                'status' => 200,
-                'patients' => $patients
-            ];
-            return response()->json($data, 200);
-        } else {
-            return response()->json('No patients found', 404);
-        }
+    public function index()
+    {
+        $this->authorize('viewAny', Patient::class);
+
+        return ApiResponse::success([
+            'patients' => PatientResource::collection(Patient::all()),
+        ], 'Patients retrieved.');
     }
 
-    public function store(Request $request) {
-        $validator = Validator::make($request->all(), [
-            'firstName' => 'required | max:100',
-            'lastName' => 'required | max:100'
+    public function store(Request $request)
+    {
+        $this->authorize('create', Patient::class);
+
+        $validated = $request->validate([
+            'firstName' => ['required', 'string', 'max:100'],
+            'lastName' => ['required', 'string', 'max:100'],
+            'appointments' => ['required', 'string', 'max:255'],
+            'sex' => ['required', 'string', 'max:255'],
+            'streetAddress' => ['required', 'string', 'max:255'],
+            'town' => ['required', 'string', 'max:255'],
+            'city' => ['required', 'string', 'max:255'],
+            'notes' => ['required', 'string'],
         ]);
 
-        if ($validator->fails()) {
-            return response()->json([
-                'status' => '402',
-                'error' => $validator->messages()
-            ], 422);
-        } else {
-            $patients = Patient::create([
-                'firstName' => $request->firstName,
-                'lastName' => $request->lastName,
-                'sex' => $request->sex,
-                'appointments' => $request->appointments,
-                'streetAddress' => $request->streetAddress,
-                'town' => $request->town,
-                'city' => $request->city,
-                'notes' => $request->notes,
-            ]);
+        $patient = Patient::create($validated);
 
-            if ($patients) {
-                return response()->json([
-                    'status' => 201,
-                    'message' => 'Patient succesfully created!'
-                ], 201);
-            } else {
-                return response()->json([
-                    'status' => 500,
-                    'message' => 'Internal Server Error, patient not created'
-                ], 500);
-            }
-        }
+        return ApiResponse::success(
+            data: ['patient' => new PatientResource($patient)],
+            message: 'Patient successfully created.',
+            statusCode: 201,
+        );
+    }
+
+    public function show(Patient $patient)
+    {
+        $this->authorize('view', $patient);
+
+        return ApiResponse::success(
+            data: ['patient' => new PatientResource($patient)],
+            message: 'Patient retrieved.',
+        );
+    }
+
+    public function update(Request $request, Patient $patient)
+    {
+        $this->authorize('update', $patient);
+
+        $validated = $request->validate([
+            'firstName' => ['sometimes', 'required', 'string', 'max:100'],
+            'lastName' => ['sometimes', 'required', 'string', 'max:100'],
+            'appointments' => ['sometimes', 'required', 'string', 'max:255'],
+            'sex' => ['sometimes', 'required', 'string', 'max:255'],
+            'streetAddress' => ['sometimes', 'required', 'string', 'max:255'],
+            'town' => ['sometimes', 'required', 'string', 'max:255'],
+            'city' => ['sometimes', 'required', 'string', 'max:255'],
+            'notes' => ['sometimes', 'required', 'string'],
+        ]);
+
+        $patient->update($validated);
+
+        return ApiResponse::success(
+            data: ['patient' => new PatientResource($patient->refresh())],
+            message: 'Patient successfully updated.',
+        );
+    }
+
+    public function destroy(Patient $patient)
+    {
+        $this->authorize('delete', $patient);
+
+        $patient->delete();
+
+        return ApiResponse::success(message: 'Patient successfully deleted.');
     }
 }

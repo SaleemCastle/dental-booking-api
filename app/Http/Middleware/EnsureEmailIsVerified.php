@@ -2,6 +2,7 @@
 
 namespace App\Http\Middleware;
 
+use App\Support\ApiResponse;
 use Closure;
 use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Illuminate\Http\Request;
@@ -19,7 +20,12 @@ class EnsureEmailIsVerified
         if (! $request->user() ||
             ($request->user() instanceof MustVerifyEmail &&
             ! $request->user()->hasVerifiedEmail())) {
-            return response()->json(['message' => 'Your email address is not verified.'], 409);
+            return ApiResponse::error(
+                message: 'Your email address is not verified.',
+                statusCode: 409,
+                code: 'EMAIL_NOT_VERIFIED',
+                request: $request,
+            );
         }
 
         return $next($request);
