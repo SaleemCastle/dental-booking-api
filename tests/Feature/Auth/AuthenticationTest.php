@@ -19,6 +19,11 @@ class AuthenticationTest extends TestCase
         ];
     }
 
+    private function initializeCsrfCookie(): void
+    {
+        $this->withHeaders($this->browserHeaders())->get('/sanctum/csrf-cookie');
+    }
+
     public function test_csrf_cookie_endpoint_sets_browser_session_cookies(): void
     {
         $response = $this
@@ -41,7 +46,7 @@ class AuthenticationTest extends TestCase
     {
         $user = User::factory()->create();
 
-        $this->withHeaders($this->browserHeaders())->get('/sanctum/csrf-cookie');
+        $this->initializeCsrfCookie();
 
         $response = $this
             ->withHeaders($this->browserHeaders())
@@ -63,7 +68,7 @@ class AuthenticationTest extends TestCase
     {
         $user = User::factory()->create();
 
-        $this->withHeaders($this->browserHeaders())->get('/sanctum/csrf-cookie');
+        $this->initializeCsrfCookie();
         $this->withHeaders($this->browserHeaders())->postJson('/login', [
             'email' => $user->email,
             'password' => 'password',
@@ -81,7 +86,7 @@ class AuthenticationTest extends TestCase
 
     public function test_new_users_can_register_and_fetch_api_user_from_browser_session(): void
     {
-        $this->withHeaders($this->browserHeaders())->get('/sanctum/csrf-cookie');
+        $this->initializeCsrfCookie();
 
         $response = $this
             ->withHeaders($this->browserHeaders())
@@ -113,7 +118,7 @@ class AuthenticationTest extends TestCase
     {
         $user = User::factory()->create();
 
-        $this->withHeaders($this->browserHeaders())->get('/sanctum/csrf-cookie');
+        $this->initializeCsrfCookie();
         $this->withHeaders($this->browserHeaders())->postJson('/login', [
             'email' => $user->email,
             'password' => 'password',
@@ -139,7 +144,7 @@ class AuthenticationTest extends TestCase
     {
         $user = User::factory()->create();
 
-        $this->withHeaders($this->browserHeaders())->get('/sanctum/csrf-cookie');
+        $this->initializeCsrfCookie();
 
         $this
             ->withHeaders($this->browserHeaders())
