@@ -1414,6 +1414,32 @@ components:
         scheduled: { type: integer, example: 4 }
         checkedIn: { type: integer, example: 1 }
         completed: { type: integer, example: 3 }
+    Permission:
+      type: object
+      description: Permission used by role-based policies and frontend navigation gating.
+      properties:
+        id: { type: integer, example: 1 }
+        name: { type: string, example: View patients }
+        slug: { type: string, example: patients.view }
+        resource: { type: string, nullable: true, example: patients }
+        action: { type: string, nullable: true, example: view }
+        description: { type: string, nullable: true, example: Allows viewing patient records. }
+        created_at: { type: string, format: date-time, nullable: true }
+        updated_at: { type: string, format: date-time, nullable: true }
+    Role:
+      type: object
+      description: Role assigned to users and mapped to permissions.
+      properties:
+        id: { type: integer, example: 1 }
+        name: { type: string, example: Clinic Admin }
+        slug: { type: string, example: clinic-admin }
+        description: { type: string, nullable: true, example: Can manage clinic operations. }
+        is_system: { type: boolean, example: true }
+        permissions:
+          type: array
+          items: { $ref: "#/components/schemas/Permission" }
+        created_at: { type: string, format: date-time, nullable: true }
+        updated_at: { type: string, format: date-time, nullable: true }
     User:
       type: object
       properties:
@@ -1421,6 +1447,15 @@ components:
         name: { type: string, example: Test User }
         email: { type: string, format: email, example: test@example.com }
         email_verified_at: { type: string, format: date-time, nullable: true }
+        roles:
+          type: array
+          description: Present on authenticated user responses and any user payload loaded with access data.
+          items: { $ref: "#/components/schemas/Role" }
+        permissions:
+          type: array
+          description: Flattened permission slugs derived from assigned roles for frontend navigation and policy checks.
+          items: { type: string }
+          example: [patients.view, appointments.create]
         created_at: { type: string, format: date-time, nullable: true }
         updated_at: { type: string, format: date-time, nullable: true }
     AppointmentStatus:

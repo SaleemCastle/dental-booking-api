@@ -29,7 +29,7 @@ use Illuminate\Support\Facades\Route;
 
 Route::middleware(['auth:sanctum'])->get('/user', function (Request $request) {
     return ApiResponse::success(
-        data: $request->user(),
+        data: $request->user()->loadMissing('roles.permissions'),
         message: 'Authenticated user retrieved.',
         request: $request,
     );
