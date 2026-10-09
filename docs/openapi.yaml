@@ -219,6 +219,15 @@ paths:
     get:
       tags: [Patients]
       summary: List patients
+      parameters:
+        - name: archived
+          in: query
+          required: false
+          description: Filter archived patients. Defaults to active patients only.
+          schema:
+            type: string
+            enum: [without, with, only]
+            default: without
       responses:
         "200":
           description: Patient list in the current frontend shape.
@@ -295,10 +304,27 @@ paths:
           $ref: "#/components/responses/ValidationError"
     delete:
       tags: [Patients]
-      summary: Delete patient
+      summary: Archive patient
+      description: Archives the patient record without hard-deleting it, preserving linked appointments, clinical notes, invoices, and other history.
       responses:
         "200":
-          $ref: "#/components/responses/DeleteMessage"
+          description: Patient archived.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PatientEnvelope"
+        "403":
+          description: The authenticated user cannot archive patients.
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/ApiErrorEnvelope"
+                  - type: object
+                    properties:
+                      statusCode: { type: integer, example: 403 }
+                      message: { type: string, example: This action is unauthorized. }
+                      code: { type: string, example: FORBIDDEN }
   /api/patients/{patient}/update:
     parameters:
       - $ref: "#/components/parameters/PatientId"
@@ -320,11 +346,16 @@ paths:
       - $ref: "#/components/parameters/PatientId"
     delete:
       tags: [Patients]
-      summary: Legacy patient delete endpoint
+      summary: Legacy patient archive endpoint
       deprecated: true
+      description: Legacy route retained for compatibility. It archives the patient and does not hard-delete the record.
       responses:
         "200":
-          $ref: "#/components/responses/DeleteMessage"
+          description: Patient archived.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PatientEnvelope"
   /api/appointments:
     get:
       tags: [Appointments]
@@ -1157,6 +1188,9 @@ components:
           type: array
           items: { type: string }
           example: [Diabetes]
+        is_archived: { type: boolean, example: false }
+        archived_at: { type: string, format: date-time, nullable: true }
+        archived_by_user_id: { type: integer, nullable: true, example: 1 }
         created_at: { type: string, format: date-time, nullable: true }
         updated_at: { type: string, format: date-time, nullable: true }
     PatientEnvelope:

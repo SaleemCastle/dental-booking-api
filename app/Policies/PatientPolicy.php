@@ -29,6 +29,6 @@ class PatientPolicy
 
     public function delete(User $user, Patient $patient): bool
     {
-        return true;
+        return $user->canPerform('delete', $patient);
     }
 }

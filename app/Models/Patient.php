@@ -26,13 +26,39 @@ class Patient extends Model
         'allergies',
         'medications',
         'medical_alerts',
+        'archived_at',
+        'archived_by_user_id',
     ];
 
     protected $casts = [
         'allergies' => 'array',
         'medications' => 'array',
         'medical_alerts' => 'array',
+        'archived_at' => 'datetime',
     ];
+
+    public function scopeActive($query)
+    {
+        return $query->whereNull('archived_at');
+    }
+
+    public function scopeArchived($query)
+    {
+        return $query->whereNotNull('archived_at');
+    }
+
+    public function archive(?User $user = null): bool
+    {
+        return $this->forceFill([
+            'archived_at' => $this->archived_at ?? now(),
+            'archived_by_user_id' => $this->archived_by_user_id ?? $user?->id,
+        ])->save();
+    }
+
+    public function archivedBy()
+    {
+        return $this->belongsTo(User::class, 'archived_by_user_id');
+    }
 
     public function appointments()
     {
