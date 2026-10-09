@@ -20,6 +20,18 @@ class Patient extends Model
         'town',
         'city',
         'notes',
+        'emergency_contact_name',
+        'emergency_contact_phone',
+        'emergency_contact_relationship',
+        'allergies',
+        'medications',
+        'medical_alerts',
+    ];
+
+    protected $casts = [
+        'allergies' => 'array',
+        'medications' => 'array',
+        'medical_alerts' => 'array',
     ];
 
     public function appointments()

@@ -3,10 +3,11 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\StorePatientRequest;
+use App\Http\Requests\UpdatePatientRequest;
 use App\Http\Resources\PatientResource;
 use App\Models\Patient;
 use App\Support\ApiResponse;
-use Illuminate\Http\Request;
 
 class PatientController extends Controller
 {
@@ -19,22 +20,11 @@ class PatientController extends Controller
         ], 'Patients retrieved.');
     }
 
-    public function store(Request $request)
+    public function store(StorePatientRequest $request)
     {
         $this->authorize('create', Patient::class);
 
-        $validated = $request->validate([
-            'firstName' => ['required', 'string', 'max:100'],
-            'lastName' => ['required', 'string', 'max:100'],
-            'appointments' => ['required', 'string', 'max:255'],
-            'sex' => ['required', 'string', 'max:255'],
-            'streetAddress' => ['required', 'string', 'max:255'],
-            'town' => ['required', 'string', 'max:255'],
-            'city' => ['required', 'string', 'max:255'],
-            'notes' => ['required', 'string'],
-        ]);
-
-        $patient = Patient::create($validated);
+        $patient = Patient::create($request->validated());
 
         return ApiResponse::success(
             data: ['patient' => new PatientResource($patient)],
@@ -53,22 +43,11 @@ class PatientController extends Controller
         );
     }
 
-    public function update(Request $request, Patient $patient)
+    public function update(UpdatePatientRequest $request, Patient $patient)
     {
         $this->authorize('update', $patient);
 
-        $validated = $request->validate([
-            'firstName' => ['sometimes', 'required', 'string', 'max:100'],
-            'lastName' => ['sometimes', 'required', 'string', 'max:100'],
-            'appointments' => ['sometimes', 'required', 'string', 'max:255'],
-            'sex' => ['sometimes', 'required', 'string', 'max:255'],
-            'streetAddress' => ['sometimes', 'required', 'string', 'max:255'],
-            'town' => ['sometimes', 'required', 'string', 'max:255'],
-            'city' => ['sometimes', 'required', 'string', 'max:255'],
-            'notes' => ['sometimes', 'required', 'string'],
-        ]);
-
-        $patient->update($validated);
+        $patient->update($request->validated());
 
         return ApiResponse::success(
             data: ['patient' => new PatientResource($patient->refresh())],
