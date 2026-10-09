@@ -2,7 +2,11 @@
 
 namespace Tests\Feature\Api;
 
+use App\Models\Appointment;
+use App\Models\ClinicalNote;
 use App\Models\Patient;
+use App\Models\Permission;
+use App\Models\Role;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Laravel\Sanctum\Sanctum;
@@ -56,6 +60,9 @@ class PatientApiTest extends TestCase
                         'allergies',
                         'medications',
                         'medical_alerts',
+                        'is_archived',
+                        'archived_at',
+                        'archived_by_user_id',
                         'created_at',
                         'updated_at',
                     ]],
@@ -194,5 +201,93 @@ class PatientApiTest extends TestCase
             ->assertJsonPath('data.patient.allergies', [])
             ->assertJsonPath('data.patient.medications', [])
             ->assertJsonPath('data.patient.medical_alerts', []);
+    }
+
+    public function test_patient_archive_requires_authorization(): void
+    {
+        Sanctum::actingAs(User::factory()->create());
+        $patient = Patient::factory()->create();
+
+        $this->deleteJson("/api/patients/{$patient->id}")
+            ->assertForbidden()
+            ->assertJsonPath('success', false)
+            ->assertJsonPath('statusCode', 403)
+            ->assertJsonPath('code', 'FORBIDDEN');
+
+        $this->assertNull($patient->refresh()->archived_at);
+    }
+
+    public function test_patient_can_be_archived_without_deleting_linked_history(): void
+    {
+        $user = $this->actingAsUserWithPatientDeletePermission();
+        $patient = Patient::factory()->create();
+        $appointment = Appointment::factory()->create(['patient_id' => $patient->id]);
+        $clinicalNote = ClinicalNote::factory()->create([
+            'patient_id' => $patient->id,
+            'appointment_id' => $appointment->id,
+        ]);
+
+        $this->deleteJson("/api/patients/{$patient->id}")
+            ->assertOk()
+            ->assertJsonPath('message', 'Patient successfully archived.')
+            ->assertJsonPath('data.patient.id', $patient->id)
+            ->assertJsonPath('data.patient.is_archived', true)
+            ->assertJsonPath('data.patient.archived_by_user_id', $user->id);
+
+        $this->assertDatabaseHas('patient', [
+            'id' => $patient->id,
+            'archived_by_user_id' => $user->id,
+        ]);
+        $this->assertNotNull($patient->refresh()->archived_at);
+        $this->assertSame($patient->id, $appointment->refresh()->patient_id);
+        $this->assertSame($patient->id, $clinicalNote->refresh()->patient_id);
+    }
+
+    public function test_archived_state_is_queryable_from_patient_index(): void
+    {
+        Sanctum::actingAs(User::factory()->create());
+        $activePatient = Patient::factory()->create(['firstName' => 'Active']);
+        $archivedPatient = Patient::factory()->create([
+            'firstName' => 'Archived',
+            'archived_at' => now(),
+        ]);
+
+        $this->getJson('/api/patients')
+            ->assertOk()
+            ->assertJsonCount(1, 'data.patients')
+            ->assertJsonPath('data.patients.0.id', $activePatient->id)
+            ->assertJsonPath('data.patients.0.is_archived', false);
+
+        $this->getJson('/api/patients?archived=only')
+            ->assertOk()
+            ->assertJsonCount(1, 'data.patients')
+            ->assertJsonPath('data.patients.0.id', $archivedPatient->id)
+            ->assertJsonPath('data.patients.0.is_archived', true);
+
+        $this->getJson('/api/patients?archived=with')
+            ->assertOk()
+            ->assertJsonCount(2, 'data.patients');
+    }
+
+    private function actingAsUserWithPatientDeletePermission(): User
+    {
+        $user = User::factory()->create();
+        $role = Role::create([
+            'name' => 'Patient Archiver',
+            'slug' => 'patient-archiver',
+        ]);
+        $permission = Permission::create([
+            'name' => 'Delete patients',
+            'slug' => 'patients.delete',
+            'resource' => 'patients',
+            'action' => 'delete',
+        ]);
+
+        $role->permissions()->attach($permission);
+        $user->roles()->attach($role);
+
+        Sanctum::actingAs($user);
+
+        return $user;
     }
 }

@@ -25,6 +25,9 @@ class PatientResource extends JsonResource
             'allergies' => $this->allergies ?? [],
             'medications' => $this->medications ?? [],
             'medical_alerts' => $this->medical_alerts ?? [],
+            'is_archived' => $this->archived_at !== null,
+            'archived_at' => $this->archived_at,
+            'archived_by_user_id' => $this->archived_by_user_id,
             'created_at' => $this->created_at,
             'updated_at' => $this->updated_at,
         ];

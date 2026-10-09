@@ -8,15 +8,26 @@ use App\Http\Requests\UpdatePatientRequest;
 use App\Http\Resources\PatientResource;
 use App\Models\Patient;
 use App\Support\ApiResponse;
+use Illuminate\Http\Request;
+use Illuminate\Validation\Rule;
 
 class PatientController extends Controller
 {
-    public function index()
+    public function index(Request $request)
     {
         $this->authorize('viewAny', Patient::class);
 
+        $validated = $request->validate([
+            'archived' => ['sometimes', Rule::in(['without', 'with', 'only'])],
+        ]);
+
+        $patients = Patient::query()
+            ->when(($validated['archived'] ?? 'without') === 'without', fn ($query) => $query->active())
+            ->when(($validated['archived'] ?? null) === 'only', fn ($query) => $query->archived())
+            ->get();
+
         return ApiResponse::success([
-            'patients' => PatientResource::collection(Patient::all()),
+            'patients' => PatientResource::collection($patients),
         ], 'Patients retrieved.');
     }
 
@@ -59,8 +70,11 @@ class PatientController extends Controller
     {
         $this->authorize('delete', $patient);
 
-        $patient->delete();
+        $patient->archive(request()->user());
 
-        return ApiResponse::success(message: 'Patient successfully deleted.');
+        return ApiResponse::success(
+            data: ['patient' => new PatientResource($patient->refresh())],
+            message: 'Patient successfully archived.',
+        );
     }
 }
