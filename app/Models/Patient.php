@@ -26,8 +26,6 @@ class Patient extends Model
         'allergies',
         'medications',
         'medical_alerts',
-        'archived_at',
-        'archived_by_user_id',
     ];
 
     protected $casts = [
@@ -45,6 +43,42 @@ class Patient extends Model
     public function scopeArchived($query)
     {
         return $query->whereNotNull('archived_at');
+    }
+
+    public function scopeSearch($query, string $search)
+    {
+        $search = trim($search);
+
+        return $query->where(function ($query) use ($search) {
+            if (ctype_digit($search)) {
+                $query->orWhere('id', (int) $search);
+            }
+
+            $like = "%{$search}%";
+
+            $query
+                ->orWhere('firstName', 'like', $like)
+                ->orWhere('lastName', 'like', $like)
+                ->orWhere('streetAddress', 'like', $like)
+                ->orWhere('town', 'like', $like)
+                ->orWhere('city', 'like', $like)
+                ->orWhere('notes', 'like', $like)
+                ->orWhere('emergency_contact_name', 'like', $like)
+                ->orWhere('emergency_contact_phone', 'like', $like)
+                ->orWhere('emergency_contact_relationship', 'like', $like);
+
+            collect(preg_split('/\s+/', $search, flags: PREG_SPLIT_NO_EMPTY))
+                ->filter(fn (string $term) => strlen($term) >= 2)
+                ->each(function (string $term) use ($query): void {
+                    $termLike = "%{$term}%";
+
+                    $query->orWhere(function ($query) use ($termLike): void {
+                        $query
+                            ->where('firstName', 'like', $termLike)
+                            ->orWhere('lastName', 'like', $termLike);
+                    });
+                });
+        });
     }
 
     public function archive(?User $user = null): bool
