@@ -12,12 +12,16 @@ class Treatment extends Model
     protected $fillable = [
         'name',
         'description',
+        'category',
         'duration_minutes',
         'price',
+        'active',
     ];
 
     protected $casts = [
+        'duration_minutes' => 'integer',
         'price' => 'decimal:2',
+        'active' => 'boolean',
     ];
 
     public function appointments()

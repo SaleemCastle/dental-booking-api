@@ -8,6 +8,7 @@ use App\Models\Dentist;
 use App\Models\Invoice;
 use App\Models\Patient;
 use App\Models\Payment;
+use App\Models\Role;
 use App\Models\Treatment;
 use App\Models\User;
 use Illuminate\Database\Seeder;
@@ -21,7 +22,7 @@ class DatabaseSeeder extends Seeder
     {
         $this->call(RoleSeeder::class);
 
-        User::firstOrCreate(
+        $user = User::firstOrCreate(
             ['email' => 'test@example.com'],
             [
                 'name' => 'Test User',
@@ -29,6 +30,9 @@ class DatabaseSeeder extends Seeder
                 'email_verified_at' => now(),
             ],
         );
+
+        $admin = Role::where('slug', Role::ADMIN)->firstOrFail();
+        $user->roles()->syncWithoutDetaching([$admin->id]);
 
         $patients = Patient::factory(10)->create();
         $dentists = Dentist::factory(4)->create();

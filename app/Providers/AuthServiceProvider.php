@@ -3,8 +3,10 @@
 namespace App\Providers;
 
 use App\Models\Patient;
+use App\Models\Treatment;
 use App\Models\User;
 use App\Policies\PatientPolicy;
+use App\Policies\TreatmentPolicy;
 use Illuminate\Auth\Notifications\ResetPassword;
 use Illuminate\Foundation\Support\Providers\AuthServiceProvider as ServiceProvider;
 use Illuminate\Support\Facades\Gate;
@@ -18,6 +20,7 @@ class AuthServiceProvider extends ServiceProvider
      */
     protected $policies = [
         Patient::class => PatientPolicy::class,
+        Treatment::class => TreatmentPolicy::class,
     ];
 
     /**
