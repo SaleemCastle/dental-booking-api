@@ -13,22 +13,58 @@ use Illuminate\Validation\Rule;
 
 class PatientController extends Controller
 {
+    private const GENERAL_UPDATE_FIELDS = [
+        'firstName',
+        'lastName',
+        'appointments',
+        'sex',
+        'streetAddress',
+        'town',
+        'city',
+        'notes',
+        'emergency_contact_name',
+        'emergency_contact_phone',
+        'emergency_contact_relationship',
+    ];
+
+    private const MEDICAL_UPDATE_FIELDS = [
+        'allergies',
+        'medications',
+        'medical_alerts',
+    ];
+
     public function index(Request $request)
     {
         $this->authorize('viewAny', Patient::class);
 
         $validated = $request->validate([
             'archived' => ['sometimes', Rule::in(['without', 'with', 'only'])],
+            'search' => ['sometimes', 'nullable', 'string', 'max:255'],
+            'per_page' => ['sometimes', 'integer', 'min:1', 'max:100'],
+            'page' => ['sometimes', 'integer', 'min:1'],
         ]);
 
         $patients = Patient::query()
             ->when(($validated['archived'] ?? 'without') === 'without', fn ($query) => $query->active())
             ->when(($validated['archived'] ?? null) === 'only', fn ($query) => $query->archived())
-            ->get();
+            ->when(filled($validated['search'] ?? null), fn ($query) => $query->search($validated['search']))
+            ->orderBy('id')
+            ->paginate($validated['per_page'] ?? 15)
+            ->withQueryString();
 
         return ApiResponse::success([
-            'patients' => PatientResource::collection($patients),
-        ], 'Patients retrieved.');
+            'patients' => PatientResource::collection($patients->getCollection()),
+        ], 'Patients retrieved.', meta: [
+            'pagination' => [
+                'currentPage' => $patients->currentPage(),
+                'perPage' => $patients->perPage(),
+                'total' => $patients->total(),
+                'lastPage' => $patients->lastPage(),
+                'from' => $patients->firstItem(),
+                'to' => $patients->lastItem(),
+                'hasMorePages' => $patients->hasMorePages(),
+            ],
+        ]);
     }
 
     public function store(StorePatientRequest $request)
@@ -56,9 +92,17 @@ class PatientController extends Controller
 
     public function update(UpdatePatientRequest $request, Patient $patient)
     {
-        $this->authorize('update', $patient);
+        $validated = $request->validated();
 
-        $patient->update($request->validated());
+        if ($this->containsAnyField($validated, self::GENERAL_UPDATE_FIELDS) || $validated === []) {
+            $this->authorize('update', $patient);
+        }
+
+        if ($this->containsAnyField($validated, self::MEDICAL_UPDATE_FIELDS)) {
+            $this->authorize('updateMedical', $patient);
+        }
+
+        $patient->update($validated);
 
         return ApiResponse::success(
             data: ['patient' => new PatientResource($patient->refresh())],
@@ -68,7 +112,7 @@ class PatientController extends Controller
 
     public function destroy(Patient $patient)
     {
-        $this->authorize('delete', $patient);
+        $this->authorize('archive', $patient);
 
         $patient->archive(request()->user());
 
@@ -76,5 +120,10 @@ class PatientController extends Controller
             data: ['patient' => new PatientResource($patient->refresh())],
             message: 'Patient successfully archived.',
         );
+    }
+
+    private function containsAnyField(array $data, array $fields): bool
+    {
+        return collect($fields)->contains(fn (string $field) => array_key_exists($field, $data));
     }
 }
