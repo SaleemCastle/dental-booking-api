@@ -55,5 +55,10 @@ class RoleSeederTest extends TestCase
 
         $this->assertSame(6, Role::count());
         $this->assertSame(1, User::where('email', 'test@example.com')->count());
+
+        $user = User::where('email', 'test@example.com')->firstOrFail();
+
+        $this->assertTrue($user->hasRole(Role::ADMIN));
+        $this->assertSame(1, $user->roles()->where('slug', Role::ADMIN)->count());
     }
 }
