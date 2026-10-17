@@ -54,6 +54,11 @@ class User extends Authenticatable
         return $this->belongsToMany(Role::class)->withTimestamps();
     }
 
+    public function assignedTasks()
+    {
+        return $this->hasMany(Task::class, 'assignee_id');
+    }
+
     public function getPermissionsAttribute(): array
     {
         return $this->permissionSlugs();
