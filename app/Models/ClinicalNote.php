@@ -4,16 +4,26 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\SoftDeletes;
 
 class ClinicalNote extends Model
 {
-    use HasFactory;
+    use HasFactory, SoftDeletes;
 
     protected $fillable = [
         'patient_id',
         'dentist_id',
         'appointment_id',
         'note_text',
+    ];
+
+    protected $casts = [
+        'patient_id' => 'integer',
+        'dentist_id' => 'integer',
+        'appointment_id' => 'integer',
+        'author_user_id' => 'integer',
+        'updated_by_user_id' => 'integer',
+        'deleted_by_user_id' => 'integer',
     ];
 
     public function patient()
@@ -29,5 +39,20 @@ class ClinicalNote extends Model
     public function appointment()
     {
         return $this->belongsTo(Appointment::class);
+    }
+
+    public function author()
+    {
+        return $this->belongsTo(User::class, 'author_user_id');
+    }
+
+    public function lastEditor()
+    {
+        return $this->belongsTo(User::class, 'updated_by_user_id');
+    }
+
+    public function deletedBy()
+    {
+        return $this->belongsTo(User::class, 'deleted_by_user_id');
     }
 }

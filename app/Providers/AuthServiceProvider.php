@@ -3,10 +3,12 @@
 namespace App\Providers;
 
 use App\Models\Appointment;
+use App\Models\ClinicalNote;
 use App\Models\Patient;
 use App\Models\Treatment;
 use App\Models\User;
 use App\Policies\AppointmentPolicy;
+use App\Policies\ClinicalNotePolicy;
 use App\Policies\PatientPolicy;
 use App\Policies\TreatmentPolicy;
 use Illuminate\Auth\Notifications\ResetPassword;
@@ -22,6 +24,7 @@ class AuthServiceProvider extends ServiceProvider
      */
     protected $policies = [
         Appointment::class => AppointmentPolicy::class,
+        ClinicalNote::class => ClinicalNotePolicy::class,
         Patient::class => PatientPolicy::class,
         Treatment::class => TreatmentPolicy::class,
     ];
@@ -35,6 +38,10 @@ class AuthServiceProvider extends ServiceProvider
 
         Gate::before(function (User $user, string $ability, mixed $arguments = null) {
             $resource = is_array($arguments) ? ($arguments[0] ?? null) : $arguments;
+
+            if ($resource instanceof ClinicalNote || $resource === ClinicalNote::class) {
+                return null;
+            }
 
             return $user->canPerform($ability, $resource) ?: null;
         });
