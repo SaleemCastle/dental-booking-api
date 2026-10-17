@@ -10,6 +10,7 @@ use App\Http\Controllers\Api\MessageController;
 use App\Http\Controllers\Api\PatientController;
 use App\Http\Controllers\Api\PaymentController;
 use App\Http\Controllers\Api\ReferralController;
+use App\Http\Controllers\Api\TaskController;
 use App\Http\Controllers\Api\TokenController;
 use App\Http\Controllers\Api\TreatmentController;
 use App\Http\Controllers\Api\UserController;
@@ -57,6 +58,8 @@ Route::middleware(['auth:sanctum'])->group(function () {
     Route::post('appointments/{appointment}/complete', [AppointmentController::class, 'complete']);
     Route::post('appointments/{appointment}/cancel', [AppointmentController::class, 'cancel']);
 
+    Route::patch('tasks/{task}/status', [TaskController::class, 'updateStatus']);
+
     Route::apiResource('patients', PatientController::class);
     Route::apiResource('dentists', DentistController::class);
     Route::apiResource('appointments', AppointmentController::class);
@@ -67,6 +70,7 @@ Route::middleware(['auth:sanctum'])->group(function () {
     Route::apiResource('invoices', InvoiceController::class);
     Route::apiResource('payments', PaymentController::class);
     Route::apiResource('clinical-notes', ClinicalNoteController::class);
+    Route::apiResource('tasks', TaskController::class);
 
     Route::put('patients/{patient}/update', [PatientController::class, 'update']);
     Route::delete('patients/{patient}/delete', [PatientController::class, 'destroy']);

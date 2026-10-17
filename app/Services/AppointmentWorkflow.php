@@ -111,6 +111,12 @@ class AppointmentWorkflow
 
         $appointment->fill($data);
 
+        if ($appointment->exists && $appointment->isDirty('patient_id') && $appointment->tasks()->exists()) {
+            throw ValidationException::withMessages([
+                'appointment_id' => ['An appointment with tasks cannot be reassigned to a different patient.'],
+            ]);
+        }
+
         if ($appointment->exists && $appointment->isDirty(['patient_id', 'dentist_id']) && $appointment->clinicalNotes()->withTrashed()->exists()) {
             throw ValidationException::withMessages([
                 'appointment_id' => ['An appointment with clinical notes cannot be reassigned to a different patient or provider.'],

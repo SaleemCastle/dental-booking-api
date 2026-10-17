@@ -1,7 +1,7 @@
 openapi: 3.0.3
 info:
   title: Dental Booking Backend API
-  version: 1.5.0
+  version: 1.6.0
   description: Laravel Sanctum API for dental clinic booking, scheduling, billing, messaging, and dashboard workflows. All JSON endpoints return the standard ApiEnvelope shape with success, statusCode, message, code, data, errors, meta, and requestId.
 servers:
   - url: http://localhost:8000
@@ -19,6 +19,7 @@ tags:
   - name: Invoices
   - name: Payments
   - name: Clinical Notes
+  - name: Tasks
   - name: Messages
   - name: Referrals
   - name: Users
@@ -511,7 +512,7 @@ paths:
     patch:
       tags: [Appointments]
       summary: Update appointment
-      description: Requires appointments.update permission or the admin role. PATCH and PUT both accept partial updates and preserve omitted fields. Changes to provider, chair, room, start, treatment-derived duration, or explicit duration are checked for overlaps. Completed, cancelled, and no_show appointments cannot be rescheduled. Appointments with clinical notes, including soft-deleted notes, cannot change patient/provider. Status changes use the workflow rules described in docs/appointment-workflow.md. Repeating the current status is idempotent and preserves timestamps.
+      description: Requires appointments.update permission or the admin role. PATCH and PUT both accept partial updates and preserve omitted fields. Changes to provider, chair, room, start, treatment-derived duration, or explicit duration are checked for overlaps. Completed, cancelled, and no_show appointments cannot be rescheduled. Appointments with clinical notes, including soft-deleted notes, cannot change patient/provider. Appointments linked to tasks cannot change patient. Status changes use the workflow rules described in docs/appointment-workflow.md. Repeating the current status is idempotent and preserves timestamps.
       requestBody:
         $ref: "#/components/requestBodies/AppointmentUpdateBody"
       responses:
@@ -887,6 +888,164 @@ paths:
       responses:
         "200":
           $ref: "#/components/responses/DeleteMessage"
+  /api/tasks:
+    get:
+      tags: [Tasks]
+      summary: List follow-up tasks
+      description: Requires tasks.view permission or the admin role. Filters combine with AND before pagination. assigned_to_me uses the authenticated user's ID. overdue and due_today include only pending/in_progress tasks and use the application's calendar date (UTC). Boolean query toggles accept 1 or 0; 0 disables a filter. Without date filters, all task statuses are included. Results are ordered by due_date ascending then ID ascending. See docs/tasks.md.
+      parameters:
+        - name: assigned_to_me
+          in: query
+          schema: { type: integer, enum: [0, 1] }
+        - name: overdue
+          in: query
+          description: Open tasks with due_date strictly before today.
+          schema: { type: integer, enum: [0, 1] }
+        - name: due_today
+          in: query
+          description: Open tasks with due_date equal to today.
+          schema: { type: integer, enum: [0, 1] }
+        - name: patient_id
+          in: query
+          schema: { type: integer }
+        - name: status
+          in: query
+          schema: { $ref: "#/components/schemas/TaskStatus" }
+        - name: per_page
+          in: query
+          schema: { type: integer, minimum: 1, maximum: 100, default: 15 }
+        - name: page
+          in: query
+          schema: { type: integer, minimum: 1, default: 1 }
+      responses:
+        "200":
+          $ref: "#/components/responses/TaskList"
+        "401":
+          $ref: "#/components/responses/Unauthenticated"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "422":
+          $ref: "#/components/responses/ValidationError"
+    post:
+      tags: [Tasks]
+      summary: Create follow-up task
+      description: Requires tasks.create permission or the admin role. Assignee, due_date, and description are required. Patient and appointment are optional. An appointment derives patient_id when patient_id is omitted; an explicitly supplied patient must match the appointment. Due dates may be in the past. Priority defaults to normal and status to pending. Any valid initial status is accepted; completed tasks receive a server-generated completed_at timestamp.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/TaskRequest" }
+      responses:
+        "201":
+          $ref: "#/components/responses/TaskEnvelope"
+        "401":
+          $ref: "#/components/responses/Unauthenticated"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "422":
+          $ref: "#/components/responses/ValidationError"
+  /api/tasks/{task}:
+    parameters:
+      - name: task
+        in: path
+        required: true
+        schema: { type: integer, example: 1 }
+    get:
+      tags: [Tasks]
+      summary: Get follow-up task
+      description: Requires tasks.view permission or the admin role. Assignment alone grants no access.
+      responses:
+        "200":
+          $ref: "#/components/responses/TaskEnvelope"
+        "401":
+          $ref: "#/components/responses/Unauthenticated"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+    patch:
+      tags: [Tasks]
+      summary: Update or reassign follow-up task
+      description: Requires tasks.update permission or the admin role. Preserves omitted fields. Changing appointment_id without patient_id derives the new appointment's patient. Clearing appointment_id keeps the patient; clear both IDs to make a general task. Relationship mismatches return 422. Any valid status change is allowed, including reopening a completed/cancelled task. completed_at is generated on completion, preserved on repeated completion, and cleared when leaving completed.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/TaskFields" }
+      responses:
+        "200":
+          $ref: "#/components/responses/TaskEnvelope"
+        "401":
+          $ref: "#/components/responses/Unauthenticated"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "422":
+          $ref: "#/components/responses/ValidationError"
+    put:
+      tags: [Tasks]
+      summary: Update follow-up task
+      description: Uses the same partial update, tasks.update authorization, relationship checks, and completion timestamp behavior as PATCH.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/TaskFields" }
+      responses:
+        "200":
+          $ref: "#/components/responses/TaskEnvelope"
+        "401":
+          $ref: "#/components/responses/Unauthenticated"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "422":
+          $ref: "#/components/responses/ValidationError"
+    delete:
+      tags: [Tasks]
+      summary: Delete follow-up task
+      description: Requires tasks.delete permission or the admin role. Physically deletes the task. Use status cancelled to retain it instead. Subsequent requests for the deleted ID return 404.
+      responses:
+        "200":
+          $ref: "#/components/responses/DeleteMessage"
+        "401":
+          $ref: "#/components/responses/Unauthenticated"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+  /api/tasks/{task}/status:
+    parameters:
+      - name: task
+        in: path
+        required: true
+        schema: { type: integer, example: 1 }
+    patch:
+      tags: [Tasks]
+      summary: Change follow-up task status
+      description: Requires tasks.update permission or the admin role. Accepts any valid status, including reopening. Other task fields and server-managed timestamps must be absent. Uses the same completion timestamp behavior as the general update endpoints.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [status]
+              properties:
+                status: { $ref: "#/components/schemas/TaskStatus" }
+      responses:
+        "200":
+          $ref: "#/components/responses/TaskEnvelope"
+        "401":
+          $ref: "#/components/responses/Unauthenticated"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "422":
+          $ref: "#/components/responses/ValidationError"
   /api/clinical-notes:
     get:
       tags: [Clinical Notes]
@@ -1356,6 +1515,32 @@ components:
                     type: object
                     properties:
                       payment: { $ref: "#/components/schemas/Payment" }
+    TaskList:
+      description: Task list. meta.pagination contains currentPage, perPage, total, lastPage, from, to, and hasMorePages.
+      content:
+        application/json:
+          schema:
+            allOf:
+              - $ref: "#/components/schemas/ApiEnvelope"
+              - type: object
+                properties:
+                  data:
+                    type: object
+                    properties:
+                      tasks: { type: array, items: { $ref: "#/components/schemas/Task" } }
+    TaskEnvelope:
+      description: Follow-up task response.
+      content:
+        application/json:
+          schema:
+            allOf:
+              - $ref: "#/components/schemas/ApiEnvelope"
+              - type: object
+                properties:
+                  data:
+                    type: object
+                    properties:
+                      task: { $ref: "#/components/schemas/Task" }
     ClinicalNoteList:
       description: Clinical note list.
       content:
@@ -1793,6 +1978,47 @@ components:
         status: { $ref: "#/components/schemas/PaymentStatus" }
         paid_at: { type: string, format: date-time, nullable: true }
         reference: { type: string, nullable: true }
+    TaskPriority:
+      type: string
+      enum: [low, normal, high, urgent]
+    TaskStatus:
+      type: string
+      enum: [pending, in_progress, completed, cancelled]
+    TaskFields:
+      type: object
+      description: completed_at, created_at, and updated_at are server-controlled and must be absent, including null values. Linked appointments and patients must be consistent. Assignee must be an existing user; assignment does not grant task permissions.
+      properties:
+        patient_id: { type: integer, nullable: true }
+        appointment_id: { type: integer, nullable: true }
+        assignee_id: { type: integer }
+        due_date: { type: string, format: date, example: "2026-10-20", description: Exact YYYY-MM-DD calendar date. Past dates are allowed. }
+        priority: { $ref: "#/components/schemas/TaskPriority" }
+        status: { $ref: "#/components/schemas/TaskStatus" }
+        description: { type: string, minLength: 1, maxLength: 16000 }
+    TaskRequest:
+      allOf:
+        - $ref: "#/components/schemas/TaskFields"
+        - type: object
+          required: [assignee_id, due_date, description]
+    Task:
+      type: object
+      required: [id, patient_id, appointment_id, assignee_id, due_date, priority, status, description, completed_at, patientName, assigneeName, appointmentStartsAt, is_overdue, created_at, updated_at]
+      properties:
+        id: { type: integer, example: 1 }
+        patient_id: { type: integer, nullable: true }
+        appointment_id: { type: integer, nullable: true }
+        assignee_id: { type: integer }
+        due_date: { type: string, format: date, example: "2026-10-20" }
+        priority: { $ref: "#/components/schemas/TaskPriority" }
+        status: { $ref: "#/components/schemas/TaskStatus" }
+        description: { type: string, example: Call patient after treatment. }
+        completed_at: { type: string, format: date-time, nullable: true, readOnly: true }
+        patientName: { type: string, nullable: true, readOnly: true }
+        assigneeName: { type: string, readOnly: true }
+        appointmentStartsAt: { type: string, format: date-time, nullable: true, readOnly: true }
+        is_overdue: { type: boolean, readOnly: true, description: Open task with due_date strictly before the application's current calendar date. }
+        created_at: { type: string, format: date-time, readOnly: true }
+        updated_at: { type: string, format: date-time, readOnly: true }
     ClinicalNote:
       type: object
       description: Canonical IDs are integers; dentist_id identifies the clinical provider independently of the authenticated author. Attribution is nullable only for legacy notes whose original authorship is unknown. API-created notes always capture author and editor. Response timestamps use ISO 8601 UTC.

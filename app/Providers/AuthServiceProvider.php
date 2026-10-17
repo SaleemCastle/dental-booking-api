@@ -5,11 +5,13 @@ namespace App\Providers;
 use App\Models\Appointment;
 use App\Models\ClinicalNote;
 use App\Models\Patient;
+use App\Models\Task;
 use App\Models\Treatment;
 use App\Models\User;
 use App\Policies\AppointmentPolicy;
 use App\Policies\ClinicalNotePolicy;
 use App\Policies\PatientPolicy;
+use App\Policies\TaskPolicy;
 use App\Policies\TreatmentPolicy;
 use Illuminate\Auth\Notifications\ResetPassword;
 use Illuminate\Foundation\Support\Providers\AuthServiceProvider as ServiceProvider;
@@ -26,6 +28,7 @@ class AuthServiceProvider extends ServiceProvider
         Appointment::class => AppointmentPolicy::class,
         ClinicalNote::class => ClinicalNotePolicy::class,
         Patient::class => PatientPolicy::class,
+        Task::class => TaskPolicy::class,
         Treatment::class => TreatmentPolicy::class,
     ];
 
