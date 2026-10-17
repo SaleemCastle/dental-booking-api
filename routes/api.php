@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Api\AppointmentController;
+use App\Http\Controllers\Api\AppointmentLocationController;
 use App\Http\Controllers\Api\ClinicalNoteController;
 use App\Http\Controllers\Api\DashboardController;
 use App\Http\Controllers\Api\DentistController;
@@ -49,6 +50,8 @@ Route::middleware(['auth:sanctum'])->group(function () {
     Route::delete('auth/token', [TokenController::class, 'destroy']);
 
     Route::get('dashboard/summary', [DashboardController::class, 'summary']);
+
+    Route::get('appointment-locations', [AppointmentLocationController::class, 'index']);
 
     Route::post('appointments/{appointment}/check-in', [AppointmentController::class, 'checkIn']);
     Route::post('appointments/{appointment}/complete', [AppointmentController::class, 'complete']);

@@ -2,9 +2,11 @@
 
 namespace App\Providers;
 
+use App\Models\Appointment;
 use App\Models\Patient;
 use App\Models\Treatment;
 use App\Models\User;
+use App\Policies\AppointmentPolicy;
 use App\Policies\PatientPolicy;
 use App\Policies\TreatmentPolicy;
 use Illuminate\Auth\Notifications\ResetPassword;
@@ -19,6 +21,7 @@ class AuthServiceProvider extends ServiceProvider
      * @var array<class-string, class-string>
      */
     protected $policies = [
+        Appointment::class => AppointmentPolicy::class,
         Patient::class => PatientPolicy::class,
         Treatment::class => TreatmentPolicy::class,
     ];

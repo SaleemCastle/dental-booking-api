@@ -1,7 +1,7 @@
 openapi: 3.0.3
 info:
   title: Dental Booking Backend API
-  version: 1.3.0
+  version: 1.4.0
   description: Laravel Sanctum API for dental clinic booking, scheduling, billing, messaging, and dashboard workflows. All JSON endpoints return the standard ApiEnvelope shape with success, statusCode, message, code, data, errors, meta, and requestId.
 servers:
   - url: http://localhost:8000
@@ -410,10 +410,34 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/PatientEnvelope"
+  /api/appointment-locations:
+    get:
+      tags: [Appointments]
+      summary: List rooms and their chairs for booking selectors
+      description: Requires appointments.view permission or the admin role. Returns canonical integer room and chair IDs ordered by name then ID. Rooms are exclusive booking resources, including when different chairs are selected within the same room.
+      responses:
+        "200":
+          description: Available location records. This is an inventory list, not a time-specific availability query.
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/ApiEnvelope"
+                  - type: object
+                    properties:
+                      data:
+                        type: object
+                        properties:
+                          rooms: { type: array, items: { $ref: "#/components/schemas/AppointmentRoom" } }
+        "401":
+          $ref: "#/components/responses/Unauthenticated"
+        "403":
+          $ref: "#/components/responses/Forbidden"
   /api/appointments:
     get:
       tags: [Appointments]
       summary: List appointments
+      description: Requires appointments.view permission or the admin role. The optional date filters starts in the application timezone (UTC). Responses contain canonical numeric IDs, display names, and ISO 8601 UTC startsAt/endsAt fields.
       parameters:
         - name: date
           in: query
@@ -439,10 +463,16 @@ paths:
                             type: array
                             items:
                               $ref: "#/components/schemas/Appointment"
+        "401":
+          $ref: "#/components/responses/Unauthenticated"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "422":
+          $ref: "#/components/responses/ValidationError"
     post:
       tags: [Appointments]
       summary: Create appointment
-      description: Accepts snake_case fields and frontend camelCase aliases such as startsAt, patientId, dentistId, treatmentId, durationMinutes, and appointmentType.
+      description: Requires appointments.create permission or the admin role. Creates a scheduled appointment. Accepts canonical snake_case fields and documented camelCase aliases; canonical values take precedence. Archived patients and inactive treatments cannot be selected. Duration defaults to the selected treatment duration or 30 minutes. Optional chair_id derives room_id when room_id is omitted. Provider, chair, and room overlaps with active appointments return 422, including across midnight; adjacent intervals are allowed. Offset timestamps are normalized to UTC. See docs/appointment-workflow.md for transition and locking rules.
       requestBody:
         $ref: "#/components/requestBodies/AppointmentBody"
       responses:
@@ -452,6 +482,10 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/AppointmentEnvelope"
+        "401":
+          $ref: "#/components/responses/Unauthenticated"
+        "403":
+          $ref: "#/components/responses/Forbidden"
         "422":
           $ref: "#/components/responses/ValidationError"
   /api/appointments/{appointment}:
@@ -460,6 +494,7 @@ paths:
     get:
       tags: [Appointments]
       summary: Get appointment
+      description: Requires appointments.view permission or the admin role.
       responses:
         "200":
           description: Appointment details.
@@ -467,9 +502,16 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/AppointmentEnvelope"
+        "401":
+          $ref: "#/components/responses/Unauthenticated"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
     patch:
       tags: [Appointments]
       summary: Update appointment
+      description: Requires appointments.update permission or the admin role. PATCH and PUT both accept partial updates and preserve omitted fields. Changes to provider, chair, room, start, treatment-derived duration, or explicit duration are checked for overlaps. Completed, cancelled, and no_show appointments cannot be rescheduled. Status changes use the workflow rules described in docs/appointment-workflow.md. Repeating the current status is idempotent and preserves timestamps.
       requestBody:
         $ref: "#/components/requestBodies/AppointmentUpdateBody"
       responses:
@@ -479,9 +521,18 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/AppointmentEnvelope"
+        "401":
+          $ref: "#/components/responses/Unauthenticated"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "422":
+          $ref: "#/components/responses/ValidationError"
     put:
       tags: [Appointments]
       summary: Update appointment
+      description: Requires appointments.update permission or the admin role. Uses the same partial update, conflict validation, and status transition rules as PATCH.
       requestBody:
         $ref: "#/components/requestBodies/AppointmentUpdateBody"
       responses:
@@ -491,18 +542,34 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/AppointmentEnvelope"
+        "401":
+          $ref: "#/components/responses/Unauthenticated"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "422":
+          $ref: "#/components/responses/ValidationError"
     delete:
       tags: [Appointments]
       summary: Delete appointment
+      description: Requires appointments.delete permission or the admin role. Physically deletes the appointment. Use the cancel action to retain appointment history and release its slot.
       responses:
         "200":
           $ref: "#/components/responses/DeleteMessage"
+        "401":
+          $ref: "#/components/responses/Unauthenticated"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
   /api/appointments/{appointment}/check-in:
     parameters:
       - $ref: "#/components/parameters/AppointmentId"
     post:
       tags: [Appointments]
       summary: Mark appointment as checked in
+      description: Requires appointments.update permission or the admin role. Only scheduled appointments can transition to checked_in. Repeating checked_in succeeds without changing checked_in_at. Other transitions return 422.
       responses:
         "200":
           description: Appointment status changed to checked_in.
@@ -510,12 +577,21 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/AppointmentEnvelope"
+        "401":
+          $ref: "#/components/responses/Unauthenticated"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "422":
+          $ref: "#/components/responses/ValidationError"
   /api/appointments/{appointment}/complete:
     parameters:
       - $ref: "#/components/parameters/AppointmentId"
     post:
       tags: [Appointments]
       summary: Mark appointment as completed
+      description: Requires appointments.update permission or the admin role. Only in_progress appointments can transition to completed; first use PATCH with status in_progress after check-in. Repeating completed preserves completed_at. Other transitions return 422.
       responses:
         "200":
           description: Appointment status changed to completed.
@@ -523,12 +599,21 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/AppointmentEnvelope"
+        "401":
+          $ref: "#/components/responses/Unauthenticated"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "422":
+          $ref: "#/components/responses/ValidationError"
   /api/appointments/{appointment}/cancel:
     parameters:
       - $ref: "#/components/parameters/AppointmentId"
     post:
       tags: [Appointments]
       summary: Cancel appointment
+      description: Requires appointments.update permission or the admin role. Scheduled, checked_in, and in_progress appointments may be cancelled. Cancellation releases provider and location reservations. Repeating cancellation preserves cancelled_at and retains the existing reason when omitted. Completed and no_show appointments cannot be cancelled.
       requestBody:
         required: false
         content:
@@ -538,7 +623,14 @@ paths:
               properties:
                 reason:
                   type: string
+                  nullable: true
+                  maxLength: 2000
+                  description: Alias for cancellation_reason. Canonical cancellation_reason takes precedence when both are present.
                   example: Patient requested cancellation.
+                cancellation_reason:
+                  type: string
+                  nullable: true
+                  maxLength: 2000
       responses:
         "200":
           description: Appointment status changed to cancelled.
@@ -546,6 +638,14 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/AppointmentEnvelope"
+        "401":
+          $ref: "#/components/responses/Unauthenticated"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "422":
+          $ref: "#/components/responses/ValidationError"
   /api/dentists:
     get:
       tags: [Dentists]
@@ -1437,13 +1537,32 @@ components:
         duration_minutes: { type: integer, minimum: 1, maximum: 1440 }
         price: { type: number, minimum: 0, maximum: 99999999.99, multipleOf: 0.01, description: A nonnegative amount with at most two decimal places. Numeric strings are also accepted. }
         active: { type: boolean }
+    AppointmentRoom:
+      type: object
+      required: [id, name, chairs]
+      properties:
+        id: { type: integer, example: 1 }
+        name: { type: string, example: Room 1 }
+        chairs:
+          type: array
+          items:
+            type: object
+            required: [id, room_id, name]
+            properties:
+              id: { type: integer, example: 1 }
+              room_id: { type: integer, example: 1 }
+              name: { type: string, example: Chair 1 }
     Appointment:
       type: object
+      description: Snake_case IDs are canonical integer database identifiers. CamelCase ID fields are equivalent compatibility aliases. The provider is identified by dentist_id. All date-time response fields use ISO 8601 UTC. Location IDs and names are null for unassigned legacy appointments.
+      required: [id, patient_id, dentist_id, treatment_id, room_id, chair_id, appointment_date_time, duration_minutes, status, patientName, dentistName, treatmentName, roomName, chairName, startsAt, endsAt, cancellation_reason]
       properties:
         id: { type: integer, example: 1 }
         patient_id: { type: integer, example: 1 }
         dentist_id: { type: integer, example: 1 }
         treatment_id: { type: integer, nullable: true, example: 1 }
+        room_id: { type: integer, nullable: true, example: 1 }
+        chair_id: { type: integer, nullable: true, example: 1 }
         appointment_date_time: { type: string, format: date-time }
         appointment_type: { type: string, example: Cleaning }
         description: { type: string, example: Routine cleaning. }
@@ -1452,7 +1571,15 @@ components:
         patientName: { type: string, example: Jane Doe }
         dentistName: { type: string, example: Alex Rivera }
         treatmentName: { type: string, nullable: true, example: Cleaning }
+        roomName: { type: string, nullable: true, example: Room 1 }
+        chairName: { type: string, nullable: true, example: Chair 1 }
+        patientId: { type: integer, description: Alias for patient_id }
+        dentistId: { type: integer, description: Alias for dentist_id }
+        treatmentId: { type: integer, nullable: true, description: Alias for treatment_id }
+        roomId: { type: integer, nullable: true, description: Alias for room_id }
+        chairId: { type: integer, nullable: true, description: Alias for chair_id }
         startsAt: { type: string, format: date-time }
+        endsAt: { type: string, format: date-time }
         duration: { type: integer, example: 30 }
         appointmentStatus: { $ref: "#/components/schemas/AppointmentStatus" }
         paymentStatus: { $ref: "#/components/schemas/PaymentStatus" }
@@ -1462,39 +1589,65 @@ components:
         cancellation_reason: { type: string, nullable: true }
     AppointmentRequest:
       type: object
-      required: [patient_id, dentist_id, appointment_date_time, appointment_type, description, status]
+      required: [description]
+      allOf:
+        - anyOf:
+            - required: [patient_id]
+            - required: [patientId]
+        - anyOf:
+            - required: [dentist_id]
+            - required: [dentistId]
+        - anyOf:
+            - required: [appointment_date_time]
+            - required: [startsAt]
+        - anyOf:
+            - required: [appointment_type]
+            - required: [appointmentType]
       properties:
         patient_id: { type: integer, example: 1 }
         dentist_id: { type: integer, example: 1 }
         treatment_id: { type: integer, nullable: true, example: 1 }
+        room_id: { type: integer, nullable: true, description: Optional exclusive room reservation. }
+        chair_id: { type: integer, nullable: true, description: Optional chair reservation. Derives room_id when room_id is omitted. }
         appointment_date_time: { type: string, format: date-time }
         appointment_type: { type: string, maxLength: 255 }
         description: { type: string }
-        status: { $ref: "#/components/schemas/AppointmentStatus" }
+        status: { type: string, enum: [scheduled], default: scheduled }
         duration_minutes: { type: integer, minimum: 1, maximum: 1440 }
         patientId: { type: integer, description: Frontend alias for patient_id }
         dentistId: { type: integer, description: Frontend alias for dentist_id }
-        treatmentId: { type: integer, description: Frontend alias for treatment_id }
+        treatmentId: { type: integer, nullable: true, description: Frontend alias for treatment_id }
+        roomId: { type: integer, nullable: true, description: Frontend alias for room_id }
+        chairId: { type: integer, nullable: true, description: Frontend alias for chair_id }
         startsAt: { type: string, format: date-time, description: Frontend alias for appointment_date_time }
         appointmentType: { type: string, description: Frontend alias for appointment_type }
         durationMinutes: { type: integer, description: Frontend alias for duration_minutes }
+        appointmentStatus: { type: string, enum: [scheduled], description: Frontend alias for status }
     AppointmentUpdateRequest:
       type: object
+      description: Only supplied fields change. A newly selected treatment supplies duration_minutes when explicit duration is omitted; an unchanged treatment preserves the current duration. Same-status retries preserve workflow timestamps. cancellation_reason may only be supplied when the resulting status is cancelled.
       properties:
         patient_id: { type: integer }
         dentist_id: { type: integer }
         treatment_id: { type: integer, nullable: true }
+        room_id: { type: integer, nullable: true }
+        chair_id: { type: integer, nullable: true }
         appointment_date_time: { type: string, format: date-time }
         appointment_type: { type: string }
         description: { type: string }
         status: { $ref: "#/components/schemas/AppointmentStatus" }
         duration_minutes: { type: integer, minimum: 1, maximum: 1440 }
+        cancellation_reason: { type: string, nullable: true, maxLength: 2000 }
         patientId: { type: integer }
         dentistId: { type: integer }
-        treatmentId: { type: integer }
+        treatmentId: { type: integer, nullable: true }
+        roomId: { type: integer, nullable: true }
+        chairId: { type: integer, nullable: true }
         startsAt: { type: string, format: date-time }
         appointmentType: { type: string }
         durationMinutes: { type: integer }
+        appointmentStatus: { $ref: "#/components/schemas/AppointmentStatus" }
+        reason: { type: string, nullable: true, maxLength: 2000, description: Alias for cancellation_reason }
     AppointmentEnvelope:
       allOf:
         - $ref: "#/components/schemas/ApiEnvelope"

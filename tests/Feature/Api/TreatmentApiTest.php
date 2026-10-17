@@ -188,6 +188,12 @@ class TreatmentApiTest extends TestCase
         $this->assertSame($treatment->id, $appointment->refresh()->treatment_id);
         $this->assertSame('Historical cleaning', $appointment->treatment->name);
 
+        $role = Role::where('slug', 'catalog-role')->firstOrFail();
+        $role->permissions()->attach(Permission::create([
+            'name' => 'View appointments', 'slug' => 'appointments.view', 'resource' => 'appointments', 'action' => 'view',
+        ]));
+        auth()->user()->unsetRelation('roles');
+
         $this->getJson("/api/treatments/{$treatment->id}")->assertOk()->assertJsonPath('data.treatment.active', false);
         $this->getJson("/api/appointments/{$appointment->id}")
             ->assertOk()
