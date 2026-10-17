@@ -74,4 +74,9 @@ class Appointment extends Model
     {
         return $this->belongsTo(Chair::class);
     }
+
+    public function clinicalNotes()
+    {
+        return $this->hasMany(ClinicalNote::class);
+    }
 }

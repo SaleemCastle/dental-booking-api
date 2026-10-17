@@ -44,7 +44,7 @@ class DatabaseSeeder extends Seeder
             ->recycle($dentists)
             ->recycle($treatments)
             ->create()
-            ->each(function (Appointment $appointment): void {
+            ->each(function (Appointment $appointment) use ($user): void {
                 $invoice = Invoice::factory()
                     ->for($appointment->patient)
                     ->for($appointment)
@@ -56,6 +56,8 @@ class DatabaseSeeder extends Seeder
                 ]);
 
                 ClinicalNote::factory()
+                    ->for($user, 'author')
+                    ->for($user, 'lastEditor')
                     ->for($appointment->patient)
                     ->for($appointment->dentist)
                     ->for($appointment)

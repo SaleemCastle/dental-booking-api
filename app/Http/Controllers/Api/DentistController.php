@@ -6,7 +6,9 @@ use App\Http\Controllers\Controller;
 use App\Models\Dentist;
 use App\Support\ApiResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
+use Illuminate\Validation\ValidationException;
 
 class DentistController extends Controller
 {
@@ -60,7 +62,17 @@ class DentistController extends Controller
 
     public function destroy(Dentist $dentist)
     {
-        $dentist->delete();
+        DB::transaction(function () use ($dentist) {
+            $current = Dentist::query()->lockForUpdate()->findOrFail($dentist->id);
+
+            if ($current->clinicalNotes()->withTrashed()->exists()) {
+                throw ValidationException::withMessages([
+                    'dentist_id' => ['A provider with clinical notes cannot be deleted.'],
+                ]);
+            }
+
+            $current->delete();
+        }, 3);
 
         return ApiResponse::success(message: 'Dentist successfully deleted.');
     }

@@ -3,60 +3,84 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\StoreClinicalNoteRequest;
+use App\Http\Requests\UpdateClinicalNoteRequest;
 use App\Http\Resources\ClinicalNoteResource;
 use App\Models\ClinicalNote;
+use App\Services\ClinicalNoteWorkflow;
 use App\Support\ApiResponse;
 use Illuminate\Http\Request;
 
 class ClinicalNoteController extends Controller
 {
-    public function index()
+    public function index(Request $request)
     {
-        return ApiResponse::success([
-            'clinicalNotes' => ClinicalNoteResource::collection(ClinicalNote::all()),
-        ], 'Clinical notes retrieved.');
-    }
+        $this->authorize('viewAny', ClinicalNote::class);
 
-    public function store(Request $request)
-    {
         $validated = $request->validate([
-            'patient_id' => ['required', 'integer', 'exists:patient,id'],
-            'dentist_id' => ['required', 'integer', 'exists:dentist,id'],
-            'appointment_id' => ['nullable', 'integer', 'exists:appointment,id'],
-            'note_text' => ['required', 'string'],
+            'patient_id' => ['sometimes', 'integer', 'exists:patient,id'],
+            'dentist_id' => ['sometimes', 'integer', 'exists:dentist,id'],
+            'appointment_id' => ['sometimes', 'integer', 'exists:appointment,id'],
+            'per_page' => ['sometimes', 'integer', 'min:1', 'max:100'],
+            'page' => ['sometimes', 'integer', 'min:1'],
         ]);
 
+        $query = ClinicalNote::query()->with(['author', 'lastEditor']);
+
+        foreach (['patient_id', 'dentist_id', 'appointment_id'] as $field) {
+            if (isset($validated[$field])) {
+                $query->where($field, $validated[$field]);
+            }
+        }
+
+        $notes = $query->orderByDesc('created_at')->orderByDesc('id')->paginate($validated['per_page'] ?? 15);
+
         return ApiResponse::success([
-            'clinicalNote' => new ClinicalNoteResource(ClinicalNote::create($validated)),
+            'clinicalNotes' => ClinicalNoteResource::collection($notes->getCollection()),
+        ], 'Clinical notes retrieved.', meta: [
+            'pagination' => [
+                'currentPage' => $notes->currentPage(),
+                'perPage' => $notes->perPage(),
+                'total' => $notes->total(),
+                'lastPage' => $notes->lastPage(),
+                'from' => $notes->firstItem(),
+                'to' => $notes->lastItem(),
+                'hasMorePages' => $notes->hasMorePages(),
+            ],
+        ]);
+    }
+
+    public function store(StoreClinicalNoteRequest $request, ClinicalNoteWorkflow $workflow)
+    {
+        $note = $workflow->create($request->validated(), $request->user());
+
+        return ApiResponse::success([
+            'clinicalNote' => new ClinicalNoteResource($note->load(['author', 'lastEditor'])),
         ], 'Clinical note successfully created.', 201);
     }
 
     public function show(ClinicalNote $clinicalNote)
     {
+        $this->authorize('view', $clinicalNote);
+
         return ApiResponse::success([
-            'clinicalNote' => new ClinicalNoteResource($clinicalNote),
+            'clinicalNote' => new ClinicalNoteResource($clinicalNote->load(['author', 'lastEditor'])),
         ], 'Clinical note retrieved.');
     }
 
-    public function update(Request $request, ClinicalNote $clinicalNote)
+    public function update(UpdateClinicalNoteRequest $request, ClinicalNote $clinicalNote, ClinicalNoteWorkflow $workflow)
     {
-        $validated = $request->validate([
-            'patient_id' => ['sometimes', 'required', 'integer', 'exists:patient,id'],
-            'dentist_id' => ['sometimes', 'required', 'integer', 'exists:dentist,id'],
-            'appointment_id' => ['nullable', 'integer', 'exists:appointment,id'],
-            'note_text' => ['sometimes', 'required', 'string'],
-        ]);
-
-        $clinicalNote->update($validated);
+        $note = $workflow->update($clinicalNote, $request->validated(), $request->user());
 
         return ApiResponse::success([
-            'clinicalNote' => new ClinicalNoteResource($clinicalNote->refresh()),
+            'clinicalNote' => new ClinicalNoteResource($note->load(['author', 'lastEditor'])),
         ], 'Clinical note successfully updated.');
     }
 
-    public function destroy(ClinicalNote $clinicalNote)
+    public function destroy(Request $request, ClinicalNote $clinicalNote, ClinicalNoteWorkflow $workflow)
     {
-        $clinicalNote->delete();
+        $this->authorize('delete', $clinicalNote);
+        $workflow->delete($clinicalNote, $request->user());
 
         return ApiResponse::success(message: 'Clinical note successfully deleted.');
     }

@@ -21,7 +21,7 @@ Create and update accept camelCase aliases: `patientId`, `dentistId`, `treatment
 
 Create requires a patient, provider, start, appointment type, and description. Status defaults to `scheduled`; other initial statuses are rejected. Duration must be 1–1440 whole minutes. When omitted, duration comes from the selected treatment or defaults to 30 minutes. Selecting a different treatment during an update also supplies its duration unless an explicit duration is provided. An unchanged treatment preserves the existing duration.
 
-Archived patients and inactive treatments cannot be newly selected. Existing references remain readable and can be retained when updating notes, status, or schedule. Completed, cancelled, and no-show appointments cannot be rescheduled, although descriptive notes may be updated.
+Archived patients and inactive treatments cannot be newly selected. Existing references remain readable and can be retained when updating notes, status, or schedule. Completed, cancelled, and no-show appointments cannot be rescheduled, although descriptive notes may be updated. Appointments with clinical notes (including soft-deleted notes) cannot be reassigned to a different patient/provider or physically deleted; these requests return 422 with an appointment_id error.
 
 `GET /api/appointment-locations` returns rooms with nested chairs, ordered by name then ID. It lists inventory; availability is checked when saving. Room/chair records are stored locally. `php artisan db:seed --class=AppointmentLocationSeeder` creates two example rooms, each with a chair, idempotently; the main database seeder also calls it.
 

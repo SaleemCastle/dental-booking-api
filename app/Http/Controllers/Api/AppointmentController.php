@@ -10,6 +10,8 @@ use App\Models\Appointment;
 use App\Services\AppointmentWorkflow;
 use App\Support\ApiResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Validation\ValidationException;
 
 class AppointmentController extends Controller
 {
@@ -61,7 +63,18 @@ class AppointmentController extends Controller
     public function destroy(Appointment $appointment)
     {
         $this->authorize('delete', $appointment);
-        $appointment->delete();
+
+        DB::transaction(function () use ($appointment) {
+            $current = Appointment::query()->lockForUpdate()->findOrFail($appointment->id);
+
+            if ($current->clinicalNotes()->withTrashed()->exists()) {
+                throw ValidationException::withMessages([
+                    'appointment_id' => ['An appointment with clinical notes cannot be deleted.'],
+                ]);
+            }
+
+            $current->delete();
+        }, 3);
 
         return ApiResponse::success(message: 'Appointment successfully deleted.');
     }

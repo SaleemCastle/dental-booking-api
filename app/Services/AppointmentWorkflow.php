@@ -111,6 +111,12 @@ class AppointmentWorkflow
 
         $appointment->fill($data);
 
+        if ($appointment->exists && $appointment->isDirty(['patient_id', 'dentist_id']) && $appointment->clinicalNotes()->withTrashed()->exists()) {
+            throw ValidationException::withMessages([
+                'appointment_id' => ['An appointment with clinical notes cannot be reassigned to a different patient or provider.'],
+            ]);
+        }
+
         if ($appointment->exists && ! in_array($previousStatus, Appointment::ACTIVE_STATUSES, true) && $appointment->isDirty(self::SCHEDULE_FIELDS)) {
             throw ValidationException::withMessages(['status' => ['Terminal appointments cannot be rescheduled.']]);
         }

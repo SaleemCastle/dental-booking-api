@@ -1,7 +1,7 @@
 openapi: 3.0.3
 info:
   title: Dental Booking Backend API
-  version: 1.4.0
+  version: 1.5.0
   description: Laravel Sanctum API for dental clinic booking, scheduling, billing, messaging, and dashboard workflows. All JSON endpoints return the standard ApiEnvelope shape with success, statusCode, message, code, data, errors, meta, and requestId.
 servers:
   - url: http://localhost:8000
@@ -511,7 +511,7 @@ paths:
     patch:
       tags: [Appointments]
       summary: Update appointment
-      description: Requires appointments.update permission or the admin role. PATCH and PUT both accept partial updates and preserve omitted fields. Changes to provider, chair, room, start, treatment-derived duration, or explicit duration are checked for overlaps. Completed, cancelled, and no_show appointments cannot be rescheduled. Status changes use the workflow rules described in docs/appointment-workflow.md. Repeating the current status is idempotent and preserves timestamps.
+      description: Requires appointments.update permission or the admin role. PATCH and PUT both accept partial updates and preserve omitted fields. Changes to provider, chair, room, start, treatment-derived duration, or explicit duration are checked for overlaps. Completed, cancelled, and no_show appointments cannot be rescheduled. Appointments with clinical notes, including soft-deleted notes, cannot change patient/provider. Status changes use the workflow rules described in docs/appointment-workflow.md. Repeating the current status is idempotent and preserves timestamps.
       requestBody:
         $ref: "#/components/requestBodies/AppointmentUpdateBody"
       responses:
@@ -553,7 +553,7 @@ paths:
     delete:
       tags: [Appointments]
       summary: Delete appointment
-      description: Requires appointments.delete permission or the admin role. Physically deletes the appointment. Use the cancel action to retain appointment history and release its slot.
+      description: Requires appointments.delete permission or the admin role. Physically deletes appointments without clinical notes. Notes, including soft-deleted notes, prevent deletion with a 422 appointment_id error. Use the cancel action to retain appointment history and release its slot.
       responses:
         "200":
           $ref: "#/components/responses/DeleteMessage"
@@ -563,6 +563,8 @@ paths:
           $ref: "#/components/responses/Forbidden"
         "404":
           $ref: "#/components/responses/NotFound"
+        "422":
+          $ref: "#/components/responses/ValidationError"
   /api/appointments/{appointment}/check-in:
     parameters:
       - $ref: "#/components/parameters/AppointmentId"
@@ -689,9 +691,12 @@ paths:
     delete:
       tags: [Dentists]
       summary: Delete dentist
+      description: Providers with clinical notes, including soft-deleted notes, cannot be deleted. Such requests return 422 with a dentist_id error to preserve clinical history.
       responses:
         "200":
           $ref: "#/components/responses/DeleteMessage"
+        "422":
+          $ref: "#/components/responses/ValidationError"
   /api/treatments:
     get:
       tags: [Treatments]
@@ -886,48 +891,111 @@ paths:
     get:
       tags: [Clinical Notes]
       summary: List clinical notes
+      description: Admins and dentists can read clinic notes. Other users require clinical_notes.view (wildcards supported for reads). Soft-deleted notes are excluded. Results are ordered by created_at descending, then ID descending, with meta.pagination. See docs/clinical-notes.md for clinical-role and audit integration rules.
+      parameters:
+        - name: patient_id
+          in: query
+          schema: { type: integer }
+        - name: dentist_id
+          in: query
+          description: Filter by provider ID.
+          schema: { type: integer }
+        - name: appointment_id
+          in: query
+          schema: { type: integer }
+        - name: per_page
+          in: query
+          schema: { type: integer, minimum: 1, maximum: 100, default: 15 }
+        - name: page
+          in: query
+          schema: { type: integer, minimum: 1, default: 1 }
       responses:
         "200":
           $ref: "#/components/responses/ClinicalNoteList"
+        "401":
+          $ref: "#/components/responses/Unauthenticated"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "422":
+          $ref: "#/components/responses/ValidationError"
     post:
       tags: [Clinical Notes]
       summary: Create clinical note
+      description: Requires the admin role or the dentist role without the receptionist role. Permissions and wildcards alone cannot grant clinical writes. Appointment is optional; when present, its patient and provider must match the supplied patient_id and dentist_id. The authenticated user becomes author and last editor. Client-supplied attribution, deletion fields, and timestamps are rejected. Appointment status and patient archival do not prevent clinical documentation.
       requestBody:
         $ref: "#/components/requestBodies/ClinicalNoteBody"
       responses:
         "201":
           $ref: "#/components/responses/ClinicalNoteEnvelope"
+        "401":
+          $ref: "#/components/responses/Unauthenticated"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "422":
+          $ref: "#/components/responses/ValidationError"
   /api/clinical-notes/{clinical_note}:
     parameters:
       - $ref: "#/components/parameters/ClinicalNoteId"
     get:
       tags: [Clinical Notes]
       summary: Get clinical note
+      description: Uses the same read authorization as the clinical note list. Soft-deleted notes return 404.
       responses:
         "200":
           $ref: "#/components/responses/ClinicalNoteEnvelope"
+        "401":
+          $ref: "#/components/responses/Unauthenticated"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
     patch:
       tags: [Clinical Notes]
       summary: Update clinical note
+      description: Requires the admin role or the dentist role without the receptionist role. Dentists may collaborate on clinic notes; authorship remains immutable and changed notes capture the authenticated last editor. Omitted fields are preserved. Relationship validation checks the merged note and appointment. Explicit appointment_id null detaches the appointment. Changes publish an after-commit ClinicalNoteChanged event with actor and before/after snapshots; no-op updates preserve metadata and publish no event.
       requestBody:
         $ref: "#/components/requestBodies/ClinicalNoteUpdateBody"
       responses:
         "200":
           $ref: "#/components/responses/ClinicalNoteEnvelope"
+        "401":
+          $ref: "#/components/responses/Unauthenticated"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "422":
+          $ref: "#/components/responses/ValidationError"
     put:
       tags: [Clinical Notes]
       summary: Update clinical note
+      description: Uses the same partial update, clinical-role authorization, immutable authorship, relationship validation, and audit event behavior as PATCH.
       requestBody:
         $ref: "#/components/requestBodies/ClinicalNoteUpdateBody"
       responses:
         "200":
           $ref: "#/components/responses/ClinicalNoteEnvelope"
+        "401":
+          $ref: "#/components/responses/Unauthenticated"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "422":
+          $ref: "#/components/responses/ValidationError"
     delete:
       tags: [Clinical Notes]
       summary: Delete clinical note
+      description: Requires the admin role or the dentist role without the receptionist role. Soft-deletes the note, retaining its contents, author, editor, deleted_by_user_id, and deleted_at for audit integration. Publishes an after-commit ClinicalNoteChanged event. Subsequent show, update, or delete requests return 404.
       responses:
         "200":
           $ref: "#/components/responses/DeleteMessage"
+        "401":
+          $ref: "#/components/responses/Unauthenticated"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
   /api/messages:
     get:
       tags: [Messages]
@@ -1727,29 +1795,37 @@ components:
         reference: { type: string, nullable: true }
     ClinicalNote:
       type: object
+      description: Canonical IDs are integers; dentist_id identifies the clinical provider independently of the authenticated author. Attribution is nullable only for legacy notes whose original authorship is unknown. API-created notes always capture author and editor. Response timestamps use ISO 8601 UTC.
+      required: [id, patient_id, dentist_id, appointment_id, note_text, author_user_id, updated_by_user_id, authorName, updatedByName, created_at, updated_at]
       properties:
         id: { type: integer, example: 1 }
         patient_id: { type: integer, example: 1 }
         dentist_id: { type: integer, example: 1 }
         appointment_id: { type: integer, nullable: true, example: 1 }
         note_text: { type: string, example: Patient reported sensitivity. }
+        author_user_id: { type: integer, nullable: true, readOnly: true, description: Immutable authenticated author. Null for unattributed legacy notes. }
+        updated_by_user_id: { type: integer, nullable: true, readOnly: true, description: Authenticated last editor. Initially the author for API-created notes. }
+        authorName: { type: string, nullable: true, readOnly: true }
+        updatedByName: { type: string, nullable: true, readOnly: true }
         created_at: { type: string, format: date-time, nullable: true }
         updated_at: { type: string, format: date-time, nullable: true }
     ClinicalNoteRequest:
       type: object
+      description: author_user_id, updated_by_user_id, deleted_by_user_id, deleted_at, created_at, and updated_at must be absent, including null values. Provider and author are distinct identities. When appointment_id is supplied, the patient and provider must match that appointment.
       required: [patient_id, dentist_id, note_text]
       properties:
         patient_id: { type: integer }
         dentist_id: { type: integer }
         appointment_id: { type: integer, nullable: true }
-        note_text: { type: string }
+        note_text: { type: string, minLength: 1, maxLength: 16000 }
     ClinicalNoteUpdateRequest:
       type: object
+      description: All fields are optional; omitted fields remain unchanged. Appointment may be explicitly cleared with null. Relationship checks use the merged record. Authorship, editor/deletion attribution, and timestamps are server-controlled and must be absent.
       properties:
         patient_id: { type: integer }
         dentist_id: { type: integer }
         appointment_id: { type: integer, nullable: true }
-        note_text: { type: string }
+        note_text: { type: string, minLength: 1, maxLength: 16000 }
     DashboardSummary:
       type: object
       required: [bookedToday, waitingRoom, treatmentsDone, unpaidInvoiceAmount, collectionRate, todayAppointments, staffWorklist]
