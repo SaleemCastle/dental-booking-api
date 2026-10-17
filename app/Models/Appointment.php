@@ -9,12 +9,18 @@ class Appointment extends Model
 {
     use HasFactory;
 
+    public const ACTIVE_STATUSES = ['scheduled', 'checked_in', 'in_progress'];
+
+    public const STATUSES = ['scheduled', 'checked_in', 'in_progress', 'completed', 'cancelled', 'no_show'];
+
     protected $table = 'appointment';
 
     protected $fillable = [
         'patient_id',
         'dentist_id',
         'treatment_id',
+        'room_id',
+        'chair_id',
         'appointment_date_time',
         'appointment_type',
         'description',
@@ -27,6 +33,12 @@ class Appointment extends Model
     ];
 
     protected $casts = [
+        'patient_id' => 'integer',
+        'dentist_id' => 'integer',
+        'treatment_id' => 'integer',
+        'room_id' => 'integer',
+        'chair_id' => 'integer',
+        'duration_minutes' => 'integer',
         'appointment_date_time' => 'datetime',
         'checked_in_at' => 'datetime',
         'completed_at' => 'datetime',
@@ -51,5 +63,15 @@ class Appointment extends Model
     public function invoice()
     {
         return $this->hasOne(Invoice::class);
+    }
+
+    public function room()
+    {
+        return $this->belongsTo(Room::class);
+    }
+
+    public function chair()
+    {
+        return $this->belongsTo(Chair::class);
     }
 }
