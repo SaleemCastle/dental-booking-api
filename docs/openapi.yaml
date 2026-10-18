@@ -1,7 +1,7 @@
 openapi: 3.0.3
 info:
   title: Dental Booking Backend API
-  version: 1.6.0
+  version: 1.7.0
   description: Laravel Sanctum API for dental clinic booking, scheduling, billing, messaging, and dashboard workflows. All JSON endpoints return the standard ApiEnvelope shape with success, statusCode, message, code, data, errors, meta, and requestId.
 servers:
   - url: http://localhost:8000
@@ -1080,7 +1080,7 @@ paths:
     post:
       tags: [Clinical Notes]
       summary: Create clinical note
-      description: Requires the admin role or the dentist role without the receptionist role. Permissions and wildcards alone cannot grant clinical writes. Appointment is optional; when present, its patient and provider must match the supplied patient_id and dentist_id. The authenticated user becomes author and last editor. Client-supplied attribution, deletion fields, and timestamps are rejected. Appointment status and patient archival do not prevent clinical documentation.
+      description: Requires the admin role or the dentist role without the receptionist role. Permissions and wildcards alone cannot grant clinical writes. Appointment is optional; when present, its patient and provider must match the supplied patient_id and dentist_id. The authenticated user becomes author and last editor. Client-supplied attribution, deletion fields, and timestamps are rejected. Appointment status and patient archival do not prevent clinical documentation. Creation atomically appends a minimal audit record with actor, action, resource ID, UTC timestamp, and allowlisted request context; no clinical text is copied. See docs/audit-logging.md.
       requestBody:
         $ref: "#/components/requestBodies/ClinicalNoteBody"
       responses:
@@ -1111,7 +1111,7 @@ paths:
     patch:
       tags: [Clinical Notes]
       summary: Update clinical note
-      description: Requires the admin role or the dentist role without the receptionist role. Dentists may collaborate on clinic notes; authorship remains immutable and changed notes capture the authenticated last editor. Omitted fields are preserved. Relationship validation checks the merged note and appointment. Explicit appointment_id null detaches the appointment. Changes publish an after-commit ClinicalNoteChanged event with actor and before/after snapshots; no-op updates preserve metadata and publish no event.
+      description: Requires the admin role or the dentist role without the receptionist role. Dentists may collaborate on clinic notes; authorship remains immutable and changed notes capture the authenticated last editor. Omitted fields are preserved. Relationship validation checks the merged note and appointment. Explicit appointment_id null detaches the appointment. Changes atomically append a minimal audit record and publish an after-commit ClinicalNoteChanged event with actor and before/after snapshots. No-op updates preserve metadata and produce neither an audit record nor an event. Audit storage excludes clinical text and event snapshots; storage failures roll back the mutation. See docs/audit-logging.md.
       requestBody:
         $ref: "#/components/requestBodies/ClinicalNoteUpdateBody"
       responses:
@@ -1145,7 +1145,7 @@ paths:
     delete:
       tags: [Clinical Notes]
       summary: Delete clinical note
-      description: Requires the admin role or the dentist role without the receptionist role. Soft-deletes the note, retaining its contents, author, editor, deleted_by_user_id, and deleted_at for audit integration. Publishes an after-commit ClinicalNoteChanged event. Subsequent show, update, or delete requests return 404.
+      description: Requires the admin role or the dentist role without the receptionist role. Soft-deletes the note, retaining its contents, author, editor, deleted_by_user_id, and deleted_at. Atomically appends a minimal audit record and publishes an after-commit ClinicalNoteChanged event. Audit storage excludes clinical text and event snapshots; storage failures roll back the deletion. Subsequent show, update, or delete requests return 404. See docs/audit-logging.md.
       responses:
         "200":
           $ref: "#/components/responses/DeleteMessage"

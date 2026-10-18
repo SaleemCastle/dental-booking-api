@@ -13,6 +13,8 @@ use Illuminate\Validation\ValidationException;
 
 class ClinicalNoteWorkflow
 {
+    public function __construct(private readonly AuditLogService $auditLogs) {}
+
     public function create(array $data, User $actor): ClinicalNote
     {
         return DB::transaction(function () use ($data, $actor) {
@@ -24,6 +26,7 @@ class ClinicalNoteWorkflow
             ])->save();
             $note->refresh();
 
+            $this->auditLogs->record('created', 'clinical_notes', $note->id, $actor->id);
             ClinicalNoteChanged::dispatch($note->id, 'created', $actor->id, [], $note->attributesToArray());
 
             return $note;
@@ -44,6 +47,7 @@ class ClinicalNoteWorkflow
 
             $note->forceFill(['updated_by_user_id' => $actor->id])->save();
             $note->refresh();
+            $this->auditLogs->record('updated', 'clinical_notes', $note->id, $actor->id);
             ClinicalNoteChanged::dispatch($note->id, 'updated', $actor->id, $before, $note->attributesToArray());
 
             return $note;
@@ -61,6 +65,7 @@ class ClinicalNoteWorkflow
             ])->save();
             $note->delete();
 
+            $this->auditLogs->record('deleted', 'clinical_notes', $note->id, $actor->id);
             ClinicalNoteChanged::dispatch($note->id, 'deleted', $actor->id, $before, $note->attributesToArray());
         }, 3);
     }
