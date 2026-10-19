@@ -1,7 +1,7 @@
 openapi: 3.0.3
 info:
   title: Dental Booking Backend API
-  version: 1.7.1
+  version: 1.7.2
   description: Laravel Sanctum API for dental clinic booking, scheduling, billing, messaging, and dashboard workflows. All JSON endpoints return the standard ApiEnvelope shape with success, statusCode, message, code, data, errors, meta, and requestId.
 servers:
   - url: http://localhost:8000
@@ -24,6 +24,7 @@ tags:
   - name: Referrals
   - name: Users
   - name: Roles
+  - name: Audit Logs
 paths:
   /sanctum/csrf-cookie:
     get:
@@ -1407,6 +1408,74 @@ paths:
         "403": { $ref: "#/components/responses/Forbidden" }
         "404": { $ref: "#/components/responses/NotFound" }
         "422": { $ref: "#/components/responses/ValidationError" }
+  /api/audit-logs:
+    get:
+      tags: [Audit Logs]
+      summary: List read-only audit history
+      description: Requires the actual admin or auditor role slug; permission wildcards and audit_logs.view alone do not grant access. All supplied filters combine with AND. Ordered by occurred_at descending then ID descending. Deleted resource/user IDs remain queryable. Returns private, no-store data. Reads do not emit audit events. See docs/audit-log-frontend-guide.md.
+      parameters:
+        - name: actor_id
+          in: query
+          description: Filter by the performing user's ID, including deleted users. Incompatible with actor_is_null=1.
+          schema: { type: integer, minimum: 1 }
+        - name: actor_is_null
+          in: query
+          description: Use 1 for unattributed/system/unauthenticated actors or 0 for attributed actors; omit for both.
+          schema: { type: integer, enum: [0, 1] }
+        - name: action
+          in: query
+          schema: { type: string, maxLength: 80, pattern: '^[a-z][a-z0-9_.]*$' }
+        - name: resource_type
+          in: query
+          schema: { type: string, maxLength: 80, pattern: '^[a-z][a-z0-9_]*$' }
+        - name: resource_id
+          in: query
+          description: Exact canonical string key; combine with resource_type for one resource's history.
+          schema: { type: string, maxLength: 128, pattern: '^[A-Za-z0-9][A-Za-z0-9._:-]*$' }
+        - name: request_id
+          in: query
+          description: Originating mutation request ID, not the current GET request ID.
+          schema: { type: string, maxLength: 100, pattern: '^[A-Za-z0-9._:-]+$' }
+        - name: from
+          in: query
+          description: Inclusive occurrence-time lower bound. Requires seconds and explicit timezone; optional 1-6 fractional digits. Normalized to UTC.
+          schema: { type: string, format: date-time, example: '2026-10-18T00:00:00-05:00' }
+        - name: to
+          in: query
+          description: Inclusive upper bound with explicit timezone, on/after from. Microsecond precision is supported.
+          schema: { type: string, format: date-time, example: '2026-10-18T23:59:59.999999-05:00' }
+        - name: per_page
+          in: query
+          schema: { type: integer, minimum: 1, maximum: 100, default: 15 }
+        - name: page
+          in: query
+          schema: { type: integer, minimum: 1, default: 1 }
+      responses:
+        "200": { $ref: "#/components/responses/AuditLogList" }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "422": { $ref: "#/components/responses/ValidationError" }
+  /api/audit-logs/filters:
+    get:
+      tags: [Audit Logs]
+      summary: Get available audit filter options
+      description: Admin/auditor only. Sorted unique actions and resource types found in stored history; not restricted by active list filters and not a fixed catalog. Empty history returns empty arrays. Response is private, no-store.
+      responses:
+        "200": { $ref: "#/components/responses/AuditLogFilters" }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+  /api/audit-logs/{audit_log}:
+    parameters:
+      - { name: audit_log, in: path, required: true, schema: { type: integer, minimum: 1 } }
+    get:
+      tags: [Audit Logs]
+      summary: Get an audit record
+      description: Admin/auditor only. Same safe row shape as the list, including nullable current actorName rather than a full user model. Does not require that the actor or resource still exist. Response is private, no-store. POST/PUT/PATCH/DELETE audit routes are not exposed.
+      responses:
+        "200": { $ref: "#/components/responses/AuditLogEnvelope" }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
 components:
   securitySchemes:
     sanctumBearer:
@@ -1472,6 +1541,47 @@ components:
       required: true
       content: { application/json: { schema: { $ref: "#/components/schemas/ClinicalNoteUpdateRequest" } } }
   responses:
+    AuditLogList:
+      description: Standard envelope with data.auditLogs and meta.pagination. Empty lists have total 0 and null from/to.
+      headers:
+        Cache-Control: { schema: { type: string }, description: 'private, no-store' }
+      content:
+        application/json:
+          schema:
+            allOf:
+              - $ref: "#/components/schemas/ApiEnvelope"
+              - type: object
+                properties:
+                  data: { type: object, properties: { auditLogs: { type: array, items: { $ref: "#/components/schemas/AuditLog" } } } }
+                  meta: { $ref: "#/components/schemas/PaginationMeta" }
+    AuditLogEnvelope:
+      description: Standard envelope with data.auditLog and null meta.
+      headers:
+        Cache-Control: { schema: { type: string }, description: 'private, no-store' }
+      content:
+        application/json:
+          schema:
+            allOf:
+              - $ref: "#/components/schemas/ApiEnvelope"
+              - type: object
+                properties:
+                  data: { type: object, properties: { auditLog: { $ref: "#/components/schemas/AuditLog" } } }
+    AuditLogFilters:
+      description: Standard envelope with sorted unique data.actions and data.resourceTypes.
+      headers:
+        Cache-Control: { schema: { type: string }, description: 'private, no-store' }
+      content:
+        application/json:
+          schema:
+            allOf:
+              - $ref: "#/components/schemas/ApiEnvelope"
+              - type: object
+                properties:
+                  data:
+                    type: object
+                    properties:
+                      actions: { type: array, items: { type: string } }
+                      resourceTypes: { type: array, items: { type: string } }
     RoleList:
       description: Standard envelope with data.roles, including permissions.
       content:
@@ -1730,6 +1840,28 @@ components:
                     properties:
                       clinicalNote: { $ref: "#/components/schemas/ClinicalNote" }
   schemas:
+    AuditLog:
+      type: object
+      required: [id, actor_id, actorName, action, resource_type, resource_id, occurred_at, ip_address, user_agent, request_metadata]
+      description: Read-only audit record with the current actor display name. No clinical content, emails, credentials, full user models, or before/after snapshots are exposed. Resource IDs are strings and do not imply access to the underlying resource.
+      properties:
+        id: { type: integer, readOnly: true }
+        actor_id: { type: integer, nullable: true }
+        actorName: { type: string, nullable: true, description: 'Current name, not a historical snapshot. Null when actor is unattributed or deleted.' }
+        action: { type: string, maxLength: 80, example: updated }
+        resource_type: { type: string, maxLength: 80, example: patients }
+        resource_id: { type: string, maxLength: 128, example: '42' }
+        occurred_at: { type: string, format: date-time, example: '2026-10-18T14:30:12.123456Z' }
+        ip_address: { type: string, nullable: true, maxLength: 45 }
+        user_agent: { type: string, nullable: true, maxLength: 512 }
+        request_metadata:
+          type: object
+          nullable: true
+          additionalProperties: false
+          properties:
+            request_id: { type: string, description: 'Original mutation request ID, not the enclosing GET requestId.' }
+            method: { type: string }
+            route: { type: string, description: 'Route template without expanded parameters or query string.' }
     RoleCreateRequest:
       allOf:
         - $ref: "#/components/schemas/RoleUpdateRequest"
