@@ -42,7 +42,9 @@ Appointments with notes cannot be reassigned to another patient/provider or phys
 
 The additive attribution migration preserves existing notes and leaves unknown legacy authors/editors null. Editing a legacy note records its new editor while preserving the unknown original author. Existing relationship data is retained; an inconsistent legacy appointment link must be corrected or explicitly detached before editing its note.
 
-Each successful API mutation dispatches `App\Events\ClinicalNoteChanged` after its database transaction commits. Consumers can subscribe to this event to implement audit persistence. Its immutable payload contains:
+Each successful API mutation appends a minimal `audit_logs` record inside the same database transaction through `App\Services\AuditLogService`. It captures the acting user, action, clinical-note ID, UTC timestamp, and allowlisted request context. Clinical text and before/after snapshots are not copied into audit storage. Audit failures roll back the note mutation. See [audit logging conventions](audit-logging.md) for the storage contract, reuse, privacy, and append-only guarantees.
+
+Each successful API mutation also dispatches `App\Events\ClinicalNoteChanged` after its database transaction commits. Other consumers can subscribe to this event; audit persistence does not depend on its delivery. Its immutable payload contains:
 
 - `noteId`: canonical clinical note ID.
 - `action`: `created`, `updated`, or `deleted`.
@@ -50,7 +52,7 @@ Each successful API mutation dispatches `App\Events\ClinicalNoteChanged` after i
 - `before`: previous persisted note attributes; empty on creation.
 - `after`: resulting persisted attributes, including attribution, timestamps, and soft-deletion state.
 
-Events contain snapshots rather than live model references, so queued consumers can retain the exact mutation state. Failed validation, denied authorization, no-op updates, and rolled-back transactions emit no mutation event. Note mutations and relationship checks run in transactions; linked appointments and parent records are locked while validating.
+Events contain snapshots rather than live model references, so consumers can inspect the exact mutation state. These snapshots contain sensitive clinical attributes and must not be copied into audit storage or generic application logs. Failed validation, denied authorization, no-op updates, and rolled-back transactions produce neither audit records nor mutation events. Note mutations and relationship checks run in transactions; linked appointments and parent records are locked while validating.
 
 ## Verification
 

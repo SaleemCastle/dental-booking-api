@@ -7,6 +7,7 @@ use App\Http\Requests\StorePatientRequest;
 use App\Http\Requests\UpdatePatientRequest;
 use App\Http\Resources\PatientResource;
 use App\Models\Patient;
+use App\Services\PatientWorkflow;
 use App\Support\ApiResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
@@ -67,11 +68,11 @@ class PatientController extends Controller
         ]);
     }
 
-    public function store(StorePatientRequest $request)
+    public function store(StorePatientRequest $request, PatientWorkflow $workflow)
     {
         $this->authorize('create', Patient::class);
 
-        $patient = Patient::create($request->validated());
+        $patient = $workflow->create($request->validated(), $request->user());
 
         return ApiResponse::success(
             data: ['patient' => new PatientResource($patient)],
@@ -90,7 +91,7 @@ class PatientController extends Controller
         );
     }
 
-    public function update(UpdatePatientRequest $request, Patient $patient)
+    public function update(UpdatePatientRequest $request, Patient $patient, PatientWorkflow $workflow)
     {
         $validated = $request->validated();
 
@@ -102,7 +103,7 @@ class PatientController extends Controller
             $this->authorize('updateMedical', $patient);
         }
 
-        $patient->update($validated);
+        $patient = $workflow->update($patient, $validated, $request->user());
 
         return ApiResponse::success(
             data: ['patient' => new PatientResource($patient->refresh())],
@@ -110,11 +111,11 @@ class PatientController extends Controller
         );
     }
 
-    public function destroy(Patient $patient)
+    public function destroy(Request $request, Patient $patient, PatientWorkflow $workflow)
     {
         $this->authorize('archive', $patient);
 
-        $patient->archive(request()->user());
+        $patient = $workflow->archive($patient, $request->user());
 
         return ApiResponse::success(
             data: ['patient' => new PatientResource($patient->refresh())],

@@ -41,7 +41,7 @@ class AppointmentController extends Controller
 
     public function store(StoreAppointmentRequest $request, AppointmentWorkflow $workflow)
     {
-        $appointment = $workflow->create($request->validated());
+        $appointment = $workflow->create($request->validated(), $request->user());
 
         return ApiResponse::success([
             'appointment' => new AppointmentResource($appointment->load(self::RELATIONS)),
@@ -57,7 +57,7 @@ class AppointmentController extends Controller
 
     public function update(UpdateAppointmentRequest $request, Appointment $appointment, AppointmentWorkflow $workflow)
     {
-        return $this->appointmentResponse($workflow->update($appointment, $request->validated()));
+        return $this->appointmentResponse($workflow->update($appointment, $request->validated(), $request->user()));
     }
 
     public function destroy(Appointment $appointment)
@@ -79,18 +79,18 @@ class AppointmentController extends Controller
         return ApiResponse::success(message: 'Appointment successfully deleted.');
     }
 
-    public function checkIn(Appointment $appointment, AppointmentWorkflow $workflow)
+    public function checkIn(Request $request, Appointment $appointment, AppointmentWorkflow $workflow)
     {
         $this->authorize('update', $appointment);
 
-        return $this->appointmentResponse($workflow->update($appointment, ['status' => 'checked_in']));
+        return $this->appointmentResponse($workflow->update($appointment, ['status' => 'checked_in'], $request->user()));
     }
 
-    public function complete(Appointment $appointment, AppointmentWorkflow $workflow)
+    public function complete(Request $request, Appointment $appointment, AppointmentWorkflow $workflow)
     {
         $this->authorize('update', $appointment);
 
-        return $this->appointmentResponse($workflow->update($appointment, ['status' => 'completed']));
+        return $this->appointmentResponse($workflow->update($appointment, ['status' => 'completed'], $request->user()));
     }
 
     public function cancel(Request $request, Appointment $appointment, AppointmentWorkflow $workflow)
@@ -105,7 +105,7 @@ class AppointmentController extends Controller
             'cancellation_reason' => ['sometimes', 'nullable', 'string', 'max:2000'],
         ]);
 
-        return $this->appointmentResponse($workflow->update($appointment, ['status' => 'cancelled', ...$validated]));
+        return $this->appointmentResponse($workflow->update($appointment, ['status' => 'cancelled', ...$validated], $request->user()));
     }
 
     private function appointmentResponse(Appointment $appointment, string $message = 'Appointment successfully updated.')

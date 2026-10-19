@@ -54,4 +54,6 @@ Cancellation accepts optional nullable `cancellation_reason` or its alias `reaso
 
 ## Validation
 
+Create, changed edit/reschedule, and status writes append audit records atomically through `AppointmentWorkflow`. Actions are `created`, `updated`, and `status_changed`; a combined status/data update emits only `status_changed`. No-op writes and rejected overlaps/transitions emit no success log. Audit records exclude descriptions and cancellation reasons. See [audit logging conventions](audit-logging.md).
+
 Feature tests cover permissions, canonical identifiers and aliases, partial updates, provider and location overlaps, interval boundaries and midnight spillover, treatment-derived duration, cancellation, and every pair of workflow statuses. Run tests against a dedicated test database; `RefreshDatabase` resets its schema. Do not use the development database for test execution.

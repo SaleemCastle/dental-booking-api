@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\User;
+use App\Services\UserWorkflow;
 use App\Support\ApiResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
@@ -17,7 +18,7 @@ class UserController extends Controller
         ], 'Users retrieved.');
     }
 
-    public function store(Request $request)
+    public function store(Request $request, UserWorkflow $workflow)
     {
         $validated = $request->validate([
             'name' => ['required', 'string', 'max:255'],
@@ -25,7 +26,7 @@ class UserController extends Controller
             'password' => ['required', 'string', 'min:8'],
         ]);
 
-        $user = User::create($validated);
+        $user = $workflow->create($validated, $request->user());
 
         return ApiResponse::success([
             'user' => $user,
@@ -39,7 +40,7 @@ class UserController extends Controller
         ], 'User retrieved.');
     }
 
-    public function update(Request $request, User $user)
+    public function update(Request $request, User $user, UserWorkflow $workflow)
     {
         $validated = $request->validate([
             'name' => ['sometimes', 'required', 'string', 'max:255'],
@@ -47,16 +48,16 @@ class UserController extends Controller
             'password' => ['sometimes', 'required', 'string', 'min:8'],
         ]);
 
-        $user->update($validated);
+        $user = $workflow->update($user, $validated, $request->user());
 
         return ApiResponse::success([
             'user' => $user->refresh(),
         ], 'User successfully updated.');
     }
 
-    public function destroy(User $user)
+    public function destroy(Request $request, User $user, UserWorkflow $workflow)
     {
-        $user->delete();
+        $workflow->delete($user, $request->user());
 
         return ApiResponse::success(message: 'User successfully deleted.');
     }
