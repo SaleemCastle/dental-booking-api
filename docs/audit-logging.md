@@ -1,6 +1,28 @@
 # Audit logging (M7)
 
-`App\Services\AuditLogService` appends records to `audit_logs`. This is internal infrastructure; no audit read, edit, delete, or retention API is exposed. Clinical-note create, changed update, and soft-delete workflows are the first integrated consumers. Other workflows must explicitly call the service; they are not automatically audited by this milestone. Factories, seeders, and direct model writes do not generate domain audit events.
+`App\Services\AuditLogService` appends records to `audit_logs`. This is internal infrastructure; no audit read, edit, delete, or retention API is exposed. Core Phase 1 patient, appointment, clinical-note, user, and role workflows are integrated as listed below. Factories, seeders, direct model/pivot writes, and workflows not listed here do not generate domain audit events.
+
+## Core Phase 1 coverage
+
+| Workflow | Resource type / ID | Actions |
+| --- | --- | --- |
+| Patient create, general/medical edit, archive (including legacy API aliases) | `patients` / patient ID | `created`, `updated`, `archived` |
+| Appointment create, edit/reschedule, status transition (PATCH/PUT and check-in/complete/cancel endpoints) | `appointments` / appointment ID | `created`, `updated`, `status_changed` |
+| Clinical-note create, edit, soft-delete | `clinical_notes` / note ID | `created`, `updated`, `deleted` |
+| User API create, edit (including password), delete | `users` / target user ID | `created`, `updated`, `deleted` |
+| Public registration | `users` / newly created user ID | `created`, with null actor because the request is unauthenticated |
+| Successful password reset / signed email verification | `users` / verified target user ID | `password_reset`, `email_verified`; actor is the account verified by the reset token or authenticated signed request |
+| Role create, edit, delete | `roles` / role ID | `created`, `updated`, `deleted` |
+| Replace a user's assigned roles | `users` / target user ID | `roles_changed` |
+| Replace a role's permissions | `roles` / role ID | `permissions_changed` |
+
+Actors on authenticated operations come from the performing user, never the resource owner, assignee, or provider. A user changing another account is the actor; the edited account is the resource. Related IDs, profile/clinical values, password hashes, and permission snapshots are not copied into audit storage.
+
+Each appointment write emits one record. If status and other fields change together, `status_changed` takes precedence over `updated`. Repeating the current status without another change emits nothing; editing a cancellation reason without changing status emits `updated`, without copying the reason. Reads, denied/invalid actions, no-op edits, identical role/permission assignments, and repeated patient archival emit no mutation record. Deleting an assigned custom role also emits `roles_changed` for each affected user as the memberships are removed. Physical appointment deletion is outside the required Phase 1 coverage; cancellation is covered.
+
+Domain mutations and audit inserts share a transaction, including role/permission pivot changes and cascades. A rolled-back mutation leaves no success record. Audit storage failures retain the existing fail-closed baseline contract: the entire database mutation rolls back and the API returns its standard server error rather than committing a partial write. Logging introduces no after-commit listener dependency or external delivery step. Audit events describe persisted database mutations; subsequent notification/session failures are not evidence that a committed mutation did not occur.
+
+Application role changes use the admin-only `RoleWorkflow` and the [role-management API](roles.md). Raw model/pivot changes in maintenance scripts are deliberately not observed; use the workflow with the explicit performing actor to audit them. Existing patient, appointment, clinical, and user CRUD authorization rules remain unchanged.
 
 ## Record contract
 
@@ -47,6 +69,6 @@ This is application-level append-only enforcement, not tamper-proof storage. Raw
 
 ## Verification
 
-`tests/Feature/AuditLogTest.php` covers attribution, UTC precision, system actors, request-context allowlisting/bounds, identifier validation, model/bulk/quiet immutability, history after account/resource deletion, clinical CRUD integration, no-op/denied/invalid exclusions, transaction rollback, and audit-storage failure rollback for all clinical write operations. Existing clinical-note feature tests remain applicable.
+`tests/Feature/AuditLogTest.php` covers attribution, UTC precision, system actors, request-context allowlisting/bounds, identifier validation, model/bulk/quiet immutability, history after account/resource deletion, clinical CRUD integration, no-op/denied/invalid exclusions, transaction rollback, and audit-storage failure rollback for all clinical write operations. `tests/Feature/CoreAuditCoverageTest.php` adds patient, appointment, user, registration, credential, rollback, and storage-failure coverage. `tests/Feature/Api/RoleApiTest.php` verifies admin-only access, role CRUD, assignment/permission changes, protected system roles, and no-op/error exclusions. Existing domain feature tests remain applicable.
 
 Run these tests against a dedicated disposable test database: `RefreshDatabase` resets its schema. Never point the test suite at the development database.

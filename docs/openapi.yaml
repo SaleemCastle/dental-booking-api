@@ -1,7 +1,7 @@
 openapi: 3.0.3
 info:
   title: Dental Booking Backend API
-  version: 1.7.0
+  version: 1.7.1
   description: Laravel Sanctum API for dental clinic booking, scheduling, billing, messaging, and dashboard workflows. All JSON endpoints return the standard ApiEnvelope shape with success, statusCode, message, code, data, errors, meta, and requestId.
 servers:
   - url: http://localhost:8000
@@ -23,6 +23,7 @@ tags:
   - name: Messages
   - name: Referrals
   - name: Users
+  - name: Roles
 paths:
   /sanctum/csrf-cookie:
     get:
@@ -1275,6 +1276,137 @@ paths:
       responses:
         "200":
           $ref: "#/components/responses/DeleteMessage"
+  /api/roles:
+    get:
+      tags: [Roles]
+      summary: List roles with permissions
+      description: Requires the actual admin role, including for reads. Permission wildcards alone do not grant access. Ordered by ID. See docs/roles.md and docs/audit-logging.md.
+      responses:
+        "200": { $ref: "#/components/responses/RoleList" }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+    post:
+      tags: [Roles]
+      summary: Create a custom role
+      description: Admin only. is_system is server-controlled and rejected in input, including null. Creation atomically appends a roles/created audit record without copying description or permission snapshots.
+      requestBody:
+        required: true
+        content: { application/json: { schema: { $ref: "#/components/schemas/RoleCreateRequest" } } }
+      responses:
+        "201": { $ref: "#/components/responses/RoleEnvelope" }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "422": { $ref: "#/components/responses/ValidationError" }
+  /api/roles/{role}:
+    parameters:
+      - { name: role, in: path, required: true, schema: { type: integer } }
+    get:
+      tags: [Roles]
+      summary: Get role with permissions
+      description: Admin only.
+      responses:
+        "200": { $ref: "#/components/responses/RoleEnvelope" }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+    patch:
+      tags: [Roles]
+      summary: Partially update a role
+      description: Admin only. Omitted fields are preserved. System-role slugs cannot change; is_system is prohibited. Changed writes atomically append roles/updated; no-op writes do not append records.
+      requestBody:
+        required: true
+        content: { application/json: { schema: { $ref: "#/components/schemas/RoleUpdateRequest" } } }
+      responses:
+        "200": { $ref: "#/components/responses/RoleEnvelope" }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "422": { $ref: "#/components/responses/ValidationError" }
+    put:
+      tags: [Roles]
+      summary: Update a role
+      description: Same partial-update, admin-only authorization, protected system-role rules, and atomic audit behavior as PATCH.
+      requestBody:
+        required: true
+        content: { application/json: { schema: { $ref: "#/components/schemas/RoleUpdateRequest" } } }
+      responses:
+        "200": { $ref: "#/components/responses/RoleEnvelope" }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "422": { $ref: "#/components/responses/ValidationError" }
+    delete:
+      tags: [Roles]
+      summary: Delete a custom role
+      description: Admin only. System roles cannot be deleted. Removes role memberships and permission links atomically with a roles/deleted audit and users/roles_changed audits for affected users. Existing audit history is retained.
+      responses:
+        "200": { $ref: "#/components/responses/DeleteMessage" }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "422": { $ref: "#/components/responses/ValidationError" }
+  /api/permissions:
+    get:
+      tags: [Roles]
+      summary: List existing permissions for role assignment
+      description: Admin-only selector ordered by slug. Does not create permission definitions or emit mutation audits.
+      responses:
+        "200": { $ref: "#/components/responses/PermissionList" }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+  /api/roles/{role}/permissions:
+    parameters:
+      - { name: role, in: path, required: true, schema: { type: integer } }
+    put:
+      tags: [Roles]
+      summary: Replace a role's permissions
+      description: Admin only. Empty array removes all permissions. Same assignments are a no-op. Changes append roles/permissions_changed atomically; descriptions and permission snapshots are not copied into audit storage.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [permission_ids]
+              properties:
+                permission_ids: { type: array, uniqueItems: true, items: { type: integer, minimum: 1 } }
+      responses:
+        "200": { $ref: "#/components/responses/RoleEnvelope" }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "422": { $ref: "#/components/responses/ValidationError" }
+  /api/users/{user}/roles:
+    parameters:
+      - $ref: "#/components/parameters/UserId"
+    put:
+      tags: [Roles]
+      summary: Replace a user's assigned roles
+      description: Admin only. Empty array removes all roles, including the caller's own admin role if the caller is the target. Same assignments are a no-op. Changes append users/roles_changed with the performing admin as actor and edited user as resource. See docs/roles.md.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [role_ids]
+              properties:
+                role_ids: { type: array, uniqueItems: true, items: { type: integer, minimum: 1 } }
+      responses:
+        "200":
+          description: Standard envelope with data.user including assigned roles and flattened permissions.
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/ApiEnvelope"
+                  - type: object
+                    properties:
+                      data: { type: object, properties: { user: { $ref: "#/components/schemas/User" } } }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "422": { $ref: "#/components/responses/ValidationError" }
 components:
   securitySchemes:
     sanctumBearer:
@@ -1340,6 +1472,36 @@ components:
       required: true
       content: { application/json: { schema: { $ref: "#/components/schemas/ClinicalNoteUpdateRequest" } } }
   responses:
+    RoleList:
+      description: Standard envelope with data.roles, including permissions.
+      content:
+        application/json:
+          schema:
+            allOf:
+              - $ref: "#/components/schemas/ApiEnvelope"
+              - type: object
+                properties:
+                  data: { type: object, properties: { roles: { type: array, items: { $ref: "#/components/schemas/Role" } } } }
+    RoleEnvelope:
+      description: Standard envelope with data.role, including permissions.
+      content:
+        application/json:
+          schema:
+            allOf:
+              - $ref: "#/components/schemas/ApiEnvelope"
+              - type: object
+                properties:
+                  data: { type: object, properties: { role: { $ref: "#/components/schemas/Role" } } }
+    PermissionList:
+      description: Standard envelope with data.permissions ordered by slug.
+      content:
+        application/json:
+          schema:
+            allOf:
+              - $ref: "#/components/schemas/ApiEnvelope"
+              - type: object
+                properties:
+                  data: { type: object, properties: { permissions: { type: array, items: { $ref: "#/components/schemas/Permission" } } } }
     DeleteMessage:
       description: Resource deleted.
       content:
@@ -1568,6 +1730,18 @@ components:
                     properties:
                       clinicalNote: { $ref: "#/components/schemas/ClinicalNote" }
   schemas:
+    RoleCreateRequest:
+      allOf:
+        - $ref: "#/components/schemas/RoleUpdateRequest"
+        - type: object
+          required: [name, slug]
+    RoleUpdateRequest:
+      type: object
+      description: Only name, slug, and description are writable. is_system is prohibited, even when null.
+      properties:
+        name: { type: string, minLength: 1, maxLength: 255 }
+        slug: { type: string, minLength: 1, maxLength: 255, pattern: '^[a-z][a-z0-9_-]*$' }
+        description: { type: string, nullable: true, maxLength: 1000 }
     ApiEnvelope:
       type: object
       required: [success, statusCode, message, code, data, errors, meta, requestId]

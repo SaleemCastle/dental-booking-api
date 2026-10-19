@@ -8,12 +8,15 @@ use App\Models\Dentist;
 use App\Models\Patient;
 use App\Models\Room;
 use App\Models\Treatment;
+use App\Models\User;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 
 class AppointmentWorkflow
 {
+    public function __construct(private readonly AuditLogService $auditLogs) {}
+
     private const TRANSITIONS = [
         'scheduled' => ['checked_in', 'cancelled', 'no_show'],
         'checked_in' => ['in_progress', 'cancelled'],
@@ -28,26 +31,27 @@ class AppointmentWorkflow
         'appointment_date_time', 'duration_minutes',
     ];
 
-    public function create(array $data): Appointment
+    public function create(array $data, User $actor): Appointment
     {
-        return DB::transaction(function () use ($data) {
+        return DB::transaction(function () use ($data, $actor) {
             $data['status'] = 'scheduled';
 
-            return $this->save(new Appointment, $data);
+            return $this->save(new Appointment, $data, $actor);
         }, 3);
     }
 
-    public function update(Appointment $appointment, array $data): Appointment
+    public function update(Appointment $appointment, array $data, User $actor): Appointment
     {
-        return DB::transaction(function () use ($appointment, $data) {
+        return DB::transaction(function () use ($appointment, $data, $actor) {
             $current = Appointment::query()->lockForUpdate()->findOrFail($appointment->id);
 
-            return $this->save($current, $data);
+            return $this->save($current, $data, $actor);
         }, 3);
     }
 
-    private function save(Appointment $appointment, array $data): Appointment
+    private function save(Appointment $appointment, array $data, User $actor): Appointment
     {
+        $creating = ! $appointment->exists;
         $previousStatus = $appointment->status;
         $status = $data['status'] ?? $previousStatus;
 
@@ -154,7 +158,11 @@ class AppointmentWorkflow
             }
         }
 
-        $appointment->save();
+        if ($creating || $appointment->isDirty()) {
+            $action = $creating ? 'created' : ($appointment->isDirty('status') ? 'status_changed' : 'updated');
+            $appointment->save();
+            $this->auditLogs->record($action, 'appointments', $appointment->id, $actor->id);
+        }
 
         return $appointment->refresh();
     }

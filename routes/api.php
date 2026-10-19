@@ -10,10 +10,12 @@ use App\Http\Controllers\Api\MessageController;
 use App\Http\Controllers\Api\PatientController;
 use App\Http\Controllers\Api\PaymentController;
 use App\Http\Controllers\Api\ReferralController;
+use App\Http\Controllers\Api\RoleController;
 use App\Http\Controllers\Api\TaskController;
 use App\Http\Controllers\Api\TokenController;
 use App\Http\Controllers\Api\TreatmentController;
 use App\Http\Controllers\Api\UserController;
+use App\Http\Middleware\RequireAdminRole;
 use App\Support\ApiResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
@@ -71,6 +73,13 @@ Route::middleware(['auth:sanctum'])->group(function () {
     Route::apiResource('payments', PaymentController::class);
     Route::apiResource('clinical-notes', ClinicalNoteController::class);
     Route::apiResource('tasks', TaskController::class);
+
+    Route::middleware(RequireAdminRole::class)->group(function () {
+        Route::apiResource('roles', RoleController::class);
+        Route::get('permissions', [RoleController::class, 'permissions']);
+        Route::put('roles/{role}/permissions', [RoleController::class, 'updatePermissions']);
+        Route::put('users/{user}/roles', [RoleController::class, 'updateUserRoles']);
+    });
 
     Route::put('patients/{patient}/update', [PatientController::class, 'update']);
     Route::delete('patients/{patient}/delete', [PatientController::class, 'destroy']);
