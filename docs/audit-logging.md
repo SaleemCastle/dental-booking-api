@@ -1,6 +1,6 @@
 # Audit logging (M7)
 
-`App\Services\AuditLogService` appends records to `audit_logs`. This is internal infrastructure; no audit read, edit, delete, or retention API is exposed. Core Phase 1 patient, appointment, clinical-note, user, and role workflows are integrated as listed below. Factories, seeders, direct model/pivot writes, and workflows not listed here do not generate domain audit events.
+`App\Services\AuditLogService` appends records to `audit_logs`. Authenticated admins and auditors can read history through `GET /api/audit-logs`, `GET /api/audit-logs/filters`, and `GET /api/audit-logs/{audit_log}`. No audit create, edit, delete, or retention API is exposed. See the [frontend implementation guide](audit-log-frontend-guide.md) for authorization, filters, pagination, response types, examples, and UI integration. Core Phase 1 patient, appointment, clinical-note, user, and role workflows are integrated as listed below. Factories, seeders, direct model/pivot writes, and workflows not listed here do not generate domain audit events.
 
 ## Core Phase 1 coverage
 
@@ -68,6 +68,8 @@ Existing audit models reject saves, updates, deletes, and quiet mutations. The a
 This is application-level append-only enforcement, not tamper-proof storage. Raw SQL, `DB::table`, explicit lower-level query builder access (`toBase()`/`getQuery()`), migrations, and privileged database operators bypass model guards. Application code must use this service for writes. Production hardening should restrict audit-table UPDATE/DELETE privileges and separate migration credentials; a retention/access policy and external immutable storage are separate work. IP addresses and user agents are sensitive operational data and should follow that policy.
 
 ## Verification
+
+`tests/Feature/Api/AuditLogApiTest.php` verifies read authorization (including wildcard bypass attempts and role revocation), list/detail/selector contracts, pagination, filters and UTC microsecond bounds, historical references, safe serialization, empty results, input validation, and unavailable write methods. Audit reads do not create audit events.
 
 `tests/Feature/AuditLogTest.php` covers attribution, UTC precision, system actors, request-context allowlisting/bounds, identifier validation, model/bulk/quiet immutability, history after account/resource deletion, clinical CRUD integration, no-op/denied/invalid exclusions, transaction rollback, and audit-storage failure rollback for all clinical write operations. `tests/Feature/CoreAuditCoverageTest.php` adds patient, appointment, user, registration, credential, rollback, and storage-failure coverage. `tests/Feature/Api/RoleApiTest.php` verifies admin-only access, role CRUD, assignment/permission changes, protected system roles, and no-op/error exclusions. Existing domain feature tests remain applicable.
 

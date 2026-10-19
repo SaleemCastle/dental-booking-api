@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\Api\AppointmentController;
 use App\Http\Controllers\Api\AppointmentLocationController;
+use App\Http\Controllers\Api\AuditLogController;
 use App\Http\Controllers\Api\ClinicalNoteController;
 use App\Http\Controllers\Api\DashboardController;
 use App\Http\Controllers\Api\DentistController;
@@ -55,6 +56,10 @@ Route::middleware(['auth:sanctum'])->group(function () {
     Route::get('dashboard/summary', [DashboardController::class, 'summary']);
 
     Route::get('appointment-locations', [AppointmentLocationController::class, 'index']);
+
+    Route::get('audit-logs/filters', [AuditLogController::class, 'filters']);
+    Route::get('audit-logs', [AuditLogController::class, 'index']);
+    Route::get('audit-logs/{audit_log}', [AuditLogController::class, 'show'])->whereNumber('audit_log');
 
     Route::post('appointments/{appointment}/check-in', [AppointmentController::class, 'checkIn']);
     Route::post('appointments/{appointment}/complete', [AppointmentController::class, 'complete']);
