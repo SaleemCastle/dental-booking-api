@@ -2,6 +2,7 @@
 
 namespace Tests\Feature\Auth;
 
+use App\Models\Permission;
 use App\Models\Role;
 use App\Models\User;
 use Database\Seeders\DatabaseSeeder;
@@ -60,5 +61,9 @@ class RoleSeederTest extends TestCase
 
         $this->assertTrue($user->hasRole(Role::ADMIN));
         $this->assertSame(1, $user->roles()->where('slug', Role::ADMIN)->count());
+        $this->assertSame(52, Permission::count());
+        $this->assertCount(52, $user->permissionSlugs());
+        $this->assertContains('appointments.create', $user->permissionSlugs());
+        $this->assertContains('appointments.update', $user->permissionSlugs());
     }
 }

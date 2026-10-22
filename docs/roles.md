@@ -20,3 +20,7 @@ Assignment arrays must be present, contain distinct integer IDs, and reference e
 Role changes are audited in the same transaction as their primary and pivot writes. See [audit logging conventions](audit-logging.md) for the action/resource mapping and failure behavior. No role descriptions, credential/profile data, or permission snapshots are copied into audit records. Deleting an assigned custom role records both its deletion and each affected user's role change. Admins and auditors can inspect history using the [read-only audit API](audit-log-frontend-guide.md); auditor access does not grant role-management access.
 
 The API allows an admin to remove their own role; ensure another administrator remains available before doing so. It does not add last-admin recovery or automatic protection against deliberate administrative access removal.
+
+## Permission provisioning
+
+The [permission catalog seeder](permissions.md) creates concrete slugs such as `appointments.create` and `appointments.update`, attaches the catalog to the existing admin role, and preserves other roles' assignments. It runs after `RoleSeeder` during normal database seeding, or can be applied independently with `php artisan db:seed --class=PermissionSeeder`. Refetch `GET /api/user` after provisioning to refresh the frontend's flattened `data.permissions` array.
