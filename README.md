@@ -7,6 +7,10 @@
 <a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/l/laravel/framework" alt="License"></a>
 </p>
 
+## API Testing
+
+Import the [Postman collection](docs/postman/dental-booking.postman_collection.json) and [local environment](docs/postman/local.postman_environment.json). See the [Postman setup guide](docs/postman.md) for authentication, variables, write-safety defaults, and audit requests. The API contract is in [OpenAPI](docs/openapi.yaml).
+
 ## About Laravel
 
 Laravel is a web application framework with expressive, elegant syntax. We believe development must be an enjoyable and creative experience to be truly fulfilling. Laravel takes the pain out of development by easing common tasks used in many web projects, such as:
