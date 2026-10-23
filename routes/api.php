@@ -18,6 +18,7 @@ use App\Http\Controllers\Api\TreatmentController;
 use App\Http\Controllers\Api\UserController;
 use App\Http\Middleware\RequireAdminRole;
 use App\Support\ApiResponse;
+use App\Tenancy\TenantContext;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
@@ -31,16 +32,6 @@ use Illuminate\Support\Facades\Route;
 | is assigned the "api" middleware group. Enjoy building your API!
 |
 */
-
-Route::middleware(['auth:sanctum', \App\Http\Middleware\ResolveTenant::class])->get('/user', function (Request $request) {
-    return ApiResponse::success(
-        data: array_merge($request->user()->loadMissing('roles.permissions')->toArray(), [
-            'current_tenant_id' => $request->attributes->get('tenant_id'),
-        ]),
-        message: 'Authenticated user retrieved.',
-        request: $request,
-    );
-});
 
 Route::get('health', function (Request $request) {
     return ApiResponse::success([
@@ -58,7 +49,17 @@ Route::middleware('auth:sanctum')->get('tenants', function (Request $request) {
 
 Route::middleware('auth:sanctum')->delete('auth/token', [TokenController::class, 'destroy']);
 
-Route::middleware(['auth:sanctum', \App\Http\Middleware\ResolveTenant::class])->group(function () {
+Route::middleware(['auth:sanctum', 'tenant'])->group(function () {
+    Route::get('/user', function (Request $request, TenantContext $context) {
+        return ApiResponse::success(
+            data: array_merge($request->user()->loadMissing('roles.permissions')->toArray(), [
+                'current_tenant_id' => $context->requireId(),
+            ]),
+            message: 'Authenticated user retrieved.',
+            request: $request,
+        );
+    });
+
     Route::get('dashboard/summary', [DashboardController::class, 'summary']);
 
     Route::get('appointment-locations', [AppointmentLocationController::class, 'index']);

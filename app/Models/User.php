@@ -34,6 +34,7 @@ class User extends Authenticatable
         'password',
         'remember_token',
         'pivot',
+        'tenants',
     ];
 
     protected $appends = [

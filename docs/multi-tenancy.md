@@ -23,7 +23,7 @@ The column default is the migrated default-clinic ID for compatibility with lega
 1. Authenticate normally using existing Sanctum bearer tokens or browser sessions. Authentication is global; tokens do not confer clinic membership.
 2. `GET /api/tenants` returns only the authenticated user's active memberships as `data.tenants`, ordered by ID. This endpoint does not require default-clinic membership and does not enroll the caller anywhere.
 3. Clinic endpoints optionally accept `X-Tenant-Id: <positive integer>`. Omitting it selects `default-clinic`, **not** the first membership and not the last clinic visited. A user without that membership gets 403 rather than falling back to another clinic.
-4. The resolver checks clinic existence, active status, and current membership before route-model binding and authorization. Unknown, inactive, or nonmember clinics return 403; malformed IDs return 422. Authentication failures remain 401. A foreign clinic's resource ID returns 404. Request payload/query `tenant_id` and `tenantId` are rejected; ownership cannot be mass-assigned.
+4. `TenantResolver::resolve(User $user, ?string $requestedId)` queries active memberships directly on every request, including when the authenticated user has cached membership relations. Missing defaults, unknown/deleted clinics, inactive clinics, and missing/revoked memberships all return the same generic 403 without echoing clinic IDs, names, or membership details; malformed IDs return 422. Authentication failures remain 401, even with an invalid clinic header. Resolution runs before route-model binding and authorization. A foreign clinic's resource ID returns 404. Request payload/query `tenant_id` and `tenantId` are rejected, including null values; ownership cannot be mass-assigned.
 5. Successful clinic responses include `X-Tenant-Id`. `GET /api/user` additionally returns `data.current_tenant_id`, clinic-local `data.roles`, and flattened clinic-local `data.permissions`. These headers are CORS-exposed alongside `X-Request-Id`.
 
 For example:
@@ -63,7 +63,54 @@ app(\App\Tenancy\TenantContext::class)->run($tenant, function () {
 });
 ```
 
-`run()` restores the prior context in `finally`, including on exceptions. The container binding is scoped, not process-global static state. Workers must establish the intended clinic before loading models or invoking workflows; never infer permission to enter a clinic from client-controlled IDs or assume that a Clinic Admin is a platform operator.
+`run()` requires a persisted tenant and restores the prior context in `finally`, including nested calls and exceptions. The container binding is scoped, not process-global static state. Workers must establish the intended clinic before loading models or invoking workflows; never infer permission to enter a clinic from client-controlled IDs or assume that a Clinic Admin is a platform operator.
+
+## Service, policy, and route conventions
+
+`App\Tenancy\TenantContext` is the single abstraction for reading the current clinic. Constructor-inject it into services and policies (or resolve it with `app(TenantContext::class)` in model hooks). Use `requireId()` when an explicitly established context is required: it throws `LogicException` outside `run()` and never selects a default. The existing `id()` method retains the default-clinic fallback for legacy seeders, factories, and account workflows; that fallback does **not** verify membership and must never authorize access or choose a job's tenant. Request middleware always resolves membership explicitly before entering `run()`.
+
+```php
+use App\Tenancy\TenantContext;
+
+final class ClinicReportService
+{
+    public function __construct(private readonly TenantContext $tenant) {}
+
+    public function clinicId(): int
+    {
+        return $this->tenant->requireId();
+    }
+}
+```
+
+Place every new clinic route inside the `['auth:sanctum', 'tenant']` group in `routes/api.php`. `Kernel::$middlewarePriority` keeps authentication before tenant resolution, then bindings and policies. Account-level exceptions are listed above and must not return clinical data. Do not read tenant selection from headers, query strings, route parameters, user relations, or token claims inside controllers/services/policies. `ResolveTenant` delegates membership validation to `TenantResolver`; its request attribute is compatibility metadata, not a second source of authority.
+
+Middleware clears cached user roles before use and on exit, and restores request metadata even when downstream code throws. User serialization hides loaded `tenants` relations; `/api/tenants` is the explicit account-level membership-discovery response. Clinic responses may expose their own verified clinic ID, never another clinic's membership, roles, or records. Continue using scoped queries, tenant-aware validators, and policies for every related record and resource ID.
+
+## Queue/job propagation contract
+
+There are currently no clinic jobs. New jobs, queued listeners, notifications, exports, and scheduled commands that access clinic data must follow this contract:
+
+1. At dispatch, capture the tenant with `TenantContext::requireId()` inside the verified request/context, plus the acting user's ID for user-initiated work. Store only scalar tenant/actor/resource IDs in the job payload. Never copy tenant selection directly from request input, serialize the context/service/request, or serialize Eloquent clinical models with `SerializesModels`: Laravel can restore those models before job middleware runs and without the clinic scope.
+2. At execution and on every retry, reload the actor and resolve the captured tenant through `TenantResolver`. Missing/deleted actors, revoked memberships, and inactive/deleted clinics must stop processing before any clinical query/write. Recheck the relevant policy/permission inside the established context; membership alone does not authorize an operation. Treat authorization failures as terminal job failures, not reasons to fall back to the default or another membership.
+3. Wrap **all** clinical reads, resource loading, policy checks, workflow calls, and writes in `TenantContext::run($tenant, ...)`. Load resources using their scalar IDs only after entering that context. Capture `requireId()` again for child jobs. `run()` restores context after success or exception; do not leave a tenant in static/singleton state between jobs. Workers must reset scoped container instances at job boundaries (the normal Laravel queue worker does this).
+4. Trusted system/scheduled work has no implicit user membership. Enumerate active tenants through an explicitly trusted orchestration path and enter a separate `run()` for each tenant. Do not manufacture an actor or apply a Clinic Admin bypass. Establish context separately in failure hooks/listeners that touch clinic data, since they may run after the main context has unwound.
+
+The core of a future user-initiated job handler should look like this; its constructor must capture scalar IDs and its policy must reflect the actual operation:
+
+```php
+public function handle(TenantResolver $resolver, TenantContext $context): void
+{
+    $actor = User::findOrFail($this->actorId);
+    $tenant = $resolver->resolve($actor, (string) $this->tenantId);
+
+    $context->run($tenant, function () use ($actor): void {
+        $patient = Patient::findOrFail($this->patientId);
+        Gate::forUser($actor)->authorize('view', $patient);
+        // Perform the authorized operation here.
+    });
+}
+```
 
 ## Existing deployment
 
@@ -80,5 +127,7 @@ Rollback preserves Phase 1 IDs and data when only the original default clinic ex
 ## Validation
 
 `TenantFoundationTest` covers default behavior, membership discovery, malformed/unauthorized/inactive clinic selection, role/permission isolation on reused user objects, lists/bindings across clinical domains, dashboard/audit isolation, cross-clinic relationship validation, duplicate per-clinic slugs/locations, stale model writes, composite pivot constraints, shared identities, and account audit routing. `TenantMigrationTest` round-trips populated Phase 1 fixtures, including historical notes, and verifies preserved IDs, links, data, and guarded rollback. Phase 1 feature tests remain regression coverage.
+
+`TenantContextTest` covers bearer/session authentication, middleware ordering with real route bindings/policies, indistinguishable membership failure responses, missing defaults, clinic deactivation, query/body ownership overrides, loaded membership/role serialization, consecutive requests, nested contexts, downstream exceptions, and refusal to enter an unpersisted context or capture an implicit default for a job.
 
 Run database tests only with a dedicated test database. `RefreshDatabase` resets its schema; never point it at development or production data.

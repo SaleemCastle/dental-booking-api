@@ -95,8 +95,9 @@ return new class extends Migration
                 DB::statement('ALTER TABLE "'.$name.'" DROP COLUMN "tenant_id"');
             } else {
                 Schema::table($name, function (Blueprint $table): void {
+                    $table->dropForeign(['tenant_id']);
                     $table->dropIndex(['tenant_id', 'id']);
-                    $table->dropConstrainedForeignId('tenant_id');
+                    $table->dropColumn('tenant_id');
                 });
             }
         }

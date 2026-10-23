@@ -18,8 +18,18 @@ class TenantContext
             ?? throw new LogicException('The default clinic has not been migrated.'));
     }
 
+    /** Return only an explicitly established context, for example when dispatching a job. */
+    public function requireId(): int
+    {
+        return $this->tenantId ?? throw new LogicException('No clinic context has been established.');
+    }
+
     public function run(Tenant $tenant, Closure $callback): mixed
     {
+        if (! $tenant->exists || $tenant->getKey() === null) {
+            throw new LogicException('Clinic context requires a persisted tenant.');
+        }
+
         $previous = $this->tenantId;
         $this->tenantId = $tenant->id;
 
