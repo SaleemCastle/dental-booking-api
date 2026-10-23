@@ -9,6 +9,7 @@ class PostmanExport
     private array $variables = [
         'base_url' => 'http://localhost:8000',
         'frontend_url' => 'http://localhost:3000',
+        'tenant_id' => '',
         'email' => '',
         'password' => '',
         'access_token' => '',
@@ -281,6 +282,10 @@ class PostmanExport
 const path = pm.request.url.getPath();
 const method = pm.request.method;
 const sessionMode = pm.variables.get('use_session_auth') === 'true';
+const tenantId = pm.variables.get('tenant_id');
+if (tenantId && path.startsWith('/api/')) {
+    pm.request.headers.upsert({key: 'X-Tenant-Id', value: String(tenantId)});
+}
 const browserPaths = ['/sanctum/csrf-cookie', '/login', '/register', '/logout'];
 if (browserPaths.includes(path) && !sessionMode) {
     console.warn('Skipped browser-session request; use_session_auth is false.');

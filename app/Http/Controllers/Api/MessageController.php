@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Models\Message;
 use App\Support\ApiResponse;
+use App\Tenancy\TenantRules;
 use Illuminate\Http\Request;
 
 class MessageController extends Controller
@@ -19,8 +20,8 @@ class MessageController extends Controller
     public function store(Request $request)
     {
         $validated = $request->validate([
-            'sender_id' => ['required', 'integer', 'exists:patient,id'],
-            'receiver_id' => ['required', 'integer', 'exists:patient,id'],
+            'sender_id' => ['required', 'integer', TenantRules::exists('patient')],
+            'receiver_id' => ['required', 'integer', TenantRules::exists('patient')],
             'message_text' => ['required', 'string'],
             'timestamp' => ['sometimes', 'date'],
         ]);
@@ -42,8 +43,8 @@ class MessageController extends Controller
     public function update(Request $request, Message $message)
     {
         $validated = $request->validate([
-            'sender_id' => ['sometimes', 'required', 'integer', 'exists:patient,id'],
-            'receiver_id' => ['sometimes', 'required', 'integer', 'exists:patient,id'],
+            'sender_id' => ['sometimes', 'required', 'integer', TenantRules::exists('patient')],
+            'receiver_id' => ['sometimes', 'required', 'integer', TenantRules::exists('patient')],
             'message_text' => ['sometimes', 'required', 'string'],
             'timestamp' => ['sometimes', 'date'],
         ]);

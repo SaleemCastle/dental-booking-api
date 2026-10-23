@@ -20,8 +20,31 @@ jobs:
       fail-fast: true
       matrix:
         php: [8.2]
+        database: [sqlite, mysql]
 
-    name: PHP ${{ matrix.php }}
+    name: PHP ${{ matrix.php }} / ${{ matrix.database }}
+
+    services:
+      mysql:
+        image: mysql:8.0
+        env:
+          MYSQL_ROOT_PASSWORD: testing
+          MYSQL_DATABASE: dental_booking_test
+        ports:
+          - 3306/tcp
+        options: >-
+          --health-cmd="mysqladmin ping -h localhost -ptesting"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=10
+
+    env:
+      DB_CONNECTION: ${{ matrix.database }}
+      DB_DATABASE: ${{ matrix.database == 'sqlite' && ':memory:' || 'dental_booking_test' }}
+      DB_HOST: 127.0.0.1
+      DB_PORT: ${{ job.services.mysql.ports[3306] }}
+      DB_USERNAME: root
+      DB_PASSWORD: testing
 
     steps:
       - name: Checkout code
@@ -30,8 +53,8 @@ jobs:
       - name: Setup PHP
         uses: shivammathur/setup-php@v2
         with:
-          php-version: ${{ matrix.php }}https://github.com/SaleemCastle/dental-booking-api/edit/authentication-manager/.github/workflows/tests.yml#
-          extensions: dom, curl, libxml, mbstring, zip, pcntl, pdo, sqlite, pdo_sqlite
+          php-version: ${{ matrix.php }}
+          extensions: dom, curl, libxml, mbstring, zip, pcntl, pdo, pdo_mysql, sqlite, pdo_sqlite
           coverage: none
 
       - name: Install Composer dependencies

@@ -3,6 +3,7 @@
 namespace App\Models;
 
 // use Illuminate\Contracts\Auth\MustVerifyEmail;
+use App\Tenancy\TenantContext;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
@@ -33,6 +34,7 @@ class User extends Authenticatable
         'password',
         'remember_token',
         'pivot',
+        'tenants',
     ];
 
     protected $appends = [
@@ -49,9 +51,29 @@ class User extends Authenticatable
         'password' => 'hashed',
     ];
 
+    public function tenants()
+    {
+        return $this->belongsToMany(Tenant::class)->withTimestamps();
+    }
+
+    public function scopeForCurrentTenant($query)
+    {
+        return $query->whereHas('tenants', fn ($tenants) => $tenants->whereKey(app(TenantContext::class)->id()));
+    }
+
+    public function isMemberOfCurrentTenant(): bool
+    {
+        return $this->tenants()->whereKey(app(TenantContext::class)->id())->where('active', true)->exists();
+    }
+
+    public function resolveRouteBindingQuery($query, $value, $field = null)
+    {
+        return parent::resolveRouteBindingQuery($query, $value, $field)->forCurrentTenant();
+    }
+
     public function roles()
     {
-        return $this->belongsToMany(Role::class)->withTimestamps();
+        return $this->belongsToMany(Role::class)->withTimestamps()->withPivotValue('tenant_id', app(TenantContext::class)->id());
     }
 
     public function assignedTasks()
@@ -66,7 +88,7 @@ class User extends Authenticatable
 
     public function permissionSlugs(): array
     {
-        $this->loadMissing('roles.permissions');
+        $this->setRelation('roles', $this->isMemberOfCurrentTenant() ? $this->roles()->with('permissions')->get() : (new Role)->newCollection());
 
         return $this->roles
             ->flatMap(fn (Role $role) => $role->permissions->pluck('slug'))
@@ -77,11 +99,8 @@ class User extends Authenticatable
 
     public function hasRole(string $role): bool
     {
-        $this->loadMissing('roles');
-
-        return $this->roles->contains(
-            fn (Role $assignedRole) => $assignedRole->slug === $role || $assignedRole->name === $role
-        );
+        return $this->isMemberOfCurrentTenant() && $this->roles()
+            ->where(fn ($query) => $query->where('slug', $role)->orWhere('name', $role))->exists();
     }
 
     public function hasAnyRole(array $roles): bool

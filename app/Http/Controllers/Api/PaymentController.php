@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Http\Resources\PaymentResource;
 use App\Models\Payment;
 use App\Support\ApiResponse;
+use App\Tenancy\TenantRules;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
 
@@ -21,7 +22,7 @@ class PaymentController extends Controller
     public function store(Request $request)
     {
         $validated = $request->validate([
-            'invoice_id' => ['required', 'integer', 'exists:invoices,id'],
+            'invoice_id' => ['required', 'integer', TenantRules::exists('invoices')],
             'amount' => ['required', 'numeric', 'min:0'],
             'payment_method' => ['nullable', 'string', 'max:255'],
             'status' => ['required', Rule::in(['unpaid', 'partial', 'paid', 'refunded'])],
@@ -44,7 +45,7 @@ class PaymentController extends Controller
     public function update(Request $request, Payment $payment)
     {
         $validated = $request->validate([
-            'invoice_id' => ['sometimes', 'required', 'integer', 'exists:invoices,id'],
+            'invoice_id' => ['sometimes', 'required', 'integer', TenantRules::exists('invoices')],
             'amount' => ['sometimes', 'required', 'numeric', 'min:0'],
             'payment_method' => ['nullable', 'string', 'max:255'],
             'status' => ['sometimes', 'required', Rule::in(['unpaid', 'partial', 'paid', 'refunded'])],

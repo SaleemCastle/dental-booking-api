@@ -5,10 +5,10 @@ namespace App\Services;
 use App\Models\Permission;
 use App\Models\Role;
 use App\Models\User;
+use App\Tenancy\TenantRules;
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Validator;
-use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
 
 class RoleWorkflow
@@ -78,10 +78,10 @@ class RoleWorkflow
         return DB::transaction(function () use ($user, $roleIds, $actor) {
             Validator::make(['role_ids' => $roleIds], [
                 'role_ids' => ['present', 'array'],
-                'role_ids.*' => ['integer', 'distinct', 'exists:roles,id'],
+                'role_ids.*' => ['integer', 'distinct', TenantRules::exists('roles')],
             ])->validate();
             Role::query()->whereIn('id', $roleIds)->orderBy('id')->lockForUpdate()->get();
-            $current = User::query()->lockForUpdate()->findOrFail($user->id);
+            $current = User::forCurrentTenant()->lockForUpdate()->findOrFail($user->id);
             $changes = $current->roles()->sync($roleIds);
 
             if ($changes['attached'] !== [] || $changes['detached'] !== []) {
@@ -132,7 +132,7 @@ class RoleWorkflow
 
         return Validator::make($data, [
             'name' => [$role === null ? 'required' : 'sometimes', 'required', 'string', 'max:255'],
-            'slug' => [$role === null ? 'required' : 'sometimes', 'required', 'string', 'max:255', 'regex:/\A[a-z][a-z0-9_-]*\z/', Rule::unique('roles', 'slug')->ignore($role?->id)],
+            'slug' => [$role === null ? 'required' : 'sometimes', 'required', 'string', 'max:255', 'regex:/\A[a-z][a-z0-9_-]*\z/', TenantRules::unique('roles', 'slug')->ignore($role?->id)],
             'description' => ['sometimes', 'nullable', 'string', 'max:1000'],
         ])->validate();
     }

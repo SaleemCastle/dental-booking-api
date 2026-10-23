@@ -8,6 +8,7 @@ use App\Models\Role;
 use App\Models\Treatment;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Foundation\Testing\RefreshDatabaseState;
 use Illuminate\Support\Facades\DB;
 use Laravel\Sanctum\Sanctum;
 use PHPUnit\Framework\Attributes\DataProvider;
@@ -297,6 +298,13 @@ class TreatmentApiTest extends TestCase
 
     public function test_migration_preserves_existing_treatments_with_catalog_defaults(): void
     {
+        if (DB::getDriverName() === 'mysql') {
+            // DDL commits implicitly; reset the dedicated schema for the next test.
+            DB::rollBack();
+            RefreshDatabaseState::$migrated = false;
+        }
+        $integrity = require database_path('migrations/2026_10_23_000001_enforce_tenant_data_integrity.php');
+        $integrity->down();
         $migration = require database_path('migrations/2026_10_16_000001_add_catalog_fields_to_treatments_table.php');
         $migration->down();
 
@@ -304,6 +312,7 @@ class TreatmentApiTest extends TestCase
         unset($payload['category']);
         $treatmentId = DB::table('treatments')->insertGetId($payload);
         $migration->up();
+        $integrity->up();
 
         $this->assertDatabaseHas('treatments', [
             'id' => $treatmentId,

@@ -1,6 +1,6 @@
 # Role management (M7 audit coverage)
 
-All endpoints require Sanctum authentication and the actual `admin` role. A global permission wildcard or role-management permissions without the admin role do not grant access. Mutations also check the admin role inside `RoleWorkflow`; membership is freshly loaded so removing one's own admin role takes effect on the next request. Existing user CRUD authorization is unchanged.
+All endpoints require Sanctum authentication, membership in the selected clinic, and that clinic's actual `admin` role. Role slugs are unique per clinic; Clinic Admin is not Platform Super Admin. A global permission wildcard or role-management permissions without the clinic admin role do not grant access. Mutations also check the admin role inside `RoleWorkflow`; membership is freshly loaded so removing one's own admin role takes effect on the next request. See the [multi-tenant contract](multi-tenancy.md) for clinic selection, shared identities, and user CRUD restrictions.
 
 | Method | Endpoint | Result |
 | --- | --- | --- |

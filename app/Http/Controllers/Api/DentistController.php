@@ -5,9 +5,9 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Models\Dentist;
 use App\Support\ApiResponse;
+use App\Tenancy\TenantRules;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
 
 class DentistController extends Controller
@@ -24,7 +24,7 @@ class DentistController extends Controller
         $validated = $request->validate([
             'first_name' => ['required', 'string', 'max:100'],
             'last_name' => ['required', 'string', 'max:100'],
-            'email' => ['required', 'email', 'max:255', 'unique:dentist,email'],
+            'email' => ['required', 'email', 'max:255', TenantRules::unique('dentist', 'email')],
             'contact_number' => ['required', 'string', 'max:255'],
             'specialization' => ['nullable', 'string', 'max:255'],
         ]);
@@ -48,7 +48,7 @@ class DentistController extends Controller
         $validated = $request->validate([
             'first_name' => ['sometimes', 'required', 'string', 'max:100'],
             'last_name' => ['sometimes', 'required', 'string', 'max:100'],
-            'email' => ['sometimes', 'required', 'email', 'max:255', Rule::unique('dentist', 'email')->ignore($dentist->id)],
+            'email' => ['sometimes', 'required', 'email', 'max:255', TenantRules::unique('dentist', 'email')->ignore($dentist->id)],
             'contact_number' => ['sometimes', 'required', 'string', 'max:255'],
             'specialization' => ['nullable', 'string', 'max:255'],
         ]);

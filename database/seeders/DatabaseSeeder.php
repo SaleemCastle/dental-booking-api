@@ -20,6 +20,7 @@ class DatabaseSeeder extends Seeder
      */
     public function run(): void
     {
+        $this->call(TenantSeeder::class);
         $this->call(RoleSeeder::class);
         $this->call(PermissionSeeder::class);
         $this->call(AppointmentLocationSeeder::class);
@@ -34,6 +35,7 @@ class DatabaseSeeder extends Seeder
         );
 
         $admin = Role::where('slug', Role::ADMIN)->firstOrFail();
+        $user->tenants()->syncWithoutDetaching([app(\App\Tenancy\TenantContext::class)->id()]);
         $user->roles()->syncWithoutDetaching([$admin->id]);
 
         $patients = Patient::factory(10)->create();

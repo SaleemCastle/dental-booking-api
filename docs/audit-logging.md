@@ -1,5 +1,7 @@
 # Audit logging (M7)
 
+Phase 2 M0: records belong to the selected clinic, with existing history backfilled to the default clinic. Clinic isolation also applies to audit reads, filters and role checks. Global identity events are routed to the identity's memberships. See the [multi-tenant contract](multi-tenancy.md).
+
 `App\Services\AuditLogService` appends records to `audit_logs`. Authenticated admins and auditors can read history through `GET /api/audit-logs`, `GET /api/audit-logs/filters`, and `GET /api/audit-logs/{audit_log}`. No audit create, edit, delete, or retention API is exposed. See the [frontend implementation guide](audit-log-frontend-guide.md) for authorization, filters, pagination, response types, examples, and UI integration. Core Phase 1 patient, appointment, clinical-note, user, and role workflows are integrated as listed below. Factories, seeders, direct model/pivot writes, and workflows not listed here do not generate domain audit events.
 
 ## Core Phase 1 coverage
@@ -29,6 +31,7 @@ Application role changes use the admin-only `RoleWorkflow` and the [role-managem
 | Field | Convention |
 | --- | --- |
 | `id` | Server-generated audit record ID. |
+| `tenant_id` | Server-selected owning clinic. Never accepted from payloads; existing Phase 1 records retain their IDs and belong to the migrated default clinic. |
 | `actor_id` | Authenticated user's canonical integer ID; explicitly pass null for system/background work without a user. Never accept attribution from client input. |
 | `action` | Stable lowercase machine-readable verb, such as `created`, `updated`, or `deleted`; maximum 80 characters, matching `[a-z][a-z0-9_.]*`. |
 | `resource_type` | Stable plural snake-case domain identifier, such as `clinical_notes` or `tasks`; maximum 80 characters, matching `[a-z][a-z0-9_]*`. Avoid PHP class names so refactors preserve the convention. |

@@ -17,7 +17,13 @@ yarn-error.log
 /.fleet
 /.idea
 /.vscode
-/docs
+/docs/*
+!/docs/multi-tenancy.md
+!/docs/postman.md
+!/docs/postman/
+/docs/postman/*
+!/docs/postman/dental-booking.postman_collection.json
+!/docs/postman/local.postman_environment.json
 
 # Local environment files
 .env.*

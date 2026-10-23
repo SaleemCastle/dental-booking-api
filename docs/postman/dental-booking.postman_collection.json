@@ -1,0 +1,3631 @@
+{
+    "info": {
+        "_postman_id": "587df005-e259-4a96-8f95-0364f57ca6ce",
+        "name": "Dental Booking Backend API 2.0.0",
+        "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+        "description": "Generated from docs/openapi.yaml. Import the matching environment, set email/password, then create a bearer token. All documented operations are included. Domain writes are skipped unless allow_writes=true; auth cleanup requires allow_auth_cleanup=true. This is an interactive request catalog, not an ordered CRUD scenario. Use a disposable database. See docs/postman.md."
+    },
+    "auth": {
+        "type": "bearer",
+        "bearer": [
+            {
+                "key": "token",
+                "value": "{{access_token}}",
+                "type": "string"
+            }
+        ]
+    },
+    "event": [
+        {
+            "listen": "prerequest",
+            "script": {
+                "type": "text/javascript",
+                "exec": [
+                    "const path = pm.request.url.getPath();",
+                    "const method = pm.request.method;",
+                    "const sessionMode = pm.variables.get('use_session_auth') === 'true';",
+                    "const tenantId = pm.variables.get('tenant_id');",
+                    "if (tenantId && path.startsWith('/api/')) {",
+                    "    pm.request.headers.upsert({key: 'X-Tenant-Id', value: String(tenantId)});",
+                    "}",
+                    "const browserPaths = ['/sanctum/csrf-cookie', '/login', '/register', '/logout'];",
+                    "if (browserPaths.includes(path) && !sessionMode) {",
+                    "    console.warn('Skipped browser-session request; use_session_auth is false.');",
+                    "    pm.execution.skipRequest();",
+                    "}",
+                    "const cleanup = path === '/logout' || (path === '/api/auth/token' && method === 'DELETE');",
+                    "if (cleanup && pm.variables.get('allow_auth_cleanup') !== 'true') {",
+                    "    console.warn('Skipped auth cleanup; allow_auth_cleanup must be true.');",
+                    "    pm.execution.skipRequest();",
+                    "}",
+                    "const authWrite = cleanup || path === '/login' || path === '/api/auth/token';",
+                    "if (!['GET', 'HEAD', 'OPTIONS'].includes(method) && !authWrite && pm.variables.get('allow_writes') !== 'true') {",
+                    "    console.warn('Skipped domain write; allow_writes must be true. Use a disposable database.');",
+                    "    pm.execution.skipRequest();",
+                    "}",
+                    "const suffix = Date.now().toString(36) + Math.floor(Math.random() * 16777215).toString(36);",
+                    "const defaults = {",
+                    "    sample_email: 'postman.' + suffix + '@example.test',",
+                    "    appointment_start: new Date(Date.now() + 86400000).toISOString(),",
+                    "    due_date: new Date(Date.now() + 259200000).toISOString().slice(0, 10),",
+                    "    role_slug: 'postman-' + suffix,",
+                    "    invoice_number: 'PM-' + suffix",
+                    "};",
+                    "for (const [key, value] of Object.entries(defaults)) {",
+                    "    if (!pm.variables.get(key)) pm.variables.set(key, value);",
+                    "}",
+                    "for (const key of ['password', 'new_user_password']) {",
+                    "    pm.variables.set(key + '_json', JSON.stringify(pm.variables.get(key) || ''));",
+                    "}",
+                    "const texts = [pm.request.url.getPath()];",
+                    "pm.request.url.query.each(parameter => { if (!parameter.disabled) texts.push(parameter.value || ''); });",
+                    "if (pm.request.body && pm.request.body.raw) texts.push(pm.request.body.raw);",
+                    "const required = [...new Set((texts.join('\\n').match(/\\{\\{[a-zA-Z0-9_]+\\}\\}/g) || []).map(value => value.slice(2, -2)))];",
+                    "for (const key of ['password', 'new_user_password']) {",
+                    "    if (required.includes(key + '_json')) required.push(key);",
+                    "}",
+                    "const missing = required.filter(key => !String(pm.variables.get(key) || '').trim());",
+                    "if (missing.length) {",
+                    "    console.warn('Skipped request; set variables: ' + [...new Set(missing)].join(', '));",
+                    "    pm.execution.skipRequest();",
+                    "}",
+                    "const publicRequest = browserPaths.includes(path) || path === '/api/health' || (path === '/api/auth/token' && method === 'POST');",
+                    "if (!publicRequest && !sessionMode && !pm.variables.get('access_token')) {",
+                    "    console.warn('Skipped protected request; create a bearer token first.');",
+                    "    pm.execution.skipRequest();",
+                    "}",
+                    "if (sessionMode) {",
+                    "    pm.request.headers.upsert({key: 'Origin', value: pm.variables.get('frontend_url')});",
+                    "    const csrf = pm.cookies.get('XSRF-TOKEN');",
+                    "    if (csrf) pm.request.headers.upsert({key: 'X-XSRF-TOKEN', value: decodeURIComponent(csrf)});",
+                    "}",
+                    "pm.request.headers.upsert({key: 'X-Request-Id', value: pm.variables.replaceIn('{{$guid}}')});"
+                ]
+            }
+        },
+        {
+            "listen": "test",
+            "script": {
+                "type": "text/javascript",
+                "exec": [
+                    "pm.test('Request succeeded', () => pm.expect(pm.response.code).to.be.within(200, 299));",
+                    "let body;",
+                    "try { body = pm.response.json(); } catch (error) {",
+                    "    pm.test('Response is JSON', () => { throw new Error('Expected an API JSON response.'); });",
+                    "}",
+                    "if (body) {",
+                    "    pm.test('Standard API envelope', () => {",
+                    "        pm.expect(body).to.have.all.keys('success', 'statusCode', 'message', 'code', 'data', 'errors', 'meta', 'requestId');",
+                    "        pm.expect(body.statusCode).to.equal(pm.response.code);",
+                    "        pm.expect(body.success).to.equal(pm.response.code >= 200 && pm.response.code < 300);",
+                    "        pm.expect(body.requestId).to.be.a('string');",
+                    "    });",
+                    "    if (pm.response.code >= 200 && pm.response.code < 300 && body.data) {",
+                    "        if (body.data.access_token) pm.environment.set('access_token', body.data.access_token);",
+                    "        const path = pm.request.url.getPath();",
+                    "        const entities = {",
+                    "            patients: ['patient', 'patient_id'], dentists: ['dentist', 'dentist_id'],",
+                    "            appointments: ['appointment', 'appointment_id'], treatments: ['treatment', 'treatment_id'],",
+                    "            'clinical-notes': ['clinicalNote', 'clinical_note_id'], tasks: ['task', 'task_id'],",
+                    "            roles: ['role', 'role_id'], users: ['user', 'user_id'], invoices: ['invoice', 'invoice_id'],",
+                    "            payments: ['payment', 'payment_id'], messages: ['messageItem', 'message_id'], referrals: ['referral', 'referral_id']",
+                    "        };",
+                    "        const entity = entities[path.replace(/^\\/api\\//, '')];",
+                    "        if (pm.request.method === 'POST' && entity && body.data[entity[0]]) {",
+                    "            pm.environment.set(entity[1], String(body.data[entity[0]].id));",
+                    "        }",
+                    "        if (path === '/api/user' && body.data.id) {",
+                    "            pm.environment.set('current_user_id', String(body.data.id));",
+                    "            if (!pm.environment.get('assignee_id')) pm.environment.set('assignee_id', String(body.data.id));",
+                    "        }",
+                    "        if (path === '/api/audit-logs' && body.data.auditLogs && body.data.auditLogs.length) {",
+                    "            const entry = body.data.auditLogs[0];",
+                    "            pm.environment.set('audit_log_id', String(entry.id));",
+                    "            if (entry.request_metadata && entry.request_metadata.request_id) {",
+                    "                pm.environment.set('audit_request_id', entry.request_metadata.request_id);",
+                    "            }",
+                    "        }",
+                    "    }",
+                    "    if (pm.response.code >= 200 && pm.response.code < 300 && pm.request.method === 'DELETE' && pm.request.url.getPath() === '/api/auth/token') {",
+                    "        pm.environment.unset('access_token');",
+                    "    }",
+                    "}"
+                ]
+            }
+        }
+    ],
+    "item": [
+        {
+            "name": "Authentication - Bearer",
+            "item": [
+                {
+                    "name": "POST Create a Sanctum bearer token",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            },
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/api/auth/token",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "auth",
+                                "token"
+                            ],
+                            "query": []
+                        },
+                        "description": "Use this for Swagger UI testing. The Next.js frontend can continue using the cookie-based Sanctum flow.\n\nPOST /api/auth/token\nDomain writes require allow_writes=true. Missing required variables skip requests rather than selecting real records automatically.",
+                        "auth": {
+                            "type": "noauth"
+                        },
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"email\": \"{{email}}\",\n    \"password\": {{password_json}},\n    \"token_name\": \"postman\"\n}\n",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        }
+                    },
+                    "response": []
+                },
+                {
+                    "name": "DELETE Revoke the current Sanctum bearer token",
+                    "request": {
+                        "method": "DELETE",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/api/auth/token",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "auth",
+                                "token"
+                            ],
+                            "query": []
+                        },
+                        "description": "DELETE /api/auth/token\nDomain writes require allow_writes=true. Missing required variables skip requests rather than selecting real records automatically."
+                    },
+                    "response": []
+                }
+            ]
+        },
+        {
+            "name": "Auth",
+            "item": [
+                {
+                    "name": "GET Initialize CSRF and session cookies for browser clients",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/sanctum/csrf-cookie",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "sanctum",
+                                "csrf-cookie"
+                            ],
+                            "query": []
+                        },
+                        "description": "Browser clients should call this endpoint with credentials enabled before posting to /login or /register.\n\nGET /sanctum/csrf-cookie\nDomain writes require allow_writes=true. Missing required variables skip requests rather than selecting real records automatically.",
+                        "auth": {
+                            "type": "noauth"
+                        }
+                    },
+                    "response": []
+                },
+                {
+                    "name": "POST Log in with a browser session",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            },
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/login",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "login"
+                            ],
+                            "query": []
+                        },
+                        "description": "POST /login\nDomain writes require allow_writes=true. Missing required variables skip requests rather than selecting real records automatically.",
+                        "auth": {
+                            "type": "noauth"
+                        },
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"email\": \"{{email}}\",\n    \"password\": {{password_json}}\n}\n",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        }
+                    },
+                    "response": []
+                },
+                {
+                    "name": "POST Register and log in with a browser session",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            },
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/register",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "register"
+                            ],
+                            "query": []
+                        },
+                        "description": "POST /register\nDomain writes require allow_writes=true. Missing required variables skip requests rather than selecting real records automatically.",
+                        "auth": {
+                            "type": "noauth"
+                        },
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"name\": \"Postman Test User\",\n    \"email\": \"{{sample_email}}\",\n    \"password\": {{new_user_password_json}},\n    \"password_confirmation\": {{new_user_password_json}}\n}\n",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        }
+                    },
+                    "response": []
+                },
+                {
+                    "name": "POST Log out of the current browser session",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/logout",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "logout"
+                            ],
+                            "query": []
+                        },
+                        "description": "POST /logout\nDomain writes require allow_writes=true. Missing required variables skip requests rather than selecting real records automatically.",
+                        "auth": {
+                            "type": "noauth"
+                        }
+                    },
+                    "response": []
+                }
+            ]
+        },
+        {
+            "name": "Health",
+            "item": [
+                {
+                    "name": "GET Check service health",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/api/health",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "health"
+                            ],
+                            "query": []
+                        },
+                        "description": "GET /api/health\nDomain writes require allow_writes=true. Missing required variables skip requests rather than selecting real records automatically.",
+                        "auth": {
+                            "type": "noauth"
+                        }
+                    },
+                    "response": []
+                }
+            ]
+        },
+        {
+            "name": "Tenants",
+            "item": [
+                {
+                    "name": "GET List current user's active clinic memberships",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/api/tenants",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "tenants"
+                            ],
+                            "query": []
+                        },
+                        "description": "Requires Sanctum authentication but not a selected clinic. Returns only the caller's active memberships, enabling clinic discovery before X-Tenant-Id selection. Does not create clinics, enroll users, or confer platform privileges. Changing clinic requires refetching current-user roles/permissions and clearing clinic-specific frontend state. Unsupported tenant IDs return 403 on clinic endpoints; malformed IDs return 422. Foreign resource IDs return 404.\n\nGET /api/tenants\nDomain writes require allow_writes=true. Missing required variables skip requests rather than selecting real records automatically."
+                    },
+                    "response": []
+                }
+            ]
+        },
+        {
+            "name": "Users",
+            "item": [
+                {
+                    "name": "GET Get authenticated user",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/api/user",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "user"
+                            ],
+                            "query": []
+                        },
+                        "description": "Requires active membership in the selected clinic. Returns current_tenant_id, clinic-local roles, and flattened clinic-local permission slugs. Refetch after clinic changes. X-Tenant-Id is returned as a response header on successful clinic requests. Headers and payload fields never grant membership or platform privileges.\n\nGET /api/user\nDomain writes require allow_writes=true. Missing required variables skip requests rather than selecting real records automatically."
+                    },
+                    "response": []
+                },
+                {
+                    "name": "GET List users",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/api/users",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "users"
+                            ],
+                            "query": []
+                        },
+                        "description": "GET /api/users\nDomain writes require allow_writes=true. Missing required variables skip requests rather than selecting real records automatically."
+                    },
+                    "response": []
+                },
+                {
+                    "name": "POST Create user",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            },
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/api/users",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "users"
+                            ],
+                            "query": []
+                        },
+                        "description": "POST /api/users\nDomain writes require allow_writes=true. Missing required variables skip requests rather than selecting real records automatically.",
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"name\": \"Postman Test User\",\n    \"email\": \"{{sample_email}}\",\n    \"password\": {{new_user_password_json}}\n}\n",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        }
+                    },
+                    "response": []
+                },
+                {
+                    "name": "GET Get user",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/api/users/{{user_id}}",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "users",
+                                "{{user_id}}"
+                            ],
+                            "query": []
+                        },
+                        "description": "GET /api/users/{user}\nDomain writes require allow_writes=true. Missing required variables skip requests rather than selecting real records automatically."
+                    },
+                    "response": []
+                },
+                {
+                    "name": "PATCH Update user",
+                    "request": {
+                        "method": "PATCH",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            },
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/api/users/{{user_id}}",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "users",
+                                "{{user_id}}"
+                            ],
+                            "query": []
+                        },
+                        "description": "PATCH /api/users/{user}\nDomain writes require allow_writes=true. Missing required variables skip requests rather than selecting real records automatically.",
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"name\": \"Postman Updated User\"\n}\n",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        }
+                    },
+                    "response": []
+                },
+                {
+                    "name": "PUT Update user",
+                    "request": {
+                        "method": "PUT",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            },
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/api/users/{{user_id}}",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "users",
+                                "{{user_id}}"
+                            ],
+                            "query": []
+                        },
+                        "description": "PUT /api/users/{user}\nDomain writes require allow_writes=true. Missing required variables skip requests rather than selecting real records automatically.",
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"name\": \"Postman Updated User\"\n}\n",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        }
+                    },
+                    "response": []
+                },
+                {
+                    "name": "DELETE Delete user",
+                    "request": {
+                        "method": "DELETE",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/api/users/{{user_id}}",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "users",
+                                "{{user_id}}"
+                            ],
+                            "query": []
+                        },
+                        "description": "Removes the user from the selected clinic. Reassign or delete all of this member's selected-clinic tasks first; otherwise returns 422 on field user without changing memberships, roles, accounts or audits. Tasks in other clinics do not block removal. Shared identities retain their global account, other clinic memberships and roles, and append users/membership_removed in this clinic. A single-clinic identity retains the Phase 1 account-deletion behavior. Clinic membership and tenant-local target binding are required; no platform authority is implied.\n\nDELETE /api/users/{user}\nDomain writes require allow_writes=true. Missing required variables skip requests rather than selecting real records automatically."
+                    },
+                    "response": []
+                }
+            ]
+        },
+        {
+            "name": "Dashboard",
+            "item": [
+                {
+                    "name": "GET Get overview dashboard metrics",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/api/dashboard/summary",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "dashboard",
+                                "summary"
+                            ],
+                            "query": []
+                        },
+                        "description": "GET /api/dashboard/summary\nDomain writes require allow_writes=true. Missing required variables skip requests rather than selecting real records automatically."
+                    },
+                    "response": []
+                }
+            ]
+        },
+        {
+            "name": "Patients",
+            "item": [
+                {
+                    "name": "GET List patients",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/api/patients?page=1&per_page=15",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "patients"
+                            ],
+                            "query": [
+                                {
+                                    "key": "archived",
+                                    "value": "without",
+                                    "disabled": true,
+                                    "description": "Filter archived patients. Defaults to active patients only."
+                                },
+                                {
+                                    "key": "search",
+                                    "value": "Jane Doe",
+                                    "disabled": true,
+                                    "description": "Search by patient id, first name, last name, address/location text, notes, or emergency contact details."
+                                },
+                                {
+                                    "key": "page",
+                                    "value": "1",
+                                    "disabled": false,
+                                    "description": "Optional filter; enable its checkbox to send it."
+                                },
+                                {
+                                    "key": "per_page",
+                                    "value": "15",
+                                    "disabled": false,
+                                    "description": "Optional filter; enable its checkbox to send it."
+                                }
+                            ]
+                        },
+                        "description": "GET /api/patients\nDomain writes require allow_writes=true. Missing required variables skip requests rather than selecting real records automatically."
+                    },
+                    "response": []
+                },
+                {
+                    "name": "POST Create patient",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            },
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/api/patients",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "patients"
+                            ],
+                            "query": []
+                        },
+                        "description": "POST /api/patients\nDomain writes require allow_writes=true. Missing required variables skip requests rather than selecting real records automatically.",
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"firstName\": \"Jane\",\n    \"lastName\": \"Doe\",\n    \"appointments\": \"Cleaning\",\n    \"sex\": \"Female\",\n    \"streetAddress\": \"123 Main Street\",\n    \"town\": \"Midtown\",\n    \"city\": \"Bogota\",\n    \"notes\": \"Prefers morning appointments.\"\n}\n",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        }
+                    },
+                    "response": []
+                },
+                {
+                    "name": "GET Get patient",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/api/patients/{{patient_id}}",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "patients",
+                                "{{patient_id}}"
+                            ],
+                            "query": []
+                        },
+                        "description": "GET /api/patients/{patient}\nDomain writes require allow_writes=true. Missing required variables skip requests rather than selecting real records automatically."
+                    },
+                    "response": []
+                },
+                {
+                    "name": "PATCH Update patient",
+                    "request": {
+                        "method": "PATCH",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            },
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/api/patients/{{patient_id}}",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "patients",
+                                "{{patient_id}}"
+                            ],
+                            "query": []
+                        },
+                        "description": "Requires patients.update for demographics, contact, appointment context, and notes fields. Requires patients.medical.update for allergies, medications, and medical_alerts.\n\nPATCH /api/patients/{patient}\nDomain writes require allow_writes=true. Missing required variables skip requests rather than selecting real records automatically.",
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"notes\": \"Postman updated test data\"\n}\n",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        }
+                    },
+                    "response": []
+                },
+                {
+                    "name": "PUT Update patient",
+                    "request": {
+                        "method": "PUT",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            },
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/api/patients/{{patient_id}}",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "patients",
+                                "{{patient_id}}"
+                            ],
+                            "query": []
+                        },
+                        "description": "Requires patients.update for demographics, contact, appointment context, and notes fields. Requires patients.medical.update for allergies, medications, and medical_alerts.\n\nPUT /api/patients/{patient}\nDomain writes require allow_writes=true. Missing required variables skip requests rather than selecting real records automatically.",
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"notes\": \"Postman updated test data\"\n}\n",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        }
+                    },
+                    "response": []
+                },
+                {
+                    "name": "DELETE Archive patient",
+                    "request": {
+                        "method": "DELETE",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/api/patients/{{patient_id}}",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "patients",
+                                "{{patient_id}}"
+                            ],
+                            "query": []
+                        },
+                        "description": "Requires patients.archive. Archives the patient record without hard-deleting it, preserving linked appointments, clinical notes, invoices, and other history.\n\nDELETE /api/patients/{patient}\nDomain writes require allow_writes=true. Missing required variables skip requests rather than selecting real records automatically."
+                    },
+                    "response": []
+                },
+                {
+                    "name": "PUT Legacy patient update endpoint",
+                    "request": {
+                        "method": "PUT",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            },
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/api/patients/{{patient_id}}/update",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "patients",
+                                "{{patient_id}}",
+                                "update"
+                            ],
+                            "query": []
+                        },
+                        "description": "PUT /api/patients/{patient}/update\nDomain writes require allow_writes=true. Missing required variables skip requests rather than selecting real records automatically.",
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"notes\": \"Postman updated test data\"\n}\n",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        }
+                    },
+                    "response": []
+                },
+                {
+                    "name": "DELETE Legacy patient archive endpoint",
+                    "request": {
+                        "method": "DELETE",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/api/patients/{{patient_id}}/delete",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "patients",
+                                "{{patient_id}}",
+                                "delete"
+                            ],
+                            "query": []
+                        },
+                        "description": "Legacy route retained for compatibility. It archives the patient and does not hard-delete the record.\n\nDELETE /api/patients/{patient}/delete\nDomain writes require allow_writes=true. Missing required variables skip requests rather than selecting real records automatically."
+                    },
+                    "response": []
+                }
+            ]
+        },
+        {
+            "name": "Appointments",
+            "item": [
+                {
+                    "name": "GET List rooms and their chairs for booking selectors",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/api/appointment-locations",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "appointment-locations"
+                            ],
+                            "query": []
+                        },
+                        "description": "Requires appointments.view permission or the admin role. Returns canonical integer room and chair IDs ordered by name then ID. Rooms are exclusive booking resources, including when different chairs are selected within the same room.\n\nGET /api/appointment-locations\nDomain writes require allow_writes=true. Missing required variables skip requests rather than selecting real records automatically."
+                    },
+                    "response": []
+                },
+                {
+                    "name": "GET List appointments",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/api/appointments",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "appointments"
+                            ],
+                            "query": [
+                                {
+                                    "key": "date",
+                                    "value": "2026-10-05",
+                                    "disabled": true,
+                                    "description": "Optional filter; enable its checkbox to send it."
+                                }
+                            ]
+                        },
+                        "description": "Requires appointments.view permission or the admin role. The optional date filters starts in the application timezone (UTC). Responses contain canonical numeric IDs, display names, and ISO 8601 UTC startsAt/endsAt fields.\n\nGET /api/appointments\nDomain writes require allow_writes=true. Missing required variables skip requests rather than selecting real records automatically."
+                    },
+                    "response": []
+                },
+                {
+                    "name": "POST Create appointment",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            },
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/api/appointments",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "appointments"
+                            ],
+                            "query": []
+                        },
+                        "description": "Requires appointments.create permission or the admin role. Creates a scheduled appointment. Accepts canonical snake_case fields and documented camelCase aliases; canonical values take precedence. Archived patients and inactive treatments cannot be selected. Duration defaults to the selected treatment duration or 30 minutes. Optional chair_id derives room_id when room_id is omitted. Provider, chair, and room overlaps with active appointments return 422, including across midnight; adjacent intervals are allowed. Offset timestamps are normalized to UTC. See docs/appointment-workflow.md for transition and locking rules.\n\nPOST /api/appointments\nDomain writes require allow_writes=true. Missing required variables skip requests rather than selecting real records automatically.",
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"description\": \"Postman test data\",\n    \"patient_id\": \"{{patient_id}}\",\n    \"dentist_id\": \"{{dentist_id}}\",\n    \"appointment_date_time\": \"{{appointment_start}}\",\n    \"appointment_type\": \"Postman test data\"\n}\n",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        }
+                    },
+                    "response": []
+                },
+                {
+                    "name": "GET Get appointment",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/api/appointments/{{appointment_id}}",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "appointments",
+                                "{{appointment_id}}"
+                            ],
+                            "query": []
+                        },
+                        "description": "Requires appointments.view permission or the admin role.\n\nGET /api/appointments/{appointment}\nDomain writes require allow_writes=true. Missing required variables skip requests rather than selecting real records automatically."
+                    },
+                    "response": []
+                },
+                {
+                    "name": "PATCH Update appointment",
+                    "request": {
+                        "method": "PATCH",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            },
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/api/appointments/{{appointment_id}}",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "appointments",
+                                "{{appointment_id}}"
+                            ],
+                            "query": []
+                        },
+                        "description": "Requires appointments.update permission or the admin role. PATCH and PUT both accept partial updates and preserve omitted fields. Changes to provider, chair, room, start, treatment-derived duration, or explicit duration are checked for overlaps. Completed, cancelled, and no_show appointments cannot be rescheduled. Appointments with clinical notes, including soft-deleted notes, cannot change patient/provider. Appointments linked to tasks cannot change patient. Status changes use the workflow rules described in docs/appointment-workflow.md. Repeating the current status is idempotent and preserves timestamps.\n\nPATCH /api/appointments/{appointment}\nDomain writes require allow_writes=true. Missing required variables skip requests rather than selecting real records automatically.",
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"description\": \"Postman updated test data\"\n}\n",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        }
+                    },
+                    "response": []
+                },
+                {
+                    "name": "PUT Update appointment",
+                    "request": {
+                        "method": "PUT",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            },
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/api/appointments/{{appointment_id}}",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "appointments",
+                                "{{appointment_id}}"
+                            ],
+                            "query": []
+                        },
+                        "description": "Requires appointments.update permission or the admin role. Uses the same partial update, conflict validation, and status transition rules as PATCH.\n\nPUT /api/appointments/{appointment}\nDomain writes require allow_writes=true. Missing required variables skip requests rather than selecting real records automatically.",
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"description\": \"Postman updated test data\"\n}\n",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        }
+                    },
+                    "response": []
+                },
+                {
+                    "name": "DELETE Delete appointment",
+                    "request": {
+                        "method": "DELETE",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/api/appointments/{{appointment_id}}",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "appointments",
+                                "{{appointment_id}}"
+                            ],
+                            "query": []
+                        },
+                        "description": "Requires appointments.delete permission or the admin role. Physically deletes appointments without clinical notes. Notes, including soft-deleted notes, prevent deletion with a 422 appointment_id error. Use the cancel action to retain appointment history and release its slot.\n\nDELETE /api/appointments/{appointment}\nDomain writes require allow_writes=true. Missing required variables skip requests rather than selecting real records automatically."
+                    },
+                    "response": []
+                },
+                {
+                    "name": "POST Mark appointment as checked in",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/api/appointments/{{appointment_id}}/check-in",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "appointments",
+                                "{{appointment_id}}",
+                                "check-in"
+                            ],
+                            "query": []
+                        },
+                        "description": "Requires appointments.update permission or the admin role. Only scheduled appointments can transition to checked_in. Repeating checked_in succeeds without changing checked_in_at. Other transitions return 422.\n\nPOST /api/appointments/{appointment}/check-in\nDomain writes require allow_writes=true. Missing required variables skip requests rather than selecting real records automatically."
+                    },
+                    "response": []
+                },
+                {
+                    "name": "POST Mark appointment as completed",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/api/appointments/{{appointment_id}}/complete",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "appointments",
+                                "{{appointment_id}}",
+                                "complete"
+                            ],
+                            "query": []
+                        },
+                        "description": "Requires appointments.update permission or the admin role. Only in_progress appointments can transition to completed; first use PATCH with status in_progress after check-in. Repeating completed preserves completed_at. Other transitions return 422.\n\nPOST /api/appointments/{appointment}/complete\nDomain writes require allow_writes=true. Missing required variables skip requests rather than selecting real records automatically."
+                    },
+                    "response": []
+                },
+                {
+                    "name": "POST Cancel appointment",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            },
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/api/appointments/{{appointment_id}}/cancel",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "appointments",
+                                "{{appointment_id}}",
+                                "cancel"
+                            ],
+                            "query": []
+                        },
+                        "description": "Requires appointments.update permission or the admin role. Scheduled, checked_in, and in_progress appointments may be cancelled. Cancellation releases provider and location reservations. Repeating cancellation preserves cancelled_at and retains the existing reason when omitted. Completed and no_show appointments cannot be cancelled.\n\nPOST /api/appointments/{appointment}/cancel\nDomain writes require allow_writes=true. Missing required variables skip requests rather than selecting real records automatically.",
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"cancellation_reason\": \"Patient requested cancellation.\"\n}\n",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        }
+                    },
+                    "response": []
+                }
+            ]
+        },
+        {
+            "name": "Dentists",
+            "item": [
+                {
+                    "name": "GET List dentists",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/api/dentists",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "dentists"
+                            ],
+                            "query": []
+                        },
+                        "description": "GET /api/dentists\nDomain writes require allow_writes=true. Missing required variables skip requests rather than selecting real records automatically."
+                    },
+                    "response": []
+                },
+                {
+                    "name": "POST Create dentist",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            },
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/api/dentists",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "dentists"
+                            ],
+                            "query": []
+                        },
+                        "description": "POST /api/dentists\nDomain writes require allow_writes=true. Missing required variables skip requests rather than selecting real records automatically.",
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"first_name\": \"Postman test data\",\n    \"last_name\": \"Postman test data\",\n    \"email\": \"{{sample_email}}\",\n    \"contact_number\": \"Postman test data\"\n}\n",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        }
+                    },
+                    "response": []
+                },
+                {
+                    "name": "GET Get dentist",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/api/dentists/{{dentist_id}}",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "dentists",
+                                "{{dentist_id}}"
+                            ],
+                            "query": []
+                        },
+                        "description": "GET /api/dentists/{dentist}\nDomain writes require allow_writes=true. Missing required variables skip requests rather than selecting real records automatically."
+                    },
+                    "response": []
+                },
+                {
+                    "name": "PATCH Update dentist",
+                    "request": {
+                        "method": "PATCH",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            },
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/api/dentists/{{dentist_id}}",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "dentists",
+                                "{{dentist_id}}"
+                            ],
+                            "query": []
+                        },
+                        "description": "PATCH /api/dentists/{dentist}\nDomain writes require allow_writes=true. Missing required variables skip requests rather than selecting real records automatically.",
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"specialization\": \"Postman updated test data\"\n}\n",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        }
+                    },
+                    "response": []
+                },
+                {
+                    "name": "PUT Update dentist",
+                    "request": {
+                        "method": "PUT",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            },
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/api/dentists/{{dentist_id}}",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "dentists",
+                                "{{dentist_id}}"
+                            ],
+                            "query": []
+                        },
+                        "description": "PUT /api/dentists/{dentist}\nDomain writes require allow_writes=true. Missing required variables skip requests rather than selecting real records automatically.",
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"specialization\": \"Postman updated test data\"\n}\n",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        }
+                    },
+                    "response": []
+                },
+                {
+                    "name": "DELETE Delete dentist",
+                    "request": {
+                        "method": "DELETE",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/api/dentists/{{dentist_id}}",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "dentists",
+                                "{{dentist_id}}"
+                            ],
+                            "query": []
+                        },
+                        "description": "Providers with clinical notes, including soft-deleted notes, cannot be deleted. Such requests return 422 with a dentist_id error to preserve clinical history.\n\nDELETE /api/dentists/{dentist}\nDomain writes require allow_writes=true. Missing required variables skip requests rather than selecting real records automatically."
+                    },
+                    "response": []
+                }
+            ]
+        },
+        {
+            "name": "Treatments",
+            "item": [
+                {
+                    "name": "GET List treatments",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/api/treatments",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "treatments"
+                            ],
+                            "query": [
+                                {
+                                    "key": "active",
+                                    "value": "1",
+                                    "disabled": true,
+                                    "description": "Filter by active status. Use 1 for active treatments or 0 for inactive treatments. Other query strings, including true and false, are rejected."
+                                }
+                            ]
+                        },
+                        "description": "Requires treatments.view permission or the admin role. Returns all matching treatments ordered by name then ID, without pagination. Omit active to include historical inactive treatments. Use active=1 for booking selectors.\n\nGET /api/treatments\nDomain writes require allow_writes=true. Missing required variables skip requests rather than selecting real records automatically."
+                    },
+                    "response": []
+                },
+                {
+                    "name": "POST Create treatment",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            },
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/api/treatments",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "treatments"
+                            ],
+                            "query": []
+                        },
+                        "description": "Requires treatments.create permission or the admin role. Treatments default to active when active is omitted.\n\nPOST /api/treatments\nDomain writes require allow_writes=true. Missing required variables skip requests rather than selecting real records automatically.",
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"name\": \"Postman test data\",\n    \"category\": \"Postman test data\",\n    \"duration_minutes\": 1,\n    \"price\": 1\n}\n",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        }
+                    },
+                    "response": []
+                },
+                {
+                    "name": "GET Get treatment",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/api/treatments/{{treatment_id}}",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "treatments",
+                                "{{treatment_id}}"
+                            ],
+                            "query": []
+                        },
+                        "description": "Requires treatments.view permission or the admin role. Inactive treatments remain accessible for historical records.\n\nGET /api/treatments/{treatment}\nDomain writes require allow_writes=true. Missing required variables skip requests rather than selecting real records automatically."
+                    },
+                    "response": []
+                },
+                {
+                    "name": "PATCH Update treatment",
+                    "request": {
+                        "method": "PATCH",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            },
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/api/treatments/{{treatment_id}}",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "treatments",
+                                "{{treatment_id}}"
+                            ],
+                            "query": []
+                        },
+                        "description": "Requires treatments.update permission or the admin role. Only supplied fields change. Set active to false to deactivate or true to reactivate.\n\nPATCH /api/treatments/{treatment}\nDomain writes require allow_writes=true. Missing required variables skip requests rather than selecting real records automatically.",
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"description\": \"Postman updated test data\"\n}\n",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        }
+                    },
+                    "response": []
+                },
+                {
+                    "name": "PUT Update treatment",
+                    "request": {
+                        "method": "PUT",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            },
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/api/treatments/{{treatment_id}}",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "treatments",
+                                "{{treatment_id}}"
+                            ],
+                            "query": []
+                        },
+                        "description": "Requires treatments.update permission or the admin role. Accepts partial updates with the same semantics as PATCH.\n\nPUT /api/treatments/{treatment}\nDomain writes require allow_writes=true. Missing required variables skip requests rather than selecting real records automatically.",
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"description\": \"Postman updated test data\"\n}\n",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        }
+                    },
+                    "response": []
+                },
+                {
+                    "name": "DELETE Deactivate treatment",
+                    "request": {
+                        "method": "DELETE",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/api/treatments/{{treatment_id}}",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "treatments",
+                                "{{treatment_id}}"
+                            ],
+                            "query": []
+                        },
+                        "description": "Requires treatments.delete permission or the admin role. Sets active to false and retains the treatment and all appointment references. Repeated deletion succeeds. Returns message \"Treatment successfully deactivated.\" with null data.\n\nDELETE /api/treatments/{treatment}\nDomain writes require allow_writes=true. Missing required variables skip requests rather than selecting real records automatically."
+                    },
+                    "response": []
+                }
+            ]
+        },
+        {
+            "name": "Invoices",
+            "item": [
+                {
+                    "name": "GET List invoices",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/api/invoices",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "invoices"
+                            ],
+                            "query": []
+                        },
+                        "description": "GET /api/invoices\nDomain writes require allow_writes=true. Missing required variables skip requests rather than selecting real records automatically."
+                    },
+                    "response": []
+                },
+                {
+                    "name": "POST Create invoice",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            },
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/api/invoices",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "invoices"
+                            ],
+                            "query": []
+                        },
+                        "description": "POST /api/invoices\nDomain writes require allow_writes=true. Missing required variables skip requests rather than selecting real records automatically.",
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"patient_id\": \"{{patient_id}}\",\n    \"invoice_number\": \"{{invoice_number}}\",\n    \"amount_due\": 1,\n    \"status\": \"unpaid\"\n}\n",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        }
+                    },
+                    "response": []
+                },
+                {
+                    "name": "GET Get invoice",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/api/invoices/{{invoice_id}}",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "invoices",
+                                "{{invoice_id}}"
+                            ],
+                            "query": []
+                        },
+                        "description": "GET /api/invoices/{invoice}\nDomain writes require allow_writes=true. Missing required variables skip requests rather than selecting real records automatically."
+                    },
+                    "response": []
+                },
+                {
+                    "name": "PATCH Update invoice",
+                    "request": {
+                        "method": "PATCH",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            },
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/api/invoices/{{invoice_id}}",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "invoices",
+                                "{{invoice_id}}"
+                            ],
+                            "query": []
+                        },
+                        "description": "PATCH /api/invoices/{invoice}\nDomain writes require allow_writes=true. Missing required variables skip requests rather than selecting real records automatically.",
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"amount_due\": 100\n}\n",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        }
+                    },
+                    "response": []
+                },
+                {
+                    "name": "PUT Update invoice",
+                    "request": {
+                        "method": "PUT",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            },
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/api/invoices/{{invoice_id}}",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "invoices",
+                                "{{invoice_id}}"
+                            ],
+                            "query": []
+                        },
+                        "description": "PUT /api/invoices/{invoice}\nDomain writes require allow_writes=true. Missing required variables skip requests rather than selecting real records automatically.",
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"amount_due\": 100\n}\n",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        }
+                    },
+                    "response": []
+                },
+                {
+                    "name": "DELETE Delete invoice",
+                    "request": {
+                        "method": "DELETE",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/api/invoices/{{invoice_id}}",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "invoices",
+                                "{{invoice_id}}"
+                            ],
+                            "query": []
+                        },
+                        "description": "DELETE /api/invoices/{invoice}\nDomain writes require allow_writes=true. Missing required variables skip requests rather than selecting real records automatically."
+                    },
+                    "response": []
+                }
+            ]
+        },
+        {
+            "name": "Payments",
+            "item": [
+                {
+                    "name": "GET List payments",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/api/payments",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "payments"
+                            ],
+                            "query": []
+                        },
+                        "description": "GET /api/payments\nDomain writes require allow_writes=true. Missing required variables skip requests rather than selecting real records automatically."
+                    },
+                    "response": []
+                },
+                {
+                    "name": "POST Create payment",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            },
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/api/payments",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "payments"
+                            ],
+                            "query": []
+                        },
+                        "description": "POST /api/payments\nDomain writes require allow_writes=true. Missing required variables skip requests rather than selecting real records automatically.",
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"invoice_id\": \"{{invoice_id}}\",\n    \"amount\": 1,\n    \"status\": \"unpaid\"\n}\n",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        }
+                    },
+                    "response": []
+                },
+                {
+                    "name": "GET Get payment",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/api/payments/{{payment_id}}",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "payments",
+                                "{{payment_id}}"
+                            ],
+                            "query": []
+                        },
+                        "description": "GET /api/payments/{payment}\nDomain writes require allow_writes=true. Missing required variables skip requests rather than selecting real records automatically."
+                    },
+                    "response": []
+                },
+                {
+                    "name": "PATCH Update payment",
+                    "request": {
+                        "method": "PATCH",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            },
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/api/payments/{{payment_id}}",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "payments",
+                                "{{payment_id}}"
+                            ],
+                            "query": []
+                        },
+                        "description": "PATCH /api/payments/{payment}\nDomain writes require allow_writes=true. Missing required variables skip requests rather than selecting real records automatically.",
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"amount\": 100\n}\n",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        }
+                    },
+                    "response": []
+                },
+                {
+                    "name": "PUT Update payment",
+                    "request": {
+                        "method": "PUT",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            },
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/api/payments/{{payment_id}}",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "payments",
+                                "{{payment_id}}"
+                            ],
+                            "query": []
+                        },
+                        "description": "PUT /api/payments/{payment}\nDomain writes require allow_writes=true. Missing required variables skip requests rather than selecting real records automatically.",
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"amount\": 100\n}\n",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        }
+                    },
+                    "response": []
+                },
+                {
+                    "name": "DELETE Delete payment",
+                    "request": {
+                        "method": "DELETE",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/api/payments/{{payment_id}}",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "payments",
+                                "{{payment_id}}"
+                            ],
+                            "query": []
+                        },
+                        "description": "DELETE /api/payments/{payment}\nDomain writes require allow_writes=true. Missing required variables skip requests rather than selecting real records automatically."
+                    },
+                    "response": []
+                }
+            ]
+        },
+        {
+            "name": "Tasks",
+            "item": [
+                {
+                    "name": "GET List follow-up tasks",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/api/tasks?per_page=15&page=1",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "tasks"
+                            ],
+                            "query": [
+                                {
+                                    "key": "assigned_to_me",
+                                    "value": "1",
+                                    "disabled": true,
+                                    "description": "Optional filter; enable its checkbox to send it."
+                                },
+                                {
+                                    "key": "overdue",
+                                    "value": "1",
+                                    "disabled": true,
+                                    "description": "Open tasks with due_date strictly before today."
+                                },
+                                {
+                                    "key": "due_today",
+                                    "value": "1",
+                                    "disabled": true,
+                                    "description": "Open tasks with due_date equal to today."
+                                },
+                                {
+                                    "key": "patient_id",
+                                    "value": "{{patient_id}}",
+                                    "disabled": true,
+                                    "description": "Optional filter; enable its checkbox to send it."
+                                },
+                                {
+                                    "key": "status",
+                                    "value": "pending",
+                                    "disabled": true,
+                                    "description": "Optional filter; enable its checkbox to send it."
+                                },
+                                {
+                                    "key": "per_page",
+                                    "value": "15",
+                                    "disabled": false,
+                                    "description": "Optional filter; enable its checkbox to send it."
+                                },
+                                {
+                                    "key": "page",
+                                    "value": "1",
+                                    "disabled": false,
+                                    "description": "Optional filter; enable its checkbox to send it."
+                                }
+                            ]
+                        },
+                        "description": "Requires tasks.view permission or the admin role. Filters combine with AND before pagination. assigned_to_me uses the authenticated user's ID. overdue and due_today include only pending/in_progress tasks and use the application's calendar date (UTC). Boolean query toggles accept 1 or 0; 0 disables a filter. Without date filters, all task statuses are included. Results are ordered by due_date ascending then ID ascending. See docs/tasks.md.\n\nGET /api/tasks\nDomain writes require allow_writes=true. Missing required variables skip requests rather than selecting real records automatically."
+                    },
+                    "response": []
+                },
+                {
+                    "name": "POST Create follow-up task",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            },
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/api/tasks",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "tasks"
+                            ],
+                            "query": []
+                        },
+                        "description": "Requires tasks.create permission or the admin role. Assignee, due_date, and description are required. Patient and appointment are optional. An appointment derives patient_id when patient_id is omitted; an explicitly supplied patient must match the appointment. Due dates may be in the past. Priority defaults to normal and status to pending. Any valid initial status is accepted; completed tasks receive a server-generated completed_at timestamp.\n\nPOST /api/tasks\nDomain writes require allow_writes=true. Missing required variables skip requests rather than selecting real records automatically.",
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"assignee_id\": \"{{assignee_id}}\",\n    \"due_date\": \"{{due_date}}\",\n    \"description\": \"Postman test data\"\n}\n",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        }
+                    },
+                    "response": []
+                },
+                {
+                    "name": "GET Get follow-up task",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/api/tasks/{{task_id}}",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "tasks",
+                                "{{task_id}}"
+                            ],
+                            "query": []
+                        },
+                        "description": "Requires tasks.view permission or the admin role. Assignment alone grants no access.\n\nGET /api/tasks/{task}\nDomain writes require allow_writes=true. Missing required variables skip requests rather than selecting real records automatically."
+                    },
+                    "response": []
+                },
+                {
+                    "name": "PATCH Update or reassign follow-up task",
+                    "request": {
+                        "method": "PATCH",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            },
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/api/tasks/{{task_id}}",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "tasks",
+                                "{{task_id}}"
+                            ],
+                            "query": []
+                        },
+                        "description": "Requires tasks.update permission or the admin role. Preserves omitted fields. Changing appointment_id without patient_id derives the new appointment's patient. Clearing appointment_id keeps the patient; clear both IDs to make a general task. Relationship mismatches return 422. Any valid status change is allowed, including reopening a completed/cancelled task. completed_at is generated on completion, preserved on repeated completion, and cleared when leaving completed.\n\nPATCH /api/tasks/{task}\nDomain writes require allow_writes=true. Missing required variables skip requests rather than selecting real records automatically.",
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"description\": \"Postman updated test data\"\n}\n",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        }
+                    },
+                    "response": []
+                },
+                {
+                    "name": "PUT Update follow-up task",
+                    "request": {
+                        "method": "PUT",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            },
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/api/tasks/{{task_id}}",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "tasks",
+                                "{{task_id}}"
+                            ],
+                            "query": []
+                        },
+                        "description": "Uses the same partial update, tasks.update authorization, relationship checks, and completion timestamp behavior as PATCH.\n\nPUT /api/tasks/{task}\nDomain writes require allow_writes=true. Missing required variables skip requests rather than selecting real records automatically.",
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"description\": \"Postman updated test data\"\n}\n",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        }
+                    },
+                    "response": []
+                },
+                {
+                    "name": "DELETE Delete follow-up task",
+                    "request": {
+                        "method": "DELETE",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/api/tasks/{{task_id}}",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "tasks",
+                                "{{task_id}}"
+                            ],
+                            "query": []
+                        },
+                        "description": "Requires tasks.delete permission or the admin role. Physically deletes the task. Use status cancelled to retain it instead. Subsequent requests for the deleted ID return 404.\n\nDELETE /api/tasks/{task}\nDomain writes require allow_writes=true. Missing required variables skip requests rather than selecting real records automatically."
+                    },
+                    "response": []
+                },
+                {
+                    "name": "PATCH Change follow-up task status",
+                    "request": {
+                        "method": "PATCH",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            },
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/api/tasks/{{task_id}}/status",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "tasks",
+                                "{{task_id}}",
+                                "status"
+                            ],
+                            "query": []
+                        },
+                        "description": "Requires tasks.update permission or the admin role. Accepts any valid status, including reopening. Other task fields and server-managed timestamps must be absent. Uses the same completion timestamp behavior as the general update endpoints.\n\nPATCH /api/tasks/{task}/status\nDomain writes require allow_writes=true. Missing required variables skip requests rather than selecting real records automatically.",
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"status\": \"in_progress\"\n}\n",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        }
+                    },
+                    "response": []
+                }
+            ]
+        },
+        {
+            "name": "Clinical Notes",
+            "item": [
+                {
+                    "name": "GET List clinical notes",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/api/clinical-notes?per_page=15&page=1",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "clinical-notes"
+                            ],
+                            "query": [
+                                {
+                                    "key": "patient_id",
+                                    "value": "{{patient_id}}",
+                                    "disabled": true,
+                                    "description": "Optional filter; enable its checkbox to send it."
+                                },
+                                {
+                                    "key": "dentist_id",
+                                    "value": "{{dentist_id}}",
+                                    "disabled": true,
+                                    "description": "Filter by provider ID."
+                                },
+                                {
+                                    "key": "appointment_id",
+                                    "value": "{{appointment_id}}",
+                                    "disabled": true,
+                                    "description": "Optional filter; enable its checkbox to send it."
+                                },
+                                {
+                                    "key": "per_page",
+                                    "value": "15",
+                                    "disabled": false,
+                                    "description": "Optional filter; enable its checkbox to send it."
+                                },
+                                {
+                                    "key": "page",
+                                    "value": "1",
+                                    "disabled": false,
+                                    "description": "Optional filter; enable its checkbox to send it."
+                                }
+                            ]
+                        },
+                        "description": "Admins and dentists can read clinic notes. Other users require clinical_notes.view (wildcards supported for reads). Soft-deleted notes are excluded. Results are ordered by created_at descending, then ID descending, with meta.pagination. See docs/clinical-notes.md for clinical-role and audit integration rules.\n\nGET /api/clinical-notes\nDomain writes require allow_writes=true. Missing required variables skip requests rather than selecting real records automatically."
+                    },
+                    "response": []
+                },
+                {
+                    "name": "POST Create clinical note",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            },
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/api/clinical-notes",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "clinical-notes"
+                            ],
+                            "query": []
+                        },
+                        "description": "Requires the admin role or the dentist role without the receptionist role. Permissions and wildcards alone cannot grant clinical writes. Appointment is optional; when present, its patient and provider must match the supplied patient_id and dentist_id. The authenticated user becomes author and last editor. Client-supplied attribution, deletion fields, and timestamps are rejected. Appointment status and patient archival do not prevent clinical documentation. Creation atomically appends a minimal audit record with actor, action, resource ID, UTC timestamp, and allowlisted request context; no clinical text is copied. See docs/audit-logging.md.\n\nPOST /api/clinical-notes\nDomain writes require allow_writes=true. Missing required variables skip requests rather than selecting real records automatically.",
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"patient_id\": \"{{patient_id}}\",\n    \"dentist_id\": \"{{dentist_id}}\",\n    \"note_text\": \"Postman test data\"\n}\n",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        }
+                    },
+                    "response": []
+                },
+                {
+                    "name": "GET Get clinical note",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/api/clinical-notes/{{clinical_note_id}}",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "clinical-notes",
+                                "{{clinical_note_id}}"
+                            ],
+                            "query": []
+                        },
+                        "description": "Uses the same read authorization as the clinical note list. Soft-deleted notes return 404.\n\nGET /api/clinical-notes/{clinical_note}\nDomain writes require allow_writes=true. Missing required variables skip requests rather than selecting real records automatically."
+                    },
+                    "response": []
+                },
+                {
+                    "name": "PATCH Update clinical note",
+                    "request": {
+                        "method": "PATCH",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            },
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/api/clinical-notes/{{clinical_note_id}}",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "clinical-notes",
+                                "{{clinical_note_id}}"
+                            ],
+                            "query": []
+                        },
+                        "description": "Requires the admin role or the dentist role without the receptionist role. Dentists may collaborate on clinic notes; authorship remains immutable and changed notes capture the authenticated last editor. Omitted fields are preserved. Relationship validation checks the merged note and appointment. Explicit appointment_id null detaches the appointment. Changes atomically append a minimal audit record and publish an after-commit ClinicalNoteChanged event with actor and before/after snapshots. No-op updates preserve metadata and produce neither an audit record nor an event. Audit storage excludes clinical text and event snapshots; storage failures roll back the mutation. See docs/audit-logging.md.\n\nPATCH /api/clinical-notes/{clinical_note}\nDomain writes require allow_writes=true. Missing required variables skip requests rather than selecting real records automatically.",
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"note_text\": \"Postman updated test data\"\n}\n",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        }
+                    },
+                    "response": []
+                },
+                {
+                    "name": "PUT Update clinical note",
+                    "request": {
+                        "method": "PUT",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            },
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/api/clinical-notes/{{clinical_note_id}}",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "clinical-notes",
+                                "{{clinical_note_id}}"
+                            ],
+                            "query": []
+                        },
+                        "description": "Uses the same partial update, clinical-role authorization, immutable authorship, relationship validation, and audit event behavior as PATCH.\n\nPUT /api/clinical-notes/{clinical_note}\nDomain writes require allow_writes=true. Missing required variables skip requests rather than selecting real records automatically.",
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"note_text\": \"Postman updated test data\"\n}\n",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        }
+                    },
+                    "response": []
+                },
+                {
+                    "name": "DELETE Delete clinical note",
+                    "request": {
+                        "method": "DELETE",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/api/clinical-notes/{{clinical_note_id}}",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "clinical-notes",
+                                "{{clinical_note_id}}"
+                            ],
+                            "query": []
+                        },
+                        "description": "Requires the admin role or the dentist role without the receptionist role. Soft-deletes the note, retaining its contents, author, editor, deleted_by_user_id, and deleted_at. Atomically appends a minimal audit record and publishes an after-commit ClinicalNoteChanged event. Audit storage excludes clinical text and event snapshots; storage failures roll back the deletion. Subsequent show, update, or delete requests return 404. See docs/audit-logging.md.\n\nDELETE /api/clinical-notes/{clinical_note}\nDomain writes require allow_writes=true. Missing required variables skip requests rather than selecting real records automatically."
+                    },
+                    "response": []
+                }
+            ]
+        },
+        {
+            "name": "Messages",
+            "item": [
+                {
+                    "name": "GET List messages",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/api/messages",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "messages"
+                            ],
+                            "query": []
+                        },
+                        "description": "GET /api/messages\nDomain writes require allow_writes=true. Missing required variables skip requests rather than selecting real records automatically."
+                    },
+                    "response": []
+                },
+                {
+                    "name": "POST Create message",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            },
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/api/messages",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "messages"
+                            ],
+                            "query": []
+                        },
+                        "description": "POST /api/messages\nDomain writes require allow_writes=true. Missing required variables skip requests rather than selecting real records automatically.",
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"sender_id\": \"{{patient_id}}\",\n    \"receiver_id\": \"{{receiver_patient_id}}\",\n    \"message_text\": \"Postman test message\"\n}\n",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        }
+                    },
+                    "response": []
+                },
+                {
+                    "name": "GET Get message",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/api/messages/{{message_id}}",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "messages",
+                                "{{message_id}}"
+                            ],
+                            "query": []
+                        },
+                        "description": "GET /api/messages/{message}\nDomain writes require allow_writes=true. Missing required variables skip requests rather than selecting real records automatically."
+                    },
+                    "response": []
+                },
+                {
+                    "name": "PATCH Update message",
+                    "request": {
+                        "method": "PATCH",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            },
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/api/messages/{{message_id}}",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "messages",
+                                "{{message_id}}"
+                            ],
+                            "query": []
+                        },
+                        "description": "PATCH /api/messages/{message}\nDomain writes require allow_writes=true. Missing required variables skip requests rather than selecting real records automatically.",
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"sender_id\": \"{{patient_id}}\",\n    \"receiver_id\": \"{{receiver_patient_id}}\",\n    \"message_text\": \"Postman test message\"\n}\n",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        }
+                    },
+                    "response": []
+                },
+                {
+                    "name": "PUT Update message",
+                    "request": {
+                        "method": "PUT",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            },
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/api/messages/{{message_id}}",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "messages",
+                                "{{message_id}}"
+                            ],
+                            "query": []
+                        },
+                        "description": "PUT /api/messages/{message}\nDomain writes require allow_writes=true. Missing required variables skip requests rather than selecting real records automatically.",
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"sender_id\": \"{{patient_id}}\",\n    \"receiver_id\": \"{{receiver_patient_id}}\",\n    \"message_text\": \"Postman test message\"\n}\n",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        }
+                    },
+                    "response": []
+                },
+                {
+                    "name": "DELETE Delete message",
+                    "request": {
+                        "method": "DELETE",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/api/messages/{{message_id}}",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "messages",
+                                "{{message_id}}"
+                            ],
+                            "query": []
+                        },
+                        "description": "DELETE /api/messages/{message}\nDomain writes require allow_writes=true. Missing required variables skip requests rather than selecting real records automatically."
+                    },
+                    "response": []
+                }
+            ]
+        },
+        {
+            "name": "Referrals",
+            "item": [
+                {
+                    "name": "GET List referrals",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/api/referrals",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "referrals"
+                            ],
+                            "query": []
+                        },
+                        "description": "GET /api/referrals\nDomain writes require allow_writes=true. Missing required variables skip requests rather than selecting real records automatically."
+                    },
+                    "response": []
+                },
+                {
+                    "name": "POST Create referral",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            },
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/api/referrals",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "referrals"
+                            ],
+                            "query": []
+                        },
+                        "description": "POST /api/referrals\nDomain writes require allow_writes=true. Missing required variables skip requests rather than selecting real records automatically.",
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"patient_id\": \"{{patient_id}}\",\n    \"dentist_id\": \"{{dentist_id}}\",\n    \"referred_to_email\": \"referral@example.test\",\n    \"referral_date\": \"{{due_date}}\",\n    \"referral_notes\": \"Postman test referral\"\n}\n",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        }
+                    },
+                    "response": []
+                },
+                {
+                    "name": "GET Get referral",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/api/referrals/{{referral_id}}",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "referrals",
+                                "{{referral_id}}"
+                            ],
+                            "query": []
+                        },
+                        "description": "GET /api/referrals/{referral}\nDomain writes require allow_writes=true. Missing required variables skip requests rather than selecting real records automatically."
+                    },
+                    "response": []
+                },
+                {
+                    "name": "PATCH Update referral",
+                    "request": {
+                        "method": "PATCH",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            },
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/api/referrals/{{referral_id}}",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "referrals",
+                                "{{referral_id}}"
+                            ],
+                            "query": []
+                        },
+                        "description": "PATCH /api/referrals/{referral}\nDomain writes require allow_writes=true. Missing required variables skip requests rather than selecting real records automatically.",
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"patient_id\": \"{{patient_id}}\",\n    \"dentist_id\": \"{{dentist_id}}\",\n    \"referred_to_email\": \"referral@example.test\",\n    \"referral_date\": \"{{due_date}}\",\n    \"referral_notes\": \"Postman test referral\"\n}\n",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        }
+                    },
+                    "response": []
+                },
+                {
+                    "name": "PUT Update referral",
+                    "request": {
+                        "method": "PUT",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            },
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/api/referrals/{{referral_id}}",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "referrals",
+                                "{{referral_id}}"
+                            ],
+                            "query": []
+                        },
+                        "description": "PUT /api/referrals/{referral}\nDomain writes require allow_writes=true. Missing required variables skip requests rather than selecting real records automatically.",
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"patient_id\": \"{{patient_id}}\",\n    \"dentist_id\": \"{{dentist_id}}\",\n    \"referred_to_email\": \"referral@example.test\",\n    \"referral_date\": \"{{due_date}}\",\n    \"referral_notes\": \"Postman test referral\"\n}\n",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        }
+                    },
+                    "response": []
+                },
+                {
+                    "name": "DELETE Delete referral",
+                    "request": {
+                        "method": "DELETE",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/api/referrals/{{referral_id}}",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "referrals",
+                                "{{referral_id}}"
+                            ],
+                            "query": []
+                        },
+                        "description": "DELETE /api/referrals/{referral}\nDomain writes require allow_writes=true. Missing required variables skip requests rather than selecting real records automatically."
+                    },
+                    "response": []
+                }
+            ]
+        },
+        {
+            "name": "Roles",
+            "item": [
+                {
+                    "name": "GET List roles with permissions",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/api/roles",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "roles"
+                            ],
+                            "query": []
+                        },
+                        "description": "Requires the actual admin role, including for reads. Permission wildcards alone do not grant access. Ordered by ID. See docs/roles.md and docs/audit-logging.md.\n\nGET /api/roles\nDomain writes require allow_writes=true. Missing required variables skip requests rather than selecting real records automatically."
+                    },
+                    "response": []
+                },
+                {
+                    "name": "POST Create a custom role",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            },
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/api/roles",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "roles"
+                            ],
+                            "query": []
+                        },
+                        "description": "Admin only. is_system is server-controlled and rejected in input, including null. Creation atomically appends a roles/created audit record without copying description or permission snapshots.\n\nPOST /api/roles\nDomain writes require allow_writes=true. Missing required variables skip requests rather than selecting real records automatically.",
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"name\": \"Postman test data\",\n    \"slug\": \"{{role_slug}}\"\n}\n",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        }
+                    },
+                    "response": []
+                },
+                {
+                    "name": "GET Get role with permissions",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/api/roles/{{role_id}}",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "roles",
+                                "{{role_id}}"
+                            ],
+                            "query": []
+                        },
+                        "description": "Admin only.\n\nGET /api/roles/{role}\nDomain writes require allow_writes=true. Missing required variables skip requests rather than selecting real records automatically."
+                    },
+                    "response": []
+                },
+                {
+                    "name": "PATCH Partially update a role",
+                    "request": {
+                        "method": "PATCH",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            },
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/api/roles/{{role_id}}",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "roles",
+                                "{{role_id}}"
+                            ],
+                            "query": []
+                        },
+                        "description": "Admin only. Omitted fields are preserved. System-role slugs cannot change; is_system is prohibited. Changed writes atomically append roles/updated; no-op writes do not append records.\n\nPATCH /api/roles/{role}\nDomain writes require allow_writes=true. Missing required variables skip requests rather than selecting real records automatically.",
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"description\": \"Postman updated test data\"\n}\n",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        }
+                    },
+                    "response": []
+                },
+                {
+                    "name": "PUT Update a role",
+                    "request": {
+                        "method": "PUT",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            },
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/api/roles/{{role_id}}",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "roles",
+                                "{{role_id}}"
+                            ],
+                            "query": []
+                        },
+                        "description": "Same partial-update, admin-only authorization, protected system-role rules, and atomic audit behavior as PATCH.\n\nPUT /api/roles/{role}\nDomain writes require allow_writes=true. Missing required variables skip requests rather than selecting real records automatically.",
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"description\": \"Postman updated test data\"\n}\n",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        }
+                    },
+                    "response": []
+                },
+                {
+                    "name": "DELETE Delete a custom role",
+                    "request": {
+                        "method": "DELETE",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/api/roles/{{role_id}}",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "roles",
+                                "{{role_id}}"
+                            ],
+                            "query": []
+                        },
+                        "description": "Admin only. System roles cannot be deleted. Removes role memberships and permission links atomically with a roles/deleted audit and users/roles_changed audits for affected users. Existing audit history is retained.\n\nDELETE /api/roles/{role}\nDomain writes require allow_writes=true. Missing required variables skip requests rather than selecting real records automatically."
+                    },
+                    "response": []
+                },
+                {
+                    "name": "GET List existing permissions for role assignment",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/api/permissions",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "permissions"
+                            ],
+                            "query": []
+                        },
+                        "description": "Admin-only selector ordered by slug. Does not create permission definitions or emit mutation audits.\n\nGET /api/permissions\nDomain writes require allow_writes=true. Missing required variables skip requests rather than selecting real records automatically."
+                    },
+                    "response": []
+                },
+                {
+                    "name": "PUT Replace a role's permissions",
+                    "request": {
+                        "method": "PUT",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            },
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/api/roles/{{role_id}}/permissions",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "roles",
+                                "{{role_id}}",
+                                "permissions"
+                            ],
+                            "query": []
+                        },
+                        "description": "Admin only. Empty array removes all permissions. Same assignments are a no-op. Changes append roles/permissions_changed atomically; descriptions and permission snapshots are not copied into audit storage.\n\nPUT /api/roles/{role}/permissions\nDomain writes require allow_writes=true. Missing required variables skip requests rather than selecting real records automatically.",
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"permission_ids\": [\n        \"{{permission_id}}\"\n    ]\n}\n",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        }
+                    },
+                    "response": []
+                },
+                {
+                    "name": "PUT Replace a user's assigned roles",
+                    "request": {
+                        "method": "PUT",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            },
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/api/users/{{user_id}}/roles",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "users",
+                                "{{user_id}}",
+                                "roles"
+                            ],
+                            "query": []
+                        },
+                        "description": "Admin only. Empty array removes all roles, including the caller's own admin role if the caller is the target. Same assignments are a no-op. Changes append users/roles_changed with the performing admin as actor and edited user as resource. See docs/roles.md.\n\nPUT /api/users/{user}/roles\nDomain writes require allow_writes=true. Missing required variables skip requests rather than selecting real records automatically.",
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"role_ids\": [\n        \"{{role_id}}\"\n    ]\n}\n",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        }
+                    },
+                    "response": []
+                }
+            ]
+        },
+        {
+            "name": "Audit Logs",
+            "item": [
+                {
+                    "name": "GET List read-only audit history",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/api/audit-logs?per_page=15&page=1",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "audit-logs"
+                            ],
+                            "query": [
+                                {
+                                    "key": "actor_id",
+                                    "value": "{{audit_actor_id}}",
+                                    "disabled": true,
+                                    "description": "Filter by the performing user's ID, including deleted users. Incompatible with actor_is_null=1."
+                                },
+                                {
+                                    "key": "actor_is_null",
+                                    "value": "0",
+                                    "disabled": true,
+                                    "description": "Use 1 for unattributed/system/unauthenticated actors or 0 for attributed actors; omit for both."
+                                },
+                                {
+                                    "key": "action",
+                                    "value": "{{audit_action}}",
+                                    "disabled": true,
+                                    "description": "Optional filter; enable its checkbox to send it."
+                                },
+                                {
+                                    "key": "resource_type",
+                                    "value": "{{audit_resource_type}}",
+                                    "disabled": true,
+                                    "description": "Optional filter; enable its checkbox to send it."
+                                },
+                                {
+                                    "key": "resource_id",
+                                    "value": "{{audit_resource_id}}",
+                                    "disabled": true,
+                                    "description": "Exact canonical string key; combine with resource_type for one resource's history."
+                                },
+                                {
+                                    "key": "request_id",
+                                    "value": "{{audit_request_id}}",
+                                    "disabled": true,
+                                    "description": "Originating mutation request ID, not the current GET request ID."
+                                },
+                                {
+                                    "key": "from",
+                                    "value": "{{audit_from}}",
+                                    "disabled": true,
+                                    "description": "Inclusive occurrence-time lower bound. Requires seconds and explicit timezone; optional 1-6 fractional digits. Normalized to UTC."
+                                },
+                                {
+                                    "key": "to",
+                                    "value": "{{audit_to}}",
+                                    "disabled": true,
+                                    "description": "Inclusive upper bound with explicit timezone, on/after from. Microsecond precision is supported."
+                                },
+                                {
+                                    "key": "per_page",
+                                    "value": "15",
+                                    "disabled": false,
+                                    "description": "Optional filter; enable its checkbox to send it."
+                                },
+                                {
+                                    "key": "page",
+                                    "value": "1",
+                                    "disabled": false,
+                                    "description": "Optional filter; enable its checkbox to send it."
+                                }
+                            ]
+                        },
+                        "description": "Requires the actual admin or auditor role slug; permission wildcards and audit_logs.view alone do not grant access. All supplied filters combine with AND. Ordered by occurred_at descending then ID descending. Deleted resource/user IDs remain queryable. Returns private, no-store data. Reads do not emit audit events. See docs/audit-log-frontend-guide.md.\n\nGET /api/audit-logs\nDomain writes require allow_writes=true. Missing required variables skip requests rather than selecting real records automatically."
+                    },
+                    "response": []
+                },
+                {
+                    "name": "GET Get available audit filter options",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/api/audit-logs/filters",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "audit-logs",
+                                "filters"
+                            ],
+                            "query": []
+                        },
+                        "description": "Admin/auditor only. Sorted unique actions and resource types found in stored history; not restricted by active list filters and not a fixed catalog. Empty history returns empty arrays. Response is private, no-store.\n\nGET /api/audit-logs/filters\nDomain writes require allow_writes=true. Missing required variables skip requests rather than selecting real records automatically."
+                    },
+                    "response": []
+                },
+                {
+                    "name": "GET Get an audit record",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/api/audit-logs/{{audit_log_id}}",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "audit-logs",
+                                "{{audit_log_id}}"
+                            ],
+                            "query": []
+                        },
+                        "description": "Admin/auditor only. Same safe row shape as the list, including nullable current actorName rather than a full user model. Does not require that the actor or resource still exist. Response is private, no-store. POST/PUT/PATCH/DELETE audit routes are not exposed.\n\nGET /api/audit-logs/{audit_log}\nDomain writes require allow_writes=true. Missing required variables skip requests rather than selecting real records automatically."
+                    },
+                    "response": []
+                }
+            ]
+        }
+    ],
+    "variable": [
+        {
+            "key": "base_url",
+            "value": "http://localhost:8000",
+            "type": "string"
+        },
+        {
+            "key": "frontend_url",
+            "value": "http://localhost:3000",
+            "type": "string"
+        },
+        {
+            "key": "tenant_id",
+            "value": "",
+            "type": "string"
+        },
+        {
+            "key": "email",
+            "value": "",
+            "type": "string"
+        },
+        {
+            "key": "password",
+            "value": "",
+            "type": "string"
+        },
+        {
+            "key": "access_token",
+            "value": "",
+            "type": "string"
+        },
+        {
+            "key": "allow_writes",
+            "value": "false",
+            "type": "string"
+        },
+        {
+            "key": "allow_auth_cleanup",
+            "value": "false",
+            "type": "string"
+        },
+        {
+            "key": "use_session_auth",
+            "value": "false",
+            "type": "string"
+        },
+        {
+            "key": "new_user_password",
+            "value": "",
+            "type": "string"
+        },
+        {
+            "key": "sample_email",
+            "value": "",
+            "type": "string"
+        },
+        {
+            "key": "appointment_start",
+            "value": "",
+            "type": "string"
+        },
+        {
+            "key": "due_date",
+            "value": "",
+            "type": "string"
+        },
+        {
+            "key": "role_slug",
+            "value": "",
+            "type": "string"
+        },
+        {
+            "key": "invoice_number",
+            "value": "",
+            "type": "string"
+        },
+        {
+            "key": "current_user_id",
+            "value": "",
+            "type": "string"
+        },
+        {
+            "key": "assignee_id",
+            "value": "",
+            "type": "string"
+        },
+        {
+            "key": "permission_id",
+            "value": "",
+            "type": "string"
+        },
+        {
+            "key": "patient_id",
+            "value": "",
+            "type": "string"
+        },
+        {
+            "key": "dentist_id",
+            "value": "",
+            "type": "string"
+        },
+        {
+            "key": "appointment_id",
+            "value": "",
+            "type": "string"
+        },
+        {
+            "key": "treatment_id",
+            "value": "",
+            "type": "string"
+        },
+        {
+            "key": "invoice_id",
+            "value": "",
+            "type": "string"
+        },
+        {
+            "key": "payment_id",
+            "value": "",
+            "type": "string"
+        },
+        {
+            "key": "task_id",
+            "value": "",
+            "type": "string"
+        },
+        {
+            "key": "clinical_note_id",
+            "value": "",
+            "type": "string"
+        },
+        {
+            "key": "receiver_patient_id",
+            "value": "",
+            "type": "string"
+        },
+        {
+            "key": "message_id",
+            "value": "",
+            "type": "string"
+        },
+        {
+            "key": "referral_id",
+            "value": "",
+            "type": "string"
+        },
+        {
+            "key": "user_id",
+            "value": "",
+            "type": "string"
+        },
+        {
+            "key": "role_id",
+            "value": "",
+            "type": "string"
+        },
+        {
+            "key": "audit_actor_id",
+            "value": "",
+            "type": "string"
+        },
+        {
+            "key": "audit_action",
+            "value": "",
+            "type": "string"
+        },
+        {
+            "key": "audit_resource_type",
+            "value": "",
+            "type": "string"
+        },
+        {
+            "key": "audit_resource_id",
+            "value": "",
+            "type": "string"
+        },
+        {
+            "key": "audit_request_id",
+            "value": "",
+            "type": "string"
+        },
+        {
+            "key": "audit_from",
+            "value": "",
+            "type": "string"
+        },
+        {
+            "key": "audit_to",
+            "value": "",
+            "type": "string"
+        },
+        {
+            "key": "audit_log_id",
+            "value": "",
+            "type": "string"
+        }
+    ]
+}

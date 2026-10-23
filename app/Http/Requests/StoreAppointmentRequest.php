@@ -3,6 +3,7 @@
 namespace App\Http\Requests;
 
 use App\Models\Appointment;
+use App\Tenancy\TenantRules;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
@@ -38,11 +39,11 @@ class StoreAppointmentRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'patient_id' => ['required', 'integer', 'exists:patient,id'],
-            'dentist_id' => ['required', 'integer', 'exists:dentist,id'],
-            'treatment_id' => ['sometimes', 'nullable', 'integer', 'exists:treatments,id'],
-            'room_id' => ['sometimes', 'nullable', 'integer', 'exists:rooms,id'],
-            'chair_id' => ['sometimes', 'nullable', 'integer', 'exists:chairs,id'],
+            'patient_id' => ['required', 'integer', TenantRules::exists('patient')],
+            'dentist_id' => ['required', 'integer', TenantRules::exists('dentist')],
+            'treatment_id' => ['sometimes', 'nullable', 'integer', TenantRules::exists('treatments')],
+            'room_id' => ['sometimes', 'nullable', 'integer', TenantRules::exists('rooms')],
+            'chair_id' => ['sometimes', 'nullable', 'integer', TenantRules::exists('chairs')],
             'appointment_date_time' => ['required', 'date'],
             'appointment_type' => ['required', 'string', 'max:255'],
             'description' => ['required', 'string'],
