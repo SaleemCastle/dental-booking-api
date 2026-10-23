@@ -628,7 +628,7 @@
                             ],
                             "query": []
                         },
-                        "description": "Removes the user from the selected clinic. Shared identities retain their global account, other clinic memberships and roles, and append users/membership_removed in this clinic. A single-clinic identity retains the Phase 1 account-deletion behavior. Clinic membership and tenant-local target binding are required; no platform authority is implied.\n\nDELETE /api/users/{user}\nDomain writes require allow_writes=true. Missing required variables skip requests rather than selecting real records automatically."
+                        "description": "Removes the user from the selected clinic. Reassign or delete all of this member's selected-clinic tasks first; otherwise returns 422 on field user without changing memberships, roles, accounts or audits. Tasks in other clinics do not block removal. Shared identities retain their global account, other clinic memberships and roles, and append users/membership_removed in this clinic. A single-clinic identity retains the Phase 1 account-deletion behavior. Clinic membership and tenant-local target binding are required; no platform authority is implied.\n\nDELETE /api/users/{user}\nDomain writes require allow_writes=true. Missing required variables skip requests rather than selecting real records automatically."
                     },
                     "response": []
                 }

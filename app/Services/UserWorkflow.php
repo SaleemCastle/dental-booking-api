@@ -7,6 +7,7 @@ use App\Tenancy\TenantContext;
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
+use Illuminate\Validation\ValidationException;
 
 class UserWorkflow
 {
@@ -45,6 +46,11 @@ class UserWorkflow
     {
         DB::transaction(function () use ($user, $actor) {
             $current = User::forCurrentTenant()->lockForUpdate()->findOrFail($user->id);
+            if ($current->assignedTasks()->exists()) {
+                throw ValidationException::withMessages([
+                    'user' => ['Reassign this clinic member\'s tasks before removing their membership.'],
+                ]);
+            }
             $current->roles()->detach();
             $current->tenants()->detach(app(TenantContext::class)->id());
             $hasOtherClinics = $current->tenants()->exists();

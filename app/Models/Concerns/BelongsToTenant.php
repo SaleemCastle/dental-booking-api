@@ -29,6 +29,19 @@ trait BelongsToTenant
             if ($model->getTable() === 'tasks' && ! DB::table('tenant_user')->where('tenant_id', $tenantId)->where('user_id', $model->assignee_id)->exists()) {
                 throw ValidationException::withMessages(['assignee_id' => ['The assignee must be a member of the current clinic.']]);
             }
+            $attributionColumns = match ($model->getTable()) {
+                'clinical_notes' => ['author_user_id', 'updated_by_user_id', 'deleted_by_user_id'],
+                'patient' => ['archived_by_user_id'],
+                default => [],
+            };
+            foreach ($attributionColumns as $column) {
+                $value = $model->getAttribute($column);
+                // Preserve historical attribution after a member leaves the clinic.
+                if ($value !== null && (! $model->exists || $model->isDirty($column))
+                    && ! DB::table('tenant_user')->where('tenant_id', $tenantId)->where('user_id', $value)->exists()) {
+                    throw ValidationException::withMessages([$column => ['The attributed user must be a member of the current clinic.']]);
+                }
+            }
         });
         static::deleting(function ($model): void {
             if ((int) $model->tenant_id !== app(TenantContext::class)->id()) {

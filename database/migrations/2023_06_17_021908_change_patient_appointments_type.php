@@ -11,6 +11,12 @@ return new class extends Migration
      */
     public function up(): void
     {
+        // The original SQLite column is already a string. Avoid requiring DBAL
+        // for this no-op when replaying the Phase 1 schema in isolated tests.
+        if (Schema::getConnection()->getDriverName() === 'sqlite') {
+            return;
+        }
+
         Schema::table('patient', function (Blueprint $table) {
             $table->string('appointments')->change();
         });
