@@ -1,8 +1,8 @@
 openapi: 3.0.3
 info:
   title: Dental Booking Backend API
-  version: 1.7.2
-  description: Laravel Sanctum API for dental clinic booking, scheduling, billing, messaging, and dashboard workflows. All JSON endpoints return the standard ApiEnvelope shape with success, statusCode, message, code, data, errors, meta, and requestId.
+  version: 2.0.0
+  description: Laravel Sanctum API for dental clinics. Each tenant is one clinic. Authenticated clinic requests optionally select X-Tenant-Id; omission selects the migrated default clinic, never another membership. Current membership and an active clinic are required. Clinical data, roles, permission grants, selectors, aggregates and audit history are clinic-scoped. Users and permission definitions are global; role assignments are clinic-local. Clinic Admin (admin) is not a Platform Super Admin. No SaaS onboarding is exposed. See docs/multi-tenancy.md. All JSON endpoints return the standard ApiEnvelope shape with success, statusCode, message, code, data, errors, meta, and requestId.
 servers:
   - url: http://localhost:8000
     description: Local Laravel server
@@ -25,7 +25,30 @@ tags:
   - name: Users
   - name: Roles
   - name: Audit Logs
+  - name: Tenants
 paths:
+  /api/tenants:
+    get:
+      tags: [Tenants]
+      summary: List current user's active clinic memberships
+      description: Requires Sanctum authentication but not a selected clinic. Returns only the caller's active memberships, enabling clinic discovery before X-Tenant-Id selection. Does not create clinics, enroll users, or confer platform privileges. Changing clinic requires refetching current-user roles/permissions and clearing clinic-specific frontend state. Unsupported tenant IDs return 403 on clinic endpoints; malformed IDs return 422. Foreign resource IDs return 404.
+      responses:
+        "200":
+          description: Standard envelope with data.tenants ordered by ID.
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/ApiEnvelope"
+                  - type: object
+                    properties:
+                      data:
+                        type: object
+                        properties:
+                          tenants:
+                            type: array
+                            items: { $ref: "#/components/schemas/Tenant" }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
   /sanctum/csrf-cookie:
     get:
       tags: [Auth]
@@ -133,9 +156,12 @@ paths:
                     properties:
                       data: { $ref: "#/components/schemas/HealthResponse" }
   /api/user:
+    parameters:
+      - $ref: "#/components/parameters/TenantHeader"
     get:
       tags: [Users]
       summary: Get authenticated user
+      description: Requires active membership in the selected clinic. Returns current_tenant_id, clinic-local roles, and flattened clinic-local permission slugs. Refetch after clinic changes. X-Tenant-Id is returned as a response header on successful clinic requests. Headers and payload fields never grant membership or platform privileges.
       responses:
         "200":
           description: Authenticated user.
@@ -204,6 +230,8 @@ paths:
         "200":
           $ref: "#/components/responses/DeleteMessage"
   /api/dashboard/summary:
+    parameters:
+      - $ref: "#/components/parameters/TenantHeader"
     get:
       tags: [Dashboard]
       summary: Get overview dashboard metrics
@@ -219,6 +247,8 @@ paths:
                     properties:
                       data: { $ref: "#/components/schemas/DashboardSummary" }
   /api/patients:
+    parameters:
+      - $ref: "#/components/parameters/TenantHeader"
     get:
       tags: [Patients]
       summary: List patients
@@ -292,6 +322,7 @@ paths:
           $ref: "#/components/responses/ValidationError"
   /api/patients/{patient}:
     parameters:
+      - $ref: "#/components/parameters/TenantHeader"
       - $ref: "#/components/parameters/PatientId"
     get:
       tags: [Patients]
@@ -384,6 +415,7 @@ paths:
                       code: { type: string, example: FORBIDDEN }
   /api/patients/{patient}/update:
     parameters:
+      - $ref: "#/components/parameters/TenantHeader"
       - $ref: "#/components/parameters/PatientId"
     put:
       tags: [Patients]
@@ -400,6 +432,7 @@ paths:
                 $ref: "#/components/schemas/PatientEnvelope"
   /api/patients/{patient}/delete:
     parameters:
+      - $ref: "#/components/parameters/TenantHeader"
       - $ref: "#/components/parameters/PatientId"
     delete:
       tags: [Patients]
@@ -414,6 +447,8 @@ paths:
               schema:
                 $ref: "#/components/schemas/PatientEnvelope"
   /api/appointment-locations:
+    parameters:
+      - $ref: "#/components/parameters/TenantHeader"
     get:
       tags: [Appointments]
       summary: List rooms and their chairs for booking selectors
@@ -437,6 +472,8 @@ paths:
         "403":
           $ref: "#/components/responses/Forbidden"
   /api/appointments:
+    parameters:
+      - $ref: "#/components/parameters/TenantHeader"
     get:
       tags: [Appointments]
       summary: List appointments
@@ -493,6 +530,7 @@ paths:
           $ref: "#/components/responses/ValidationError"
   /api/appointments/{appointment}:
     parameters:
+      - $ref: "#/components/parameters/TenantHeader"
       - $ref: "#/components/parameters/AppointmentId"
     get:
       tags: [Appointments]
@@ -570,6 +608,7 @@ paths:
           $ref: "#/components/responses/ValidationError"
   /api/appointments/{appointment}/check-in:
     parameters:
+      - $ref: "#/components/parameters/TenantHeader"
       - $ref: "#/components/parameters/AppointmentId"
     post:
       tags: [Appointments]
@@ -592,6 +631,7 @@ paths:
           $ref: "#/components/responses/ValidationError"
   /api/appointments/{appointment}/complete:
     parameters:
+      - $ref: "#/components/parameters/TenantHeader"
       - $ref: "#/components/parameters/AppointmentId"
     post:
       tags: [Appointments]
@@ -614,6 +654,7 @@ paths:
           $ref: "#/components/responses/ValidationError"
   /api/appointments/{appointment}/cancel:
     parameters:
+      - $ref: "#/components/parameters/TenantHeader"
       - $ref: "#/components/parameters/AppointmentId"
     post:
       tags: [Appointments]
@@ -652,6 +693,8 @@ paths:
         "422":
           $ref: "#/components/responses/ValidationError"
   /api/dentists:
+    parameters:
+      - $ref: "#/components/parameters/TenantHeader"
     get:
       tags: [Dentists]
       summary: List dentists
@@ -668,6 +711,7 @@ paths:
           $ref: "#/components/responses/DentistEnvelope"
   /api/dentists/{dentist}:
     parameters:
+      - $ref: "#/components/parameters/TenantHeader"
       - $ref: "#/components/parameters/DentistId"
     get:
       tags: [Dentists]
@@ -701,6 +745,8 @@ paths:
         "422":
           $ref: "#/components/responses/ValidationError"
   /api/treatments:
+    parameters:
+      - $ref: "#/components/parameters/TenantHeader"
     get:
       tags: [Treatments]
       summary: List treatments
@@ -737,6 +783,7 @@ paths:
           $ref: "#/components/responses/ValidationError"
   /api/treatments/{treatment}:
     parameters:
+      - $ref: "#/components/parameters/TenantHeader"
       - $ref: "#/components/parameters/TreatmentId"
     get:
       tags: [Treatments]
@@ -799,6 +846,8 @@ paths:
         "404":
           $ref: "#/components/responses/NotFound"
   /api/invoices:
+    parameters:
+      - $ref: "#/components/parameters/TenantHeader"
     get:
       tags: [Invoices]
       summary: List invoices
@@ -815,6 +864,7 @@ paths:
           $ref: "#/components/responses/InvoiceEnvelope"
   /api/invoices/{invoice}:
     parameters:
+      - $ref: "#/components/parameters/TenantHeader"
       - $ref: "#/components/parameters/InvoiceId"
     get:
       tags: [Invoices]
@@ -845,6 +895,8 @@ paths:
         "200":
           $ref: "#/components/responses/DeleteMessage"
   /api/payments:
+    parameters:
+      - $ref: "#/components/parameters/TenantHeader"
     get:
       tags: [Payments]
       summary: List payments
@@ -861,6 +913,7 @@ paths:
           $ref: "#/components/responses/PaymentEnvelope"
   /api/payments/{payment}:
     parameters:
+      - $ref: "#/components/parameters/TenantHeader"
       - $ref: "#/components/parameters/PaymentId"
     get:
       tags: [Payments]
@@ -891,6 +944,8 @@ paths:
         "200":
           $ref: "#/components/responses/DeleteMessage"
   /api/tasks:
+    parameters:
+      - $ref: "#/components/parameters/TenantHeader"
     get:
       tags: [Tasks]
       summary: List follow-up tasks
@@ -948,6 +1003,7 @@ paths:
           $ref: "#/components/responses/ValidationError"
   /api/tasks/{task}:
     parameters:
+      - $ref: "#/components/parameters/TenantHeader"
       - name: task
         in: path
         required: true
@@ -1020,6 +1076,7 @@ paths:
           $ref: "#/components/responses/NotFound"
   /api/tasks/{task}/status:
     parameters:
+      - $ref: "#/components/parameters/TenantHeader"
       - name: task
         in: path
         required: true
@@ -1049,6 +1106,8 @@ paths:
         "422":
           $ref: "#/components/responses/ValidationError"
   /api/clinical-notes:
+    parameters:
+      - $ref: "#/components/parameters/TenantHeader"
     get:
       tags: [Clinical Notes]
       summary: List clinical notes
@@ -1096,6 +1155,7 @@ paths:
           $ref: "#/components/responses/ValidationError"
   /api/clinical-notes/{clinical_note}:
     parameters:
+      - $ref: "#/components/parameters/TenantHeader"
       - $ref: "#/components/parameters/ClinicalNoteId"
     get:
       tags: [Clinical Notes]
@@ -1158,6 +1218,8 @@ paths:
         "404":
           $ref: "#/components/responses/NotFound"
   /api/messages:
+    parameters:
+      - $ref: "#/components/parameters/TenantHeader"
     get:
       tags: [Messages]
       summary: List messages
@@ -1172,6 +1234,7 @@ paths:
           description: Message created.
   /api/messages/{message}:
     parameters:
+      - $ref: "#/components/parameters/TenantHeader"
       - $ref: "#/components/parameters/MessageId"
     get:
       tags: [Messages]
@@ -1198,6 +1261,8 @@ paths:
         "200":
           $ref: "#/components/responses/DeleteMessage"
   /api/referrals:
+    parameters:
+      - $ref: "#/components/parameters/TenantHeader"
     get:
       tags: [Referrals]
       summary: List referrals
@@ -1212,6 +1277,7 @@ paths:
           description: Referral created.
   /api/referrals/{referral}:
     parameters:
+      - $ref: "#/components/parameters/TenantHeader"
       - $ref: "#/components/parameters/ReferralId"
     get:
       tags: [Referrals]
@@ -1238,6 +1304,8 @@ paths:
         "200":
           $ref: "#/components/responses/DeleteMessage"
   /api/users:
+    parameters:
+      - $ref: "#/components/parameters/TenantHeader"
     get:
       tags: [Users]
       summary: List users
@@ -1252,6 +1320,7 @@ paths:
           description: User created.
   /api/users/{user}:
     parameters:
+      - $ref: "#/components/parameters/TenantHeader"
       - $ref: "#/components/parameters/UserId"
     get:
       tags: [Users]
@@ -1274,10 +1343,13 @@ paths:
     delete:
       tags: [Users]
       summary: Delete user
+      description: Removes the user from the selected clinic. Shared identities retain their global account, other clinic memberships and roles, and append users/membership_removed in this clinic. A single-clinic identity retains the Phase 1 account-deletion behavior. Clinic membership and tenant-local target binding are required; no platform authority is implied.
       responses:
         "200":
           $ref: "#/components/responses/DeleteMessage"
   /api/roles:
+    parameters:
+      - $ref: "#/components/parameters/TenantHeader"
     get:
       tags: [Roles]
       summary: List roles with permissions
@@ -1300,6 +1372,7 @@ paths:
         "422": { $ref: "#/components/responses/ValidationError" }
   /api/roles/{role}:
     parameters:
+      - $ref: "#/components/parameters/TenantHeader"
       - { name: role, in: path, required: true, schema: { type: integer } }
     get:
       tags: [Roles]
@@ -1347,6 +1420,8 @@ paths:
         "404": { $ref: "#/components/responses/NotFound" }
         "422": { $ref: "#/components/responses/ValidationError" }
   /api/permissions:
+    parameters:
+      - $ref: "#/components/parameters/TenantHeader"
     get:
       tags: [Roles]
       summary: List existing permissions for role assignment
@@ -1357,6 +1432,7 @@ paths:
         "403": { $ref: "#/components/responses/Forbidden" }
   /api/roles/{role}/permissions:
     parameters:
+      - $ref: "#/components/parameters/TenantHeader"
       - { name: role, in: path, required: true, schema: { type: integer } }
     put:
       tags: [Roles]
@@ -1379,6 +1455,7 @@ paths:
         "422": { $ref: "#/components/responses/ValidationError" }
   /api/users/{user}/roles:
     parameters:
+      - $ref: "#/components/parameters/TenantHeader"
       - $ref: "#/components/parameters/UserId"
     put:
       tags: [Roles]
@@ -1409,6 +1486,8 @@ paths:
         "404": { $ref: "#/components/responses/NotFound" }
         "422": { $ref: "#/components/responses/ValidationError" }
   /api/audit-logs:
+    parameters:
+      - $ref: "#/components/parameters/TenantHeader"
     get:
       tags: [Audit Logs]
       summary: List read-only audit history
@@ -1456,6 +1535,8 @@ paths:
         "403": { $ref: "#/components/responses/Forbidden" }
         "422": { $ref: "#/components/responses/ValidationError" }
   /api/audit-logs/filters:
+    parameters:
+      - $ref: "#/components/parameters/TenantHeader"
     get:
       tags: [Audit Logs]
       summary: Get available audit filter options
@@ -1466,6 +1547,7 @@ paths:
         "403": { $ref: "#/components/responses/Forbidden" }
   /api/audit-logs/{audit_log}:
     parameters:
+      - $ref: "#/components/parameters/TenantHeader"
       - { name: audit_log, in: path, required: true, schema: { type: integer, minimum: 1 } }
     get:
       tags: [Audit Logs]
@@ -1487,6 +1569,12 @@ components:
       in: cookie
       name: laravel_session
   parameters:
+    TenantHeader:
+      name: X-Tenant-Id
+      in: header
+      required: false
+      description: Select an active clinic membership. Omit for default-clinic. Does not confer membership or bypass authorization.
+      schema: { type: integer, minimum: 1 }
     AppointmentId: { name: appointment, in: path, required: true, schema: { type: integer, example: 1 } }
     ClinicalNoteId: { name: clinical_note, in: path, required: true, schema: { type: integer, example: 1 } }
     DentistId: { name: dentist, in: path, required: true, schema: { type: integer, example: 1 } }
@@ -2396,8 +2484,9 @@ components:
         updated_at: { type: string, format: date-time, nullable: true }
     Role:
       type: object
-      description: Role assigned to users and mapped to permissions.
+      description: Clinic-local role assigned to members of that clinic. Slugs are unique within a clinic. The admin slug is Clinic Admin, never Platform Super Admin. Permission definitions are shared, but grants belong to this clinic's role. Client-supplied tenant_id is rejected.
       properties:
+        tenant_id: { type: integer, readOnly: true, description: Owning clinic; cannot be supplied by clients. }
         id: { type: integer, example: 1 }
         name: { type: string, example: Clinic Admin }
         slug: { type: string, example: clinic-admin }
@@ -2415,15 +2504,26 @@ components:
         name: { type: string, example: Test User }
         email: { type: string, format: email, example: test@example.com }
         email_verified_at: { type: string, format: date-time, nullable: true }
+        current_tenant_id: { type: integer, description: Present on GET /api/user. The selected clinic after authentication and membership verification. }
         roles:
           type: array
           description: Present on authenticated user responses and any user payload loaded with access data.
           items: { $ref: "#/components/schemas/Role" }
         permissions:
           type: array
-          description: Flattened permission slugs derived from assigned roles for frontend navigation and policy checks.
+          description: Flattened permission slugs derived only from roles in the selected clinic. Membership is required and no grants carry across clinics.
           items: { type: string }
           example: [patients.view, appointments.create]
+        created_at: { type: string, format: date-time, nullable: true }
+        updated_at: { type: string, format: date-time, nullable: true }
+    Tenant:
+      type: object
+      required: [id, name, slug, active]
+      properties:
+        id: { type: integer, example: 1 }
+        name: { type: string, example: Default Clinic }
+        slug: { type: string, example: default-clinic }
+        active: { type: boolean, example: true }
         created_at: { type: string, format: date-time, nullable: true }
         updated_at: { type: string, format: date-time, nullable: true }
     AppointmentStatus:

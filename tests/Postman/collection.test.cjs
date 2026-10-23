@@ -94,6 +94,17 @@ test('public health runs without a token, protected reads require one', () => {
     assert.equal(runPreRequest(contextFor('GET', '/api/audit-logs', { access_token: 'test-token' })), true);
 });
 
+test('clinic selection is opt-in and membership discovery remains authenticated', () => {
+    const selected = contextFor('GET', '/api/user', { access_token: 'test-token', tenant_id: '2' });
+    assert.equal(runPreRequest(selected), true);
+    assert.equal(selected.headers.get('X-Tenant-Id'), '2');
+    const defaultClinic = contextFor('GET', '/api/user', { access_token: 'test-token' });
+    assert.equal(runPreRequest(defaultClinic), true);
+    assert.equal(defaultClinic.headers.has('X-Tenant-Id'), false);
+    assert.equal(runPreRequest(contextFor('GET', '/api/tenants')), false);
+    assert.equal(runPreRequest(contextFor('GET', '/api/tenants', { access_token: 'test-token' })), true);
+});
+
 test('domain writes, session requests and auth cleanup are skipped by default', () => {
     for (const [method, route] of [
         ['POST', '/api/patients'],

@@ -9,6 +9,7 @@ use App\Http\Resources\ClinicalNoteResource;
 use App\Models\ClinicalNote;
 use App\Services\ClinicalNoteWorkflow;
 use App\Support\ApiResponse;
+use App\Tenancy\TenantRules;
 use Illuminate\Http\Request;
 
 class ClinicalNoteController extends Controller
@@ -18,9 +19,9 @@ class ClinicalNoteController extends Controller
         $this->authorize('viewAny', ClinicalNote::class);
 
         $validated = $request->validate([
-            'patient_id' => ['sometimes', 'integer', 'exists:patient,id'],
-            'dentist_id' => ['sometimes', 'integer', 'exists:dentist,id'],
-            'appointment_id' => ['sometimes', 'integer', 'exists:appointment,id'],
+            'patient_id' => ['sometimes', 'integer', TenantRules::exists('patient')],
+            'dentist_id' => ['sometimes', 'integer', TenantRules::exists('dentist')],
+            'appointment_id' => ['sometimes', 'integer', TenantRules::exists('appointment')],
             'per_page' => ['sometimes', 'integer', 'min:1', 'max:100'],
             'page' => ['sometimes', 'integer', 'min:1'],
         ]);

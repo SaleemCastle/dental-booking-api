@@ -2,14 +2,17 @@
 
 namespace App\Models;
 
+use App\Models\Concerns\BelongsToTenant;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
 class Role extends Model
 {
-    use HasFactory;
+    use BelongsToTenant, HasFactory;
 
     public const ADMIN = 'admin';
+
+    public const CLINIC_ADMIN = self::ADMIN;
 
     public const DENTIST = 'dentist';
 
@@ -47,7 +50,7 @@ class Role extends Model
 
     public function users()
     {
-        return $this->belongsToMany(User::class)->withTimestamps();
+        return $this->belongsToMany(User::class)->withTimestamps()->withPivotValue('tenant_id', $this->tenant_id);
     }
 
     public function permissions()

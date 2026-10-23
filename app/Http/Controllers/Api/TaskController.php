@@ -10,6 +10,7 @@ use App\Http\Resources\TaskResource;
 use App\Models\Task;
 use App\Services\TaskWorkflow;
 use App\Support\ApiResponse;
+use App\Tenancy\TenantRules;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
 
@@ -25,7 +26,7 @@ class TaskController extends Controller
             'assigned_to_me' => ['sometimes', 'boolean'],
             'overdue' => ['sometimes', 'boolean'],
             'due_today' => ['sometimes', 'boolean'],
-            'patient_id' => ['sometimes', 'integer', 'exists:patient,id'],
+            'patient_id' => ['sometimes', 'integer', TenantRules::exists('patient')],
             'status' => ['sometimes', Rule::in(Task::STATUSES)],
             'per_page' => ['sometimes', 'integer', 'min:1', 'max:100'],
             'page' => ['sometimes', 'integer', 'min:1'],

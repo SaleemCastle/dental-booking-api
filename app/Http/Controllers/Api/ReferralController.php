@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Models\Referral;
 use App\Support\ApiResponse;
+use App\Tenancy\TenantRules;
 use Illuminate\Http\Request;
 
 class ReferralController extends Controller
@@ -19,8 +20,8 @@ class ReferralController extends Controller
     public function store(Request $request)
     {
         $validated = $request->validate([
-            'patient_id' => ['required', 'integer', 'exists:patient,id'],
-            'dentist_id' => ['required', 'integer', 'exists:dentist,id'],
+            'patient_id' => ['required', 'integer', TenantRules::exists('patient')],
+            'dentist_id' => ['required', 'integer', TenantRules::exists('dentist')],
             'referred_to_email' => ['required', 'email', 'max:255'],
             'referral_date' => ['required', 'date'],
             'referral_notes' => ['required', 'string'],
@@ -43,8 +44,8 @@ class ReferralController extends Controller
     public function update(Request $request, Referral $referral)
     {
         $validated = $request->validate([
-            'patient_id' => ['sometimes', 'required', 'integer', 'exists:patient,id'],
-            'dentist_id' => ['sometimes', 'required', 'integer', 'exists:dentist,id'],
+            'patient_id' => ['sometimes', 'required', 'integer', TenantRules::exists('patient')],
+            'dentist_id' => ['sometimes', 'required', 'integer', TenantRules::exists('dentist')],
             'referred_to_email' => ['sometimes', 'required', 'email', 'max:255'],
             'referral_date' => ['sometimes', 'required', 'date'],
             'referral_notes' => ['sometimes', 'required', 'string'],

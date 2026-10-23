@@ -2,6 +2,9 @@
 
 namespace Database\Factories;
 
+use App\Models\Tenant;
+use App\Models\User;
+use App\Tenancy\TenantContext;
 use Illuminate\Database\Eloquent\Factories\Factory;
 use Illuminate\Support\Str;
 
@@ -10,6 +13,18 @@ use Illuminate\Support\Str;
  */
 class UserFactory extends Factory
 {
+    public function configure(): static
+    {
+        return $this->afterCreating(function (User $user): void {
+            $user->tenants()->syncWithoutDetaching([app(TenantContext::class)->id()]);
+        });
+    }
+
+    public function forTenant(Tenant $tenant): static
+    {
+        return $this->afterCreating(fn (User $user) => $user->tenants()->sync([$tenant->id]));
+    }
+
     /**
      * Define the model's default state.
      *

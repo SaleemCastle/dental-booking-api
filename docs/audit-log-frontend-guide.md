@@ -2,6 +2,10 @@
 
 ## Access and endpoints
 
+Phase 2: audit history and audit-role membership are scoped to the clinic selected by `X-Tenant-Id` (default clinic when omitted). Refetch authorization and reset audit filters/pagination when changing clinics; IDs and request correlation never search across clinics. See [the multi-tenant contract](multi-tenancy.md).
+
+The additional `users/membership_removed` event means a shared user's roles and membership were removed from this clinic while their global identity and other memberships were retained. It is not a global account deletion.
+
 Use the existing authenticated API client. All audit endpoints require Sanctum authentication and an actual role with slug `admin` or `auditor`. Permission wildcards, `audit_logs.view`, and role display names alone do not grant access. The backend checks current role membership on every request. Frontend navigation can use `GET /api/user` and its `data.roles[].slug` values to decide whether to show the audit screen; the API remains the authority.
 
 | Method | Path | Response data |

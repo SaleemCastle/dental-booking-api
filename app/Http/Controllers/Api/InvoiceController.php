@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Http\Resources\InvoiceResource;
 use App\Models\Invoice;
 use App\Support\ApiResponse;
+use App\Tenancy\TenantRules;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
 
@@ -21,9 +22,9 @@ class InvoiceController extends Controller
     public function store(Request $request)
     {
         $validated = $request->validate([
-            'patient_id' => ['required', 'integer', 'exists:patient,id'],
-            'appointment_id' => ['nullable', 'integer', 'exists:appointment,id'],
-            'invoice_number' => ['required', 'string', 'max:255', 'unique:invoices,invoice_number'],
+            'patient_id' => ['required', 'integer', TenantRules::exists('patient')],
+            'appointment_id' => ['nullable', 'integer', TenantRules::exists('appointment')],
+            'invoice_number' => ['required', 'string', 'max:255', TenantRules::unique('invoices', 'invoice_number')],
             'amount_due' => ['required', 'numeric', 'min:0'],
             'amount_paid' => ['nullable', 'numeric', 'min:0'],
             'status' => ['required', Rule::in(['unpaid', 'partial', 'paid', 'refunded'])],
@@ -48,9 +49,9 @@ class InvoiceController extends Controller
     public function update(Request $request, Invoice $invoice)
     {
         $validated = $request->validate([
-            'patient_id' => ['sometimes', 'required', 'integer', 'exists:patient,id'],
-            'appointment_id' => ['nullable', 'integer', 'exists:appointment,id'],
-            'invoice_number' => ['sometimes', 'required', 'string', 'max:255', Rule::unique('invoices', 'invoice_number')->ignore($invoice->id)],
+            'patient_id' => ['sometimes', 'required', 'integer', TenantRules::exists('patient')],
+            'appointment_id' => ['nullable', 'integer', TenantRules::exists('appointment')],
+            'invoice_number' => ['sometimes', 'required', 'string', 'max:255', TenantRules::unique('invoices', 'invoice_number')->ignore($invoice->id)],
             'amount_due' => ['sometimes', 'required', 'numeric', 'min:0'],
             'amount_paid' => ['nullable', 'numeric', 'min:0'],
             'status' => ['sometimes', 'required', Rule::in(['unpaid', 'partial', 'paid', 'refunded'])],

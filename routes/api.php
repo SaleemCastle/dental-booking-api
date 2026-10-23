@@ -32,9 +32,11 @@ use Illuminate\Support\Facades\Route;
 |
 */
 
-Route::middleware(['auth:sanctum'])->get('/user', function (Request $request) {
+Route::middleware(['auth:sanctum', \App\Http\Middleware\ResolveTenant::class])->get('/user', function (Request $request) {
     return ApiResponse::success(
-        data: $request->user()->loadMissing('roles.permissions'),
+        data: array_merge($request->user()->loadMissing('roles.permissions')->toArray(), [
+            'current_tenant_id' => $request->attributes->get('tenant_id'),
+        ]),
         message: 'Authenticated user retrieved.',
         request: $request,
     );
@@ -50,9 +52,13 @@ Route::get('health', function (Request $request) {
 
 Route::post('auth/token', [TokenController::class, 'store']);
 
-Route::middleware(['auth:sanctum'])->group(function () {
-    Route::delete('auth/token', [TokenController::class, 'destroy']);
+Route::middleware('auth:sanctum')->get('tenants', function (Request $request) {
+    return ApiResponse::success(['tenants' => $request->user()->tenants()->where('active', true)->orderBy('tenants.id')->get()], 'Clinic memberships retrieved.');
+});
 
+Route::middleware('auth:sanctum')->delete('auth/token', [TokenController::class, 'destroy']);
+
+Route::middleware(['auth:sanctum', \App\Http\Middleware\ResolveTenant::class])->group(function () {
     Route::get('dashboard/summary', [DashboardController::class, 'summary']);
 
     Route::get('appointment-locations', [AppointmentLocationController::class, 'index']);

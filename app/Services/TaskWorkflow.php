@@ -51,7 +51,7 @@ class TaskWorkflow
             Patient::query()->lockForUpdate()->findOrFail($task->patient_id);
         }
 
-        User::query()->lockForUpdate()->findOrFail($task->assignee_id);
+        User::forCurrentTenant()->lockForUpdate()->findOrFail($task->assignee_id);
 
         if ($task->status === 'completed') {
             if ($previousStatus !== 'completed') {

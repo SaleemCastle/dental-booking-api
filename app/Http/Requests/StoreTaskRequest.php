@@ -3,6 +3,7 @@
 namespace App\Http\Requests;
 
 use App\Models\Task;
+use App\Tenancy\TenantRules;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
@@ -16,9 +17,9 @@ class StoreTaskRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'patient_id' => ['sometimes', 'nullable', 'integer', 'exists:patient,id'],
-            'appointment_id' => ['sometimes', 'nullable', 'integer', 'exists:appointment,id'],
-            'assignee_id' => ['required', 'integer', 'exists:users,id'],
+            'patient_id' => ['sometimes', 'nullable', 'integer', TenantRules::exists('patient')],
+            'appointment_id' => ['sometimes', 'nullable', 'integer', TenantRules::exists('appointment')],
+            'assignee_id' => ['required', 'integer', TenantRules::exists('users')],
             'due_date' => ['required', 'date_format:Y-m-d'],
             'priority' => ['sometimes', 'required', Rule::in(Task::PRIORITIES)],
             'status' => ['sometimes', 'required', Rule::in(Task::STATUSES)],

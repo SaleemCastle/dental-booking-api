@@ -3,11 +3,14 @@
 namespace App\Models;
 
 use App\Models\Builders\AuditLogBuilder;
+use App\Models\Concerns\BelongsToTenant;
 use Illuminate\Database\Eloquent\Model;
 use LogicException;
 
 class AuditLog extends Model
 {
+    use BelongsToTenant;
+
     public $timestamps = false;
 
     protected $dateFormat = 'Y-m-d H:i:s.u';

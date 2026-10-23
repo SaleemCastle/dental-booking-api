@@ -14,7 +14,7 @@ class UserController extends Controller
     public function index()
     {
         return ApiResponse::success([
-            'users' => User::all(),
+            'users' => User::forCurrentTenant()->get(),
         ], 'Users retrieved.');
     }
 
