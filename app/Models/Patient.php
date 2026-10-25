@@ -10,6 +10,11 @@ class Patient extends Model
 {
     use BelongsToTenant, HasFactory;
 
+    public function dentalChartRevisions()
+    {
+        return $this->hasMany(DentalChartRevision::class);
+    }
+
     protected $table = 'patient';
 
     protected $fillable = [

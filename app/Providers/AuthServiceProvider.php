@@ -6,6 +6,7 @@ use App\Models\Appointment;
 use App\Models\AuditLog;
 use App\Models\ClinicalNote;
 use App\Models\Concerns\BelongsToTenant;
+use App\Models\DentalChartRevision;
 use App\Models\Patient;
 use App\Models\Task;
 use App\Models\Treatment;
@@ -13,6 +14,7 @@ use App\Models\User;
 use App\Policies\AppointmentPolicy;
 use App\Policies\AuditLogPolicy;
 use App\Policies\ClinicalNotePolicy;
+use App\Policies\DentalChartRevisionPolicy;
 use App\Policies\PatientPolicy;
 use App\Policies\TaskPolicy;
 use App\Policies\TreatmentPolicy;
@@ -33,6 +35,7 @@ class AuthServiceProvider extends ServiceProvider
         Appointment::class => AppointmentPolicy::class,
         AuditLog::class => AuditLogPolicy::class,
         ClinicalNote::class => ClinicalNotePolicy::class,
+        DentalChartRevision::class => DentalChartRevisionPolicy::class,
         Patient::class => PatientPolicy::class,
         Task::class => TaskPolicy::class,
         Treatment::class => TreatmentPolicy::class,
@@ -59,6 +62,7 @@ class AuthServiceProvider extends ServiceProvider
             }
 
             if ($resource instanceof ClinicalNote || $resource === ClinicalNote::class
+                || $resource instanceof DentalChartRevision || $resource === DentalChartRevision::class
                 || $resource instanceof AuditLog || $resource === AuditLog::class) {
                 return null;
             }

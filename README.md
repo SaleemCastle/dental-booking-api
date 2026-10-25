@@ -13,6 +13,8 @@ Import the [Postman collection](docs/postman/dental-booking.postman_collection.j
 
 Tenant resolution, service/policy usage, and queue propagation conventions are documented in the [multi-tenant architecture contract](docs/multi-tenancy.md).
 
+The [dental charting contract](docs/dental-charting.md) defines adult/primary numbering, surface findings, immutable revisions, concurrency, authorization, and audit behavior.
+
 ## About Laravel
 
 Laravel is a web application framework with expressive, elegant syntax. We believe development must be an enjoyable and creative experience to be truly fulfilling. Laravel takes the pain out of development by easing common tasks used in many web projects, such as:

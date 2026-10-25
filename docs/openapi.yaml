@@ -26,7 +26,107 @@ tags:
   - name: Roles
   - name: Audit Logs
   - name: Tenants
+  - name: Dental Charts
 paths:
+  /api/dental-chart/metadata:
+    parameters:
+      - $ref: "#/components/parameters/TenantHeader"
+      - $ref: "#/components/parameters/ChartNumbering"
+    get:
+      tags: [Dental Charts]
+      summary: Get tooth numbering and chart vocabulary
+      description: Clinical chart read authorization required. Returns adult/primary tooth positions, allowed surfaces, F/P aliases, presence/finding statuses and extensible condition suggestions. Universal is the product default (adult 1-32, primary A-T); FDI can be requested explicitly. See docs/dental-charting.md.
+      responses:
+        "200":
+          description: Standard envelope with data.numbering_system, numbering_systems, dentitions.adult (32 positions), dentitions.primary (20 positions), tooth_statuses, finding_statuses, surfaces, surface_aliases, suggested_conditions and custom_condition_codes. Each position includes tooth, canonical fdi and five allowed surface codes.
+          content: { application/json: { schema: { $ref: "#/components/schemas/ApiEnvelope" } } }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "422": { $ref: "#/components/responses/ValidationError" }
+  /api/patients/{patient}/dental-chart:
+    parameters:
+      - $ref: "#/components/parameters/TenantHeader"
+      - $ref: "#/components/parameters/PatientId"
+      - $ref: "#/components/parameters/ChartDentition"
+      - $ref: "#/components/parameters/ChartNumbering"
+    get:
+      tags: [Dental Charts]
+      summary: Read the current patient dental chart
+      description: Requires clinical role or dental_charts.view. Empty charts return version 0 and teeth [] without creating records. Adult/primary charts are independent. Archived patient charts remain readable. Foreign patients return 404. Responses are private/no-store.
+      responses:
+        "200": { $ref: "#/components/responses/DentalChartEnvelope" }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "422": { $ref: "#/components/responses/ValidationError" }
+  /api/patients/{patient}/dental-chart/revisions:
+    parameters:
+      - $ref: "#/components/parameters/TenantHeader"
+      - $ref: "#/components/parameters/PatientId"
+    post:
+      tags: [Dental Charts]
+      summary: Append a complete dental chart snapshot
+      description: Admin or Dentist clinical role required; Receptionist plus Dentist is denied unless Admin is also present. Permission wildcards do not bypass clinical writes. expected_version is mandatory (0 for the first revision); stale writes return 409 without changing history or audits. This is a full snapshot, including deliberate omissions/empty lists, not a patch. The server assigns ownership, version, actor and UTC timestamp. Clinical-note links must match patient and provider; treatment links must be clinic-local. Exactly one metadata-only dental_charts/revision_created audit is committed atomically. Existing revisions cannot be updated/deleted. Archived patients are read-only. See docs/dental-charting.md.
+      requestBody:
+        required: true
+        content: { application/json: { schema: { $ref: "#/components/schemas/DentalChartRevisionRequest" } } }
+      responses:
+        "201": { $ref: "#/components/responses/DentalChartEnvelope" }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "409":
+          description: Stale expected_version. Reload and reconcile before retrying. Standard error envelope with code CONFLICT; no writes or audits.
+          content: { application/json: { schema: { $ref: "#/components/schemas/ApiErrorEnvelope" } } }
+        "422": { $ref: "#/components/responses/ValidationError" }
+  /api/patients/{patient}/dental-chart/history:
+    parameters:
+      - $ref: "#/components/parameters/TenantHeader"
+      - $ref: "#/components/parameters/PatientId"
+      - $ref: "#/components/parameters/ChartDentition"
+      - $ref: "#/components/parameters/ChartNumbering"
+    get:
+      tags: [Dental Charts]
+      summary: List immutable dental chart revision summaries
+      description: Same clinical read authorization and tenant boundary as current chart. Newest-first summaries omit teeth; fetch an exact version for its full snapshot. Private/no-store.
+      parameters:
+        - { name: page, in: query, schema: { type: integer, minimum: 1, default: 1 } }
+        - { name: per_page, in: query, schema: { type: integer, minimum: 1, maximum: 50, default: 10 } }
+      responses:
+        "200":
+          description: Standard envelope with data.revisions and meta.pagination (currentPage, perPage, total, lastPage, from, to, hasMorePages).
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/ApiEnvelope"
+                  - type: object
+                    properties:
+                      data:
+                        type: object
+                        properties:
+                          revisions: { type: array, items: { $ref: "#/components/schemas/DentalChartRevisionSummary" } }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "422": { $ref: "#/components/responses/ValidationError" }
+  /api/patients/{patient}/dental-chart/revisions/{version}:
+    parameters:
+      - $ref: "#/components/parameters/TenantHeader"
+      - $ref: "#/components/parameters/PatientId"
+      - $ref: "#/components/parameters/ChartDentition"
+      - $ref: "#/components/parameters/ChartNumbering"
+      - { name: version, in: path, required: true, schema: { type: integer, minimum: 1 } }
+    get:
+      tags: [Dental Charts]
+      summary: Read an exact historical dental chart version
+      description: Same clinical read authorization and tenant boundary as current chart. The version belongs to the selected patient and dentition; it is not a global revision ID. Numbering conversion changes only the response projection. Private/no-store.
+      responses:
+        "200": { $ref: "#/components/responses/DentalChartEnvelope" }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "422": { $ref: "#/components/responses/ValidationError" }
   /api/tenants:
     get:
       tags: [Tenants]
@@ -1570,6 +1670,14 @@ components:
       in: cookie
       name: laravel_session
   parameters:
+    ChartDentition:
+      name: dentition
+      in: query
+      schema: { type: string, enum: [adult, primary], default: adult }
+    ChartNumbering:
+      name: numbering_system
+      in: query
+      schema: { type: string, enum: [fdi, universal], default: universal }
     TenantHeader:
       name: X-Tenant-Id
       in: header
@@ -1630,6 +1738,25 @@ components:
       required: true
       content: { application/json: { schema: { $ref: "#/components/schemas/ClinicalNoteUpdateRequest" } } }
   responses:
+    DentalChartEnvelope:
+      description: Standard envelope with data.chart. New revisions return 201; reads return 200. An uncharted dentition has version 0, an empty tooth list, and null ID/provider/author/note/timestamp/reason.
+      content:
+        application/json:
+          schema:
+            allOf:
+              - $ref: "#/components/schemas/ApiEnvelope"
+              - type: object
+                properties:
+                  data:
+                    type: object
+                    properties:
+                      chart:
+                        allOf:
+                          - $ref: "#/components/schemas/DentalChartRevisionSummary"
+                          - type: object
+                            required: [teeth]
+                            properties:
+                              teeth: { type: array, items: { $ref: "#/components/schemas/DentalChartTooth" } }
     AuditLogList:
       description: Standard envelope with data.auditLogs and meta.pagination. Empty lists have total 0 and null from/to.
       headers:
@@ -1929,6 +2056,57 @@ components:
                     properties:
                       clinicalNote: { $ref: "#/components/schemas/ClinicalNote" }
   schemas:
+    DentalChartFinding:
+      type: object
+      additionalProperties: false
+      required: [code, status, surfaces]
+      properties:
+        code: { type: string, maxLength: 50, pattern: '^[a-z][a-z0-9_]*$', example: caries }
+        status: { type: string, enum: [active, resolved] }
+        surfaces:
+          type: array
+          maxItems: 5
+          uniqueItems: true
+          description: Empty means whole tooth. F/P are input aliases for B/L. I is valid only on anterior positions; O only on posterior positions. Responses always use normalized B/L.
+          items: { type: string, enum: [M, D, B, L, O, I, F, P] }
+        treatment_id: { type: integer, nullable: true, minimum: 1 }
+        note: { type: string, nullable: true, maxLength: 1000 }
+    DentalChartTooth:
+      type: object
+      additionalProperties: false
+      required: [tooth, status, findings]
+      properties:
+        tooth:
+          description: Position in the explicitly selected system and dentition. Numeric input may be an integer or string; responses use strings. Adult FDI 11-18/21-28/31-38/41-48, primary FDI 51-55/61-65/71-75/81-85, Universal adult 1-32 or primary A-T.
+          oneOf: [{ type: string }, { type: integer }]
+          example: "1"
+        status: { type: string, enum: [present, missing, extracted, unerupted] }
+        findings: { type: array, maxItems: 20, items: { $ref: "#/components/schemas/DentalChartFinding" } }
+    DentalChartRevisionRequest:
+      type: object
+      required: [dentition, expected_version, dentist_id, reason, teeth]
+      properties:
+        dentition: { type: string, enum: [adult, primary] }
+        numbering_system: { type: string, enum: [fdi, universal], default: universal }
+        expected_version: { type: integer, minimum: 0, maximum: 2147483646, example: 0 }
+        dentist_id: { type: integer, minimum: 1 }
+        clinical_note_id: { type: integer, nullable: true, minimum: 1 }
+        reason: { type: string, minLength: 1, maxLength: 1000, example: Initial examination }
+        teeth: { type: array, maxItems: 32, items: { $ref: "#/components/schemas/DentalChartTooth" } }
+    DentalChartRevisionSummary:
+      type: object
+      required: [id, patient_id, dentition, numbering_system, version, dentist_id, author_user_id, clinical_note_id, recorded_at, reason]
+      properties:
+        id: { type: integer, nullable: true, readOnly: true }
+        patient_id: { type: integer, readOnly: true }
+        dentition: { type: string, enum: [adult, primary] }
+        numbering_system: { type: string, enum: [fdi, universal] }
+        version: { type: integer, minimum: 0, readOnly: true }
+        dentist_id: { type: integer, nullable: true }
+        author_user_id: { type: integer, nullable: true, readOnly: true }
+        clinical_note_id: { type: integer, nullable: true }
+        recorded_at: { type: string, format: date-time, nullable: true, readOnly: true }
+        reason: { type: string, nullable: true }
     AuditLog:
       type: object
       required: [id, actor_id, actorName, action, resource_type, resource_id, occurred_at, ip_address, user_agent, request_metadata]

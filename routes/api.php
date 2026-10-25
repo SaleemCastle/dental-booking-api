@@ -5,6 +5,7 @@ use App\Http\Controllers\Api\AppointmentLocationController;
 use App\Http\Controllers\Api\AuditLogController;
 use App\Http\Controllers\Api\ClinicalNoteController;
 use App\Http\Controllers\Api\DashboardController;
+use App\Http\Controllers\Api\DentalChartController;
 use App\Http\Controllers\Api\DentistController;
 use App\Http\Controllers\Api\InvoiceController;
 use App\Http\Controllers\Api\MessageController;
@@ -63,6 +64,12 @@ Route::middleware(['auth:sanctum', 'tenant'])->group(function () {
     Route::get('dashboard/summary', [DashboardController::class, 'summary']);
 
     Route::get('appointment-locations', [AppointmentLocationController::class, 'index']);
+
+    Route::get('dental-chart/metadata', [DentalChartController::class, 'metadata']);
+    Route::get('patients/{patient}/dental-chart', [DentalChartController::class, 'show']);
+    Route::get('patients/{patient}/dental-chart/history', [DentalChartController::class, 'history']);
+    Route::get('patients/{patient}/dental-chart/revisions/{version}', [DentalChartController::class, 'revision'])->whereNumber('version');
+    Route::post('patients/{patient}/dental-chart/revisions', [DentalChartController::class, 'store']);
 
     Route::get('audit-logs/filters', [AuditLogController::class, 'filters']);
     Route::get('audit-logs', [AuditLogController::class, 'index']);

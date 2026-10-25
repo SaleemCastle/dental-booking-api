@@ -19,6 +19,7 @@ yarn-error.log
 /.vscode
 /docs/*
 !/docs/multi-tenancy.md
+!/docs/dental-charting.md
 !/docs/postman.md
 !/docs/postman/
 /docs/postman/*

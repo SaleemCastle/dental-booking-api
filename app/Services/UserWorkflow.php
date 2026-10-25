@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Models\DentalChartRevision;
 use App\Models\User;
 use App\Tenancy\TenantContext;
 use Illuminate\Auth\Access\AuthorizationException;
@@ -54,10 +55,13 @@ class UserWorkflow
             $current->roles()->detach();
             $current->tenants()->detach(app(TenantContext::class)->id());
             $hasOtherClinics = $current->tenants()->exists();
-            if (! $hasOtherClinics) {
+            // Preserve the global author identity even after its final membership
+            // is removed; immutable clinical history must keep its attribution.
+            $hasChartHistory = DentalChartRevision::withoutGlobalScope('tenant')->where('author_user_id', $current->id)->exists();
+            if (! $hasOtherClinics && ! $hasChartHistory) {
                 $current->delete();
             }
-            $this->auditLogs->record($hasOtherClinics ? 'membership_removed' : 'deleted', 'users', $current->id, $actor->id);
+            $this->auditLogs->record($hasOtherClinics || $hasChartHistory ? 'membership_removed' : 'deleted', 'users', $current->id, $actor->id);
         }, 3);
     }
 

@@ -382,6 +382,220 @@
             ]
         },
         {
+            "name": "Dental Charts",
+            "item": [
+                {
+                    "name": "GET Get tooth numbering and chart vocabulary",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/api/dental-chart/metadata",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "dental-chart",
+                                "metadata"
+                            ],
+                            "query": [
+                                {
+                                    "key": "numbering_system",
+                                    "value": "universal",
+                                    "disabled": true,
+                                    "description": "Optional filter; enable its checkbox to send it."
+                                }
+                            ]
+                        },
+                        "description": "Clinical chart read authorization required. Returns adult/primary tooth positions, allowed surfaces, F/P aliases, presence/finding statuses and extensible condition suggestions. Universal is the product default (adult 1-32, primary A-T); FDI can be requested explicitly. See docs/dental-charting.md.\n\nGET /api/dental-chart/metadata\nDomain writes require allow_writes=true. Missing required variables skip requests rather than selecting real records automatically."
+                    },
+                    "response": []
+                },
+                {
+                    "name": "GET Read the current patient dental chart",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/api/patients/{{patient_id}}/dental-chart",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "patients",
+                                "{{patient_id}}",
+                                "dental-chart"
+                            ],
+                            "query": [
+                                {
+                                    "key": "dentition",
+                                    "value": "adult",
+                                    "disabled": true,
+                                    "description": "Optional filter; enable its checkbox to send it."
+                                },
+                                {
+                                    "key": "numbering_system",
+                                    "value": "universal",
+                                    "disabled": true,
+                                    "description": "Optional filter; enable its checkbox to send it."
+                                }
+                            ]
+                        },
+                        "description": "Requires clinical role or dental_charts.view. Empty charts return version 0 and teeth [] without creating records. Adult/primary charts are independent. Archived patient charts remain readable. Foreign patients return 404. Responses are private/no-store.\n\nGET /api/patients/{patient}/dental-chart\nDomain writes require allow_writes=true. Missing required variables skip requests rather than selecting real records automatically."
+                    },
+                    "response": []
+                },
+                {
+                    "name": "POST Append a complete dental chart snapshot",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            },
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/api/patients/{{patient_id}}/dental-chart/revisions",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "patients",
+                                "{{patient_id}}",
+                                "dental-chart",
+                                "revisions"
+                            ],
+                            "query": []
+                        },
+                        "description": "Admin or Dentist clinical role required; Receptionist plus Dentist is denied unless Admin is also present. Permission wildcards do not bypass clinical writes. expected_version is mandatory (0 for the first revision); stale writes return 409 without changing history or audits. This is a full snapshot, including deliberate omissions/empty lists, not a patch. The server assigns ownership, version, actor and UTC timestamp. Clinical-note links must match patient and provider; treatment links must be clinic-local. Exactly one metadata-only dental_charts/revision_created audit is committed atomically. Existing revisions cannot be updated/deleted. Archived patients are read-only. See docs/dental-charting.md.\n\nPOST /api/patients/{patient}/dental-chart/revisions\nDomain writes require allow_writes=true. Missing required variables skip requests rather than selecting real records automatically.",
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"dentition\": \"adult\",\n    \"expected_version\": 0,\n    \"dentist_id\": \"{{dentist_id}}\",\n    \"reason\": \"Initial examination\",\n    \"teeth\": [\n        {\n            \"tooth\": \"1\",\n            \"status\": \"present\",\n            \"findings\": [\n                {\n                    \"code\": \"caries\",\n                    \"status\": \"active\",\n                    \"surfaces\": [\n                        \"M\"\n                    ]\n                }\n            ]\n        }\n    ]\n}\n",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        }
+                    },
+                    "response": []
+                },
+                {
+                    "name": "GET List immutable dental chart revision summaries",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/api/patients/{{patient_id}}/dental-chart/history?page=1&per_page=10",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "patients",
+                                "{{patient_id}}",
+                                "dental-chart",
+                                "history"
+                            ],
+                            "query": [
+                                {
+                                    "key": "dentition",
+                                    "value": "adult",
+                                    "disabled": true,
+                                    "description": "Optional filter; enable its checkbox to send it."
+                                },
+                                {
+                                    "key": "numbering_system",
+                                    "value": "universal",
+                                    "disabled": true,
+                                    "description": "Optional filter; enable its checkbox to send it."
+                                },
+                                {
+                                    "key": "page",
+                                    "value": "1",
+                                    "disabled": false,
+                                    "description": "Optional filter; enable its checkbox to send it."
+                                },
+                                {
+                                    "key": "per_page",
+                                    "value": "10",
+                                    "disabled": false,
+                                    "description": "Optional filter; enable its checkbox to send it."
+                                }
+                            ]
+                        },
+                        "description": "Same clinical read authorization and tenant boundary as current chart. Newest-first summaries omit teeth; fetch an exact version for its full snapshot. Private/no-store.\n\nGET /api/patients/{patient}/dental-chart/history\nDomain writes require allow_writes=true. Missing required variables skip requests rather than selecting real records automatically."
+                    },
+                    "response": []
+                },
+                {
+                    "name": "GET Read an exact historical dental chart version",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/api/patients/{{patient_id}}/dental-chart/revisions/{{version_id}}",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "patients",
+                                "{{patient_id}}",
+                                "dental-chart",
+                                "revisions",
+                                "{{version_id}}"
+                            ],
+                            "query": [
+                                {
+                                    "key": "dentition",
+                                    "value": "adult",
+                                    "disabled": true,
+                                    "description": "Optional filter; enable its checkbox to send it."
+                                },
+                                {
+                                    "key": "numbering_system",
+                                    "value": "universal",
+                                    "disabled": true,
+                                    "description": "Optional filter; enable its checkbox to send it."
+                                }
+                            ]
+                        },
+                        "description": "Same clinical read authorization and tenant boundary as current chart. The version belongs to the selected patient and dentition; it is not a global revision ID. Numbering conversion changes only the response projection. Private/no-store.\n\nGET /api/patients/{patient}/dental-chart/revisions/{version}\nDomain writes require allow_writes=true. Missing required variables skip requests rather than selecting real records automatically."
+                    },
+                    "response": []
+                }
+            ]
+        },
+        {
             "name": "Tenants",
             "item": [
                 {
@@ -3529,6 +3743,11 @@
         },
         {
             "key": "dentist_id",
+            "value": "",
+            "type": "string"
+        },
+        {
+            "key": "version_id",
             "value": "",
             "type": "string"
         },
