@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Models\DentalChartRevision;
 use App\Models\Dentist;
 use App\Support\ApiResponse;
 use App\Tenancy\TenantRules;
@@ -64,6 +65,10 @@ class DentistController extends Controller
     {
         DB::transaction(function () use ($dentist) {
             $current = Dentist::query()->lockForUpdate()->findOrFail($dentist->id);
+
+            if (DentalChartRevision::where('dentist_id', $current->id)->exists()) {
+                throw ValidationException::withMessages(['dentist_id' => ['A provider with dental chart history cannot be deleted.']]);
+            }
 
             if ($current->clinicalNotes()->withTrashed()->exists()) {
                 throw ValidationException::withMessages([

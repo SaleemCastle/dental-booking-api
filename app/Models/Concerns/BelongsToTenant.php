@@ -31,6 +31,7 @@ trait BelongsToTenant
             }
             $attributionColumns = match ($model->getTable()) {
                 'clinical_notes' => ['author_user_id', 'updated_by_user_id', 'deleted_by_user_id'],
+                'dental_chart_revisions' => ['author_user_id'],
                 'patient' => ['archived_by_user_id'],
                 default => [],
             };
@@ -65,6 +66,7 @@ trait BelongsToTenant
             'messages' => ['sender_id' => 'patient', 'receiver_id' => 'patient'],
             'referral' => ['patient_id' => 'patient', 'dentist_id' => 'dentist'],
             'clinical_notes' => ['patient_id' => 'patient', 'dentist_id' => 'dentist', 'appointment_id' => 'appointment'],
+            'dental_chart_revisions' => ['patient_id' => 'patient', 'dentist_id' => 'dentist', 'clinical_note_id' => 'clinical_notes'],
             'tasks' => ['patient_id' => 'patient', 'appointment_id' => 'appointment'],
         ];
     }

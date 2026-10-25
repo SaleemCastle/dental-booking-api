@@ -22,7 +22,7 @@ class PermissionSeederTest extends TestCase
         $this->seed(PermissionSeeder::class);
 
         $this->assertSame($originalIds, Permission::orderBy('slug')->pluck('id', 'slug')->all());
-        $this->assertDatabaseCount('permissions', 52);
+        $this->assertDatabaseCount('permissions', 54);
         $this->assertDatabaseCount('roles', 0);
         $this->assertDatabaseCount('users', 0);
 
@@ -36,6 +36,9 @@ class PermissionSeederTest extends TestCase
         }
         foreach (['dashboard', 'permissions', 'audit_logs'] as $resource) {
             $this->assertDatabaseHas('permissions', ['slug' => $resource.'.view', 'resource' => $resource, 'action' => 'view']);
+        }
+        foreach (['view', 'create'] as $action) {
+            $this->assertDatabaseHas('permissions', ['slug' => 'dental_charts.'.$action]);
         }
         $this->assertDatabaseMissing('permissions', ['slug' => 'patients.delete']);
         $this->assertFalse(Permission::where('slug', 'like', '%*%')->exists());
@@ -68,8 +71,8 @@ class PermissionSeederTest extends TestCase
         $this->seed(PermissionSeeder::class);
         $this->seed(PermissionSeeder::class);
 
-        $this->assertSame(53, $admin->permissions()->count());
-        $this->assertDatabaseCount('permission_role', 55);
+        $this->assertSame(55, $admin->permissions()->count());
+        $this->assertDatabaseCount('permission_role', 57);
         $this->assertSame([$permission->id], $receptionist->permissions()->pluck('permissions.id')->all());
         $this->assertSame([$permission->id], $custom->permissions()->pluck('permissions.id')->all());
         foreach ([Role::DENTIST, Role::HYGIENIST, Role::BILLING, Role::AUDITOR] as $slug) {
@@ -87,11 +90,11 @@ class PermissionSeederTest extends TestCase
         Sanctum::actingAs($user);
 
         $response = $this->getJson('/api/user')->assertOk();
-        $this->assertCount(52, $response->json('data.permissions'));
+        $this->assertCount(54, $response->json('data.permissions'));
         foreach (['appointments.create', 'appointments.update', 'patients.medical.update', 'clinical_notes.create', 'tasks.update', 'audit_logs.view'] as $slug) {
             $this->assertContains($slug, $response->json('data.permissions'));
         }
-        $catalog = $this->getJson('/api/permissions')->assertOk()->assertJsonCount(52, 'data.permissions');
+        $catalog = $this->getJson('/api/permissions')->assertOk()->assertJsonCount(54, 'data.permissions');
         $this->assertContains('appointments.create', array_column($catalog->json('data.permissions'), 'slug'));
     }
 }
