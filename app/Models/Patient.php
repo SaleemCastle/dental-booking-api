@@ -15,6 +15,11 @@ class Patient extends Model
         return $this->hasMany(DentalChartRevision::class);
     }
 
+    public function treatmentPlans()
+    {
+        return $this->hasMany(TreatmentPlan::class);
+    }
+
     protected $table = 'patient';
 
     protected $fillable = [

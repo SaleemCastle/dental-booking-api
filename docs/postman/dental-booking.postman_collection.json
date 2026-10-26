@@ -114,6 +114,12 @@
                     "        if (pm.request.method === 'POST' && entity && body.data[entity[0]]) {",
                     "            pm.environment.set(entity[1], String(body.data[entity[0]].id));",
                     "        }",
+                    "        if (pm.request.method === 'POST' && body.data.treatmentPlan) {",
+                    "            pm.environment.set('treatment_plan_id', String(body.data.treatmentPlan.id));",
+                    "        }",
+                    "        if (pm.request.method === 'POST' && body.data.treatmentPlanItem) {",
+                    "            pm.environment.set('item_id', String(body.data.treatmentPlanItem.id));",
+                    "        }",
                     "        if (path === '/api/user' && body.data.id) {",
                     "            pm.environment.set('current_user_id', String(body.data.id));",
                     "            if (!pm.environment.get('assignee_id')) pm.environment.set('assignee_id', String(body.data.id));",
@@ -375,6 +381,323 @@
                         "description": "GET /api/health\nDomain writes require allow_writes=true. Missing required variables skip requests rather than selecting real records automatically.",
                         "auth": {
                             "type": "noauth"
+                        }
+                    },
+                    "response": []
+                }
+            ]
+        },
+        {
+            "name": "Treatment Plans",
+            "item": [
+                {
+                    "name": "GET List patient treatment plans",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/api/patients/{{patient_id}}/treatment-plans?page=1&per_page=15",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "patients",
+                                "{{patient_id}}",
+                                "treatment-plans"
+                            ],
+                            "query": [
+                                {
+                                    "key": "status",
+                                    "value": "draft",
+                                    "disabled": true,
+                                    "description": "Optional filter; enable its checkbox to send it."
+                                },
+                                {
+                                    "key": "page",
+                                    "value": "1",
+                                    "disabled": false,
+                                    "description": "Optional filter; enable its checkbox to send it."
+                                },
+                                {
+                                    "key": "per_page",
+                                    "value": "15",
+                                    "disabled": false,
+                                    "description": "Optional filter; enable its checkbox to send it."
+                                }
+                            ]
+                        },
+                        "description": "Clinical role or treatment_plans.view required. Newest first with items sorted by sequence then ID. Archived patients remain readable. See docs/treatment-planning.md.\n\nGET /api/patients/{patient}/treatment-plans\nDomain writes require allow_writes=true. Missing required variables skip requests rather than selecting real records automatically."
+                    },
+                    "response": []
+                },
+                {
+                    "name": "POST Create a draft treatment plan",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            },
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/api/patients/{{patient_id}}/treatment-plans",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "patients",
+                                "{{patient_id}}",
+                                "treatment-plans"
+                            ],
+                            "query": []
+                        },
+                        "description": "Admin or Dentist required; Dentist plus Receptionist denied unless Admin. Permission wildcards cannot grant clinical writes. Optional initial items and all audits commit atomically. Archived patients are read-only. Ownership and item snapshot values are server-controlled.\n\nPOST /api/patients/{patient}/treatment-plans\nDomain writes require allow_writes=true. Missing required variables skip requests rather than selecting real records automatically.",
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"title\": \"Initial restorative care\"\n}\n",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        }
+                    },
+                    "response": []
+                },
+                {
+                    "name": "GET Get a treatment plan and its items",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/api/treatment-plans/{{treatment_plan_id}}",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "treatment-plans",
+                                "{{treatment_plan_id}}"
+                            ],
+                            "query": []
+                        },
+                        "description": "GET /api/treatment-plans/{treatment_plan}\nDomain writes require allow_writes=true. Missing required variables skip requests rather than selecting real records automatically."
+                    },
+                    "response": []
+                },
+                {
+                    "name": "PATCH Update a treatment plan",
+                    "request": {
+                        "method": "PATCH",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            },
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/api/treatment-plans/{{treatment_plan_id}}",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "treatment-plans",
+                                "{{treatment_plan_id}}"
+                            ],
+                            "query": []
+                        },
+                        "description": "Clinical writes only. Draft may become active or cancelled; active may become completed or cancelled. Activation requires a proposed item. Completion requires at least one completed item and no unfinished items. Cancellation cancels unfinished items atomically. Completed/cancelled plans and archived patients are read-only. No destructive delete endpoint.\n\nPATCH /api/treatment-plans/{treatment_plan}\nDomain writes require allow_writes=true. Missing required variables skip requests rather than selecting real records automatically.",
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"title\": \"Postman test data\",\n    \"status\": \"draft\"\n}\n",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        }
+                    },
+                    "response": []
+                },
+                {
+                    "name": "PUT Update a treatment plan (partial PUT)",
+                    "request": {
+                        "method": "PUT",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            },
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/api/treatment-plans/{{treatment_plan_id}}",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "treatment-plans",
+                                "{{treatment_plan_id}}"
+                            ],
+                            "query": []
+                        },
+                        "description": "Same partial update and lifecycle rules as PATCH. Clinical role required.\n\nPUT /api/treatment-plans/{treatment_plan}\nDomain writes require allow_writes=true. Missing required variables skip requests rather than selecting real records automatically.",
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"title\": \"Postman test data\",\n    \"status\": \"draft\"\n}\n",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        }
+                    },
+                    "response": []
+                },
+                {
+                    "name": "POST Add a proposed procedure",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            },
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/api/treatment-plans/{{treatment_plan_id}}/items",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "treatment-plans",
+                                "{{treatment_plan_id}}",
+                                "items"
+                            ],
+                            "query": []
+                        },
+                        "description": "Clinical role required. Plan must be draft/active with an unarchived patient. Catalog treatment must be active and all references clinic-local. Captures immutable catalog price and procedure name; estimate defaults to that price. Omitted sequence appends after the current maximum.\n\nPOST /api/treatment-plans/{treatment_plan}/items\nDomain writes require allow_writes=true. Missing required variables skip requests rather than selecting real records automatically.",
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"treatment_id\": \"{{treatment_id}}\",\n    \"dentist_id\": \"{{dentist_id}}\"\n}\n",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        }
+                    },
+                    "response": []
+                },
+                {
+                    "name": "PATCH Update a proposed or in-progress item",
+                    "request": {
+                        "method": "PATCH",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            },
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/api/treatment-plans/{{treatment_plan_id}}/items/{{item_id}}",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "treatment-plans",
+                                "{{treatment_plan_id}}",
+                                "items",
+                                "{{item_id}}"
+                            ],
+                            "query": []
+                        },
+                        "description": "Clinical role required. Proposed items can progress, complete or cancel; in-progress items can complete or cancel. Progress/completion requires an active plan. Terminal items/plans are read-only. Context updates replace the whole context; null clears it. Treatment identity, catalog_price and treatment_name are immutable. Wrong-parent items return 404.\n\nPATCH /api/treatment-plans/{treatment_plan}/items/{item}\nDomain writes require allow_writes=true. Missing required variables skip requests rather than selecting real records automatically.",
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"dentist_id\": \"{{dentist_id}}\",\n    \"estimated_price\": \"125.50\",\n    \"sequence\": 1,\n    \"priority\": \"normal\",\n    \"status\": \"proposed\"\n}\n",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        }
+                    },
+                    "response": []
+                },
+                {
+                    "name": "PUT Update an item (partial PUT)",
+                    "request": {
+                        "method": "PUT",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            },
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/api/treatment-plans/{{treatment_plan_id}}/items/{{item_id}}",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "treatment-plans",
+                                "{{treatment_plan_id}}",
+                                "items",
+                                "{{item_id}}"
+                            ],
+                            "query": []
+                        },
+                        "description": "Same partial update and lifecycle rules as PATCH. Clinical role required.\n\nPUT /api/treatment-plans/{treatment_plan}/items/{item}\nDomain writes require allow_writes=true. Missing required variables skip requests rather than selecting real records automatically.",
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"dentist_id\": \"{{dentist_id}}\",\n    \"estimated_price\": \"125.50\",\n    \"sequence\": 1,\n    \"priority\": \"normal\",\n    \"status\": \"proposed\"\n}\n",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
                         }
                     },
                     "response": []
@@ -3742,7 +4065,22 @@
             "type": "string"
         },
         {
+            "key": "treatment_plan_id",
+            "value": "",
+            "type": "string"
+        },
+        {
+            "key": "treatment_id",
+            "value": "",
+            "type": "string"
+        },
+        {
             "key": "dentist_id",
+            "value": "",
+            "type": "string"
+        },
+        {
+            "key": "item_id",
             "value": "",
             "type": "string"
         },
@@ -3753,11 +4091,6 @@
         },
         {
             "key": "appointment_id",
-            "value": "",
-            "type": "string"
-        },
-        {
-            "key": "treatment_id",
             "value": "",
             "type": "string"
         },

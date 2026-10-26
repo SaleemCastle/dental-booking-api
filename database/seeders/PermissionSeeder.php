@@ -50,6 +50,7 @@ class PermissionSeeder extends Seeder
             'payments' => $crud,
             'clinical_notes' => $crud,
             'dental_charts' => ['view', 'create'],
+            'treatment_plans' => ['view', 'create', 'update'],
             'tasks' => $crud,
             'messages' => $crud,
             'referrals' => $crud,

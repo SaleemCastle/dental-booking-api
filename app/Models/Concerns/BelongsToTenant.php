@@ -68,6 +68,8 @@ trait BelongsToTenant
             'clinical_notes' => ['patient_id' => 'patient', 'dentist_id' => 'dentist', 'appointment_id' => 'appointment'],
             'dental_chart_revisions' => ['patient_id' => 'patient', 'dentist_id' => 'dentist', 'clinical_note_id' => 'clinical_notes'],
             'tasks' => ['patient_id' => 'patient', 'appointment_id' => 'appointment'],
+            'treatment_plans' => ['patient_id' => 'patient'],
+            'treatment_plan_items' => ['treatment_plan_id' => 'treatment_plans', 'treatment_id' => 'treatments', 'dentist_id' => 'dentist'],
         ];
     }
 }

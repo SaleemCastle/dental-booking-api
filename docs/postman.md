@@ -8,7 +8,7 @@
 4. Send **Authentication - Bearer > POST Create a Sanctum bearer token**. The response script saves `data.access_token` into the active environment; other requests inherit bearer authentication.
 5. Send **Users > GET Get authenticated user** to inspect current roles and permissions. This also sets `current_user_id` and, if empty, `assignee_id` for task examples.
 
-The collection contains all 95 documented method/path operations from OpenAPI 2.0.0, grouped into 18 folders, including clinic memberships and audit logs. JSON body examples use minimal create payloads and partial updates; consult [OpenAPI](openapi.yaml) for optional fields and business rules.
+The collection contains all 108 documented method/path operations from OpenAPI 2.0.0, grouped into 20 folders, including clinic memberships, dental charts, treatment plans and audit logs. JSON body examples use minimal create payloads and partial updates; consult [OpenAPI](openapi.yaml) for optional fields and business rules.
 
 Leave `tenant_id` blank for the default clinic. **Tenants > GET List current user's active clinic memberships** returns clinics available to the authenticated user. Set `tenant_id` to a returned ID to send `X-Tenant-Id`, then refetch `/api/user` and clear previously captured resource IDs before using another clinic. This header does not grant membership; foreign clinic/resource access is rejected. See [the tenancy contract](multi-tenancy.md).
 
@@ -18,7 +18,7 @@ Leave `tenant_id` blank for the default clinic. **Tenants > GET List current use
 - `allow_auth_cleanup=false` separately skips bearer-token revocation and session logout. Enable it only when intentionally ending authentication.
 - `use_session_auth=false` skips the browser-session folder; bearer authentication is the default.
 - Unset IDs and other required request variables cause the request to be skipped, with variable names shown in the Postman console. No existing clinical record is automatically selected for mutation.
-- Successful create responses capture their entity ID into the environment, for example `patient_id`, `dentist_id`, `appointment_id`, `treatment_id`, `clinical_note_id`, `task_id`, `role_id`, and `user_id`. List responses do not select domain IDs automatically. For existing records, copy the desired canonical ID from a GET response into the corresponding variable.
+- Successful create responses capture their entity ID into the environment, for example `patient_id`, `dentist_id`, `appointment_id`, `treatment_id`, `treatment_plan_id`, `item_id`, `clinical_note_id`, `task_id`, `role_id`, and `user_id`. List responses do not select domain IDs automatically. For existing records, copy the desired canonical ID from a GET response into the corresponding variable. Treatment plan items use the selected plan's `treatment_plan_id`; see [the treatment planning contract](treatment-planning.md) for lifecycle rules.
 - `sample_email`, `role_slug`, and `invoice_number` have per-request generated defaults to avoid unique-value collisions. `appointment_start` defaults to tomorrow in UTC, and `due_date` to three days from now. Set explicit environment values to override these defaults.
 - When using the generated create-user or registration body, set `new_user_password`; it is deliberately blank. Password templates use computed JSON-encoded local variables to support special characters. If you replace the body with literal JSON credentials, unused `email`, `password`, and `new_user_password` environment values are not required.
 

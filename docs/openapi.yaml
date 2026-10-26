@@ -27,7 +27,133 @@ tags:
   - name: Audit Logs
   - name: Tenants
   - name: Dental Charts
+  - name: Treatment Plans
 paths:
+  /api/patients/{patient}/treatment-plans:
+    parameters:
+      - $ref: "#/components/parameters/TenantHeader"
+      - $ref: "#/components/parameters/PatientId"
+    get:
+      tags: [Treatment Plans]
+      summary: List patient treatment plans
+      description: Clinical role or treatment_plans.view required. Newest first with items sorted by sequence then ID. Archived patients remain readable. See docs/treatment-planning.md.
+      parameters:
+        - { name: status, in: query, schema: { type: string, enum: [draft, active, completed, cancelled] } }
+        - { name: page, in: query, schema: { type: integer, minimum: 1, default: 1 } }
+        - { name: per_page, in: query, schema: { type: integer, minimum: 1, maximum: 100, default: 15 } }
+      responses:
+        "200":
+          description: Standard envelope with data as a plan array and meta.pagination. Private/no-store.
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/ApiEnvelope"
+                  - properties:
+                      data: { type: array, items: { $ref: "#/components/schemas/TreatmentPlan" } }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "422": { $ref: "#/components/responses/ValidationError" }
+    post:
+      tags: [Treatment Plans]
+      summary: Create a draft treatment plan
+      description: Admin or Dentist required; Dentist plus Receptionist denied unless Admin. Permission wildcards cannot grant clinical writes. Optional initial items and all audits commit atomically. Archived patients are read-only. Ownership and item snapshot values are server-controlled.
+      requestBody:
+        required: true
+        content: { application/json: { schema: { $ref: "#/components/schemas/CreateTreatmentPlan" } } }
+      responses:
+        "201": { $ref: "#/components/responses/TreatmentPlanEnvelope" }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "422": { $ref: "#/components/responses/ValidationError" }
+  /api/treatment-plans/{treatment_plan}:
+    parameters:
+      - $ref: "#/components/parameters/TenantHeader"
+      - $ref: "#/components/parameters/TreatmentPlanId"
+    get:
+      tags: [Treatment Plans]
+      summary: Get a treatment plan and its items
+      responses:
+        "200": { $ref: "#/components/responses/TreatmentPlanEnvelope" }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+    patch:
+      tags: [Treatment Plans]
+      summary: Update a treatment plan
+      description: Clinical writes only. Draft may become active or cancelled; active may become completed or cancelled. Activation requires a proposed item. Completion requires at least one completed item and no unfinished items. Cancellation cancels unfinished items atomically. Completed/cancelled plans and archived patients are read-only. No destructive delete endpoint.
+      requestBody:
+        required: true
+        content: { application/json: { schema: { $ref: "#/components/schemas/UpdateTreatmentPlan" } } }
+      responses:
+        "200": { $ref: "#/components/responses/TreatmentPlanEnvelope" }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "422": { $ref: "#/components/responses/ValidationError" }
+    put:
+      tags: [Treatment Plans]
+      summary: Update a treatment plan (partial PUT)
+      description: Same partial update and lifecycle rules as PATCH. Clinical role required.
+      requestBody:
+        required: true
+        content: { application/json: { schema: { $ref: "#/components/schemas/UpdateTreatmentPlan" } } }
+      responses:
+        "200": { $ref: "#/components/responses/TreatmentPlanEnvelope" }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "422": { $ref: "#/components/responses/ValidationError" }
+  /api/treatment-plans/{treatment_plan}/items:
+    parameters:
+      - $ref: "#/components/parameters/TenantHeader"
+      - $ref: "#/components/parameters/TreatmentPlanId"
+    post:
+      tags: [Treatment Plans]
+      summary: Add a proposed procedure
+      description: Clinical role required. Plan must be draft/active with an unarchived patient. Catalog treatment must be active and all references clinic-local. Captures immutable catalog price and procedure name; estimate defaults to that price. Omitted sequence appends after the current maximum.
+      requestBody:
+        required: true
+        content: { application/json: { schema: { $ref: "#/components/schemas/CreateTreatmentPlanItem" } } }
+      responses:
+        "201": { $ref: "#/components/responses/TreatmentPlanItemEnvelope" }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "422": { $ref: "#/components/responses/ValidationError" }
+  /api/treatment-plans/{treatment_plan}/items/{item}:
+    parameters:
+      - $ref: "#/components/parameters/TenantHeader"
+      - $ref: "#/components/parameters/TreatmentPlanId"
+      - { name: item, in: path, required: true, schema: { type: integer, example: 1 } }
+    patch:
+      tags: [Treatment Plans]
+      summary: Update a proposed or in-progress item
+      description: Clinical role required. Proposed items can progress, complete or cancel; in-progress items can complete or cancel. Progress/completion requires an active plan. Terminal items/plans are read-only. Context updates replace the whole context; null clears it. Treatment identity, catalog_price and treatment_name are immutable. Wrong-parent items return 404.
+      requestBody:
+        required: true
+        content: { application/json: { schema: { $ref: "#/components/schemas/UpdateTreatmentPlanItem" } } }
+      responses:
+        "200": { $ref: "#/components/responses/TreatmentPlanItemEnvelope" }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "422": { $ref: "#/components/responses/ValidationError" }
+    put:
+      tags: [Treatment Plans]
+      summary: Update an item (partial PUT)
+      description: Same partial update and lifecycle rules as PATCH. Clinical role required.
+      requestBody:
+        required: true
+        content: { application/json: { schema: { $ref: "#/components/schemas/UpdateTreatmentPlanItem" } } }
+      responses:
+        "200": { $ref: "#/components/responses/TreatmentPlanItemEnvelope" }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "422": { $ref: "#/components/responses/ValidationError" }
   /api/dental-chart/metadata:
     parameters:
       - $ref: "#/components/parameters/TenantHeader"
@@ -1690,6 +1816,7 @@ components:
     InvoiceId: { name: invoice, in: path, required: true, schema: { type: integer, example: 1 } }
     MessageId: { name: message, in: path, required: true, schema: { type: integer, example: 1 } }
     PatientId: { name: patient, in: path, required: true, schema: { type: integer, example: 1 } }
+    TreatmentPlanId: { name: treatment_plan, in: path, required: true, schema: { type: integer, example: 1 } }
     PaymentId: { name: payment, in: path, required: true, schema: { type: integer, example: 1 } }
     ReferralId: { name: referral, in: path, required: true, schema: { type: integer, example: 1 } }
     TreatmentId: { name: treatment, in: path, required: true, schema: { type: integer, example: 1 } }
@@ -1738,6 +1865,30 @@ components:
       required: true
       content: { application/json: { schema: { $ref: "#/components/schemas/ClinicalNoteUpdateRequest" } } }
   responses:
+    TreatmentPlanEnvelope:
+      description: Standard success envelope with data.treatmentPlan. Private/no-store.
+      content:
+        application/json:
+          schema:
+            allOf:
+              - $ref: "#/components/schemas/ApiEnvelope"
+              - properties:
+                  data:
+                    type: object
+                    properties:
+                      treatmentPlan: { $ref: "#/components/schemas/TreatmentPlan" }
+    TreatmentPlanItemEnvelope:
+      description: Standard success envelope with data.treatmentPlanItem. Private/no-store.
+      content:
+        application/json:
+          schema:
+            allOf:
+              - $ref: "#/components/schemas/ApiEnvelope"
+              - properties:
+                  data:
+                    type: object
+                    properties:
+                      treatmentPlanItem: { $ref: "#/components/schemas/TreatmentPlanItem" }
     DentalChartEnvelope:
       description: Standard envelope with data.chart. New revisions return 201; reads return 200. An uncharted dentition has version 0, an empty tooth list, and null ID/provider/author/note/timestamp/reason.
       content:
@@ -2056,6 +2207,101 @@ components:
                     properties:
                       clinicalNote: { $ref: "#/components/schemas/ClinicalNote" }
   schemas:
+    TreatmentPlanToothContext:
+      type: object
+      nullable: true
+      additionalProperties: false
+      required: [dentition, tooth]
+      description: Optional context, using odontogram numbering and surface rules. Default input numbering is Universal; stored/returned context always has numbering_system fdi. Omit surfaces or use [] for a whole tooth. F/P aliases normalize to B/L; duplicate normalized surfaces are rejected.
+      properties:
+        dentition: { type: string, enum: [adult, primary] }
+        numbering_system: { type: string, enum: [universal, fdi], default: universal }
+        tooth:
+          oneOf:
+            - { type: string }
+            - { type: integer }
+          example: "3"
+        surfaces:
+          type: array
+          maxItems: 5
+          uniqueItems: true
+          items: { type: string, enum: [M, D, B, L, O, I, F, P] }
+    TreatmentPlanItemFields:
+      type: object
+      properties:
+        dentist_id: { type: integer, minimum: 1 }
+        tooth_context: { $ref: "#/components/schemas/TreatmentPlanToothContext" }
+        estimated_price:
+          description: Editable estimate, defaults to the captured catalog price on addition. Maximum two decimal places; responses are fixed two-decimal strings.
+          oneOf:
+            - { type: string, pattern: '^[0-9]{1,8}(\.[0-9]{1,2})?$' }
+            - { type: number, minimum: 0, maximum: 99999999.99, multipleOf: 0.01 }
+          example: "125.50"
+        sequence: { type: integer, minimum: 1, maximum: 1000000, description: Omit on addition to append. Ties resolve by item ID. }
+        priority: { type: string, enum: [low, normal, high, urgent], default: normal }
+        notes: { type: string, nullable: true, maxLength: 10000 }
+    CreateTreatmentPlanItem:
+      allOf:
+        - $ref: "#/components/schemas/TreatmentPlanItemFields"
+        - type: object
+          required: [treatment_id, dentist_id]
+          properties:
+            treatment_id: { type: integer, minimum: 1, description: Active catalog procedure in the selected clinic. }
+    UpdateTreatmentPlanItem:
+      allOf:
+        - $ref: "#/components/schemas/TreatmentPlanItemFields"
+        - type: object
+          properties:
+            status: { type: string, enum: [proposed, in_progress, completed, cancelled] }
+    CreateTreatmentPlan:
+      type: object
+      required: [title]
+      properties:
+        title: { type: string, minLength: 1, maxLength: 255, example: Initial restorative care }
+        notes: { type: string, nullable: true, maxLength: 10000 }
+        items: { type: array, maxItems: 100, items: { $ref: "#/components/schemas/CreateTreatmentPlanItem" } }
+    UpdateTreatmentPlan:
+      type: object
+      properties:
+        title: { type: string, minLength: 1, maxLength: 255 }
+        notes: { type: string, nullable: true, maxLength: 10000 }
+        status: { type: string, enum: [draft, active, completed, cancelled] }
+    TreatmentPlanItem:
+      type: object
+      required: [id, treatment_plan_id, treatment_id, treatment_name, dentist_id, catalog_price, estimated_price, status, priority, sequence, tooth_context, notes, created_at, updated_at]
+      properties:
+        id: { type: integer }
+        treatment_plan_id: { type: integer }
+        treatment_id: { type: integer }
+        treatment_name: { type: string, description: Immutable catalog name captured on addition. }
+        dentist_id: { type: integer }
+        catalog_price: { type: string, example: "125.50", description: Immutable catalog price captured on addition. }
+        estimated_price: { type: string, example: "125.50" }
+        status: { type: string, enum: [proposed, in_progress, completed, cancelled] }
+        priority: { type: string, enum: [low, normal, high, urgent] }
+        sequence: { type: integer }
+        tooth_context:
+          allOf:
+            - $ref: "#/components/schemas/TreatmentPlanToothContext"
+            - properties:
+                numbering_system: { type: string, enum: [fdi], default: fdi }
+                tooth: { type: string, example: "16" }
+          nullable: true
+        notes: { type: string, nullable: true }
+        created_at: { type: string, format: date-time }
+        updated_at: { type: string, format: date-time }
+    TreatmentPlan:
+      type: object
+      required: [id, patient_id, title, notes, status, items, created_at, updated_at]
+      properties:
+        id: { type: integer }
+        patient_id: { type: integer }
+        title: { type: string }
+        notes: { type: string, nullable: true }
+        status: { type: string, enum: [draft, active, completed, cancelled] }
+        items: { type: array, items: { $ref: "#/components/schemas/TreatmentPlanItem" } }
+        created_at: { type: string, format: date-time }
+        updated_at: { type: string, format: date-time }
     DentalChartFinding:
       type: object
       additionalProperties: false

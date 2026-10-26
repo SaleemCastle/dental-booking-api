@@ -16,6 +16,7 @@ use App\Http\Controllers\Api\RoleController;
 use App\Http\Controllers\Api\TaskController;
 use App\Http\Controllers\Api\TokenController;
 use App\Http\Controllers\Api\TreatmentController;
+use App\Http\Controllers\Api\TreatmentPlanController;
 use App\Http\Controllers\Api\UserController;
 use App\Http\Middleware\RequireAdminRole;
 use App\Support\ApiResponse;
@@ -66,6 +67,12 @@ Route::middleware(['auth:sanctum', 'tenant'])->group(function () {
     Route::get('appointment-locations', [AppointmentLocationController::class, 'index']);
 
     Route::get('dental-chart/metadata', [DentalChartController::class, 'metadata']);
+    Route::get('patients/{patient}/treatment-plans', [TreatmentPlanController::class, 'index']);
+    Route::post('patients/{patient}/treatment-plans', [TreatmentPlanController::class, 'store']);
+    Route::get('treatment-plans/{treatment_plan}', [TreatmentPlanController::class, 'show']);
+    Route::match(['put', 'patch'], 'treatment-plans/{treatment_plan}', [TreatmentPlanController::class, 'update']);
+    Route::post('treatment-plans/{treatment_plan}/items', [TreatmentPlanController::class, 'storeItem']);
+    Route::match(['put', 'patch'], 'treatment-plans/{treatment_plan}/items/{item}', [TreatmentPlanController::class, 'updateItem'])->whereNumber('item');
     Route::get('patients/{patient}/dental-chart', [DentalChartController::class, 'show']);
     Route::get('patients/{patient}/dental-chart/history', [DentalChartController::class, 'history']);
     Route::get('patients/{patient}/dental-chart/revisions/{version}', [DentalChartController::class, 'revision'])->whereNumber('version');

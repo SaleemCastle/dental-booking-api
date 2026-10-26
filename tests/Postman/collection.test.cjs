@@ -211,6 +211,15 @@ test('only successful creates capture domain IDs, not list reads or failed write
     const failure = contextFor('POST', '/api/patients');
     assert.throws(() => respond(failure, { patient: { id: 100 } }, 422));
     assert.equal(failure.values.get('patient_id'), '');
+    const plan = contextFor('POST', '/api/patients/{{patient_id}}/treatment-plans');
+    respond(plan, { treatmentPlan: { id: 43 } }, 201);
+    assert.equal(plan.values.get('treatment_plan_id'), '43');
+    const item = contextFor('POST', '/api/treatment-plans/{{treatment_plan_id}}/items');
+    respond(item, { treatmentPlanItem: { id: 44 } }, 201);
+    assert.equal(item.values.get('item_id'), '44');
+    const planRead = contextFor('GET', '/api/treatment-plans/{{treatment_plan_id}}');
+    respond(planRead, { treatmentPlan: { id: 99 } });
+    assert.equal(planRead.values.get('treatment_plan_id'), '');
 });
 
 test('current user and audit list capture selector and correlation variables', () => {
