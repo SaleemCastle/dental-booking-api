@@ -29,6 +29,10 @@ Laravel is a web application framework with expressive, elegant syntax. We belie
 
 Laravel is accessible, powerful, and provides tools required for large, robust applications.
 
+## Treatment planning
+
+The Phase 2 treatment planning schema, clinical workflow and API are described in [docs/treatment-planning.md](docs/treatment-planning.md), with request/response schemas in [docs/openapi.yaml](docs/openapi.yaml).
+
 ## Learning Laravel
 
 Laravel has the most extensive and thorough [documentation](https://laravel.com/docs) and video tutorial library of all modern web application frameworks, making it a breeze to get started with the framework.

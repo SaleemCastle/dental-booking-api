@@ -370,6 +370,12 @@ if (body) {
         if (pm.request.method === 'POST' && entity && body.data[entity[0]]) {
             pm.environment.set(entity[1], String(body.data[entity[0]].id));
         }
+        if (pm.request.method === 'POST' && body.data.treatmentPlan) {
+            pm.environment.set('treatment_plan_id', String(body.data.treatmentPlan.id));
+        }
+        if (pm.request.method === 'POST' && body.data.treatmentPlanItem) {
+            pm.environment.set('item_id', String(body.data.treatmentPlanItem.id));
+        }
         if (path === '/api/user' && body.data.id) {
             pm.environment.set('current_user_id', String(body.data.id));
             if (!pm.environment.get('assignee_id')) pm.environment.set('assignee_id', String(body.data.id));

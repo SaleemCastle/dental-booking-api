@@ -10,6 +10,7 @@ use App\Models\DentalChartRevision;
 use App\Models\Patient;
 use App\Models\Task;
 use App\Models\Treatment;
+use App\Models\TreatmentPlan;
 use App\Models\User;
 use App\Policies\AppointmentPolicy;
 use App\Policies\AuditLogPolicy;
@@ -17,6 +18,7 @@ use App\Policies\ClinicalNotePolicy;
 use App\Policies\DentalChartRevisionPolicy;
 use App\Policies\PatientPolicy;
 use App\Policies\TaskPolicy;
+use App\Policies\TreatmentPlanPolicy;
 use App\Policies\TreatmentPolicy;
 use App\Tenancy\TenantContext;
 use Illuminate\Auth\Notifications\ResetPassword;
@@ -39,6 +41,7 @@ class AuthServiceProvider extends ServiceProvider
         Patient::class => PatientPolicy::class,
         Task::class => TaskPolicy::class,
         Treatment::class => TreatmentPolicy::class,
+        TreatmentPlan::class => TreatmentPlanPolicy::class,
     ];
 
     /**
@@ -63,6 +66,7 @@ class AuthServiceProvider extends ServiceProvider
 
             if ($resource instanceof ClinicalNote || $resource === ClinicalNote::class
                 || $resource instanceof DentalChartRevision || $resource === DentalChartRevision::class
+                || $resource instanceof TreatmentPlan || $resource === TreatmentPlan::class
                 || $resource instanceof AuditLog || $resource === AuditLog::class) {
                 return null;
             }

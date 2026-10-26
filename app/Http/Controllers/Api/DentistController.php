@@ -66,6 +66,10 @@ class DentistController extends Controller
         DB::transaction(function () use ($dentist) {
             $current = Dentist::query()->lockForUpdate()->findOrFail($dentist->id);
 
+            if (\App\Models\TreatmentPlanItem::where('dentist_id', $current->id)->exists()) {
+                throw ValidationException::withMessages(['dentist_id' => ['A provider with treatment plan history cannot be deleted.']]);
+            }
+
             if (DentalChartRevision::where('dentist_id', $current->id)->exists()) {
                 throw ValidationException::withMessages(['dentist_id' => ['A provider with dental chart history cannot be deleted.']]);
             }
