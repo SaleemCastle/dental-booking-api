@@ -17,6 +17,9 @@ class PaymentResource extends JsonResource
             'status' => $this->status,
             'paid_at' => $this->paid_at,
             'reference' => $this->reference,
+            'currency' => $this->currency,
+            'receipt_number' => $this->receipt_number,
+            'idempotency_key' => $this->idempotency_key,
             'created_at' => $this->created_at,
             'updated_at' => $this->updated_at,
         ];

@@ -17,6 +17,8 @@ The [dental charting contract](docs/dental-charting.md) defines adult/primary nu
 
 Private patient document uploads, S3 configuration, authorization, retrieval, archive/delete semantics and operational recovery are documented in [patient documents and imaging](docs/patient-documents.md).
 
+The [billing contract](docs/billing.md) documents invoice snapshots, lifecycle, partial payments, idempotent retries, authorization, audits and legacy migration requirements.
+
 ## About Laravel
 
 Laravel is a web application framework with expressive, elegant syntax. We believe development must be an enjoyable and creative experience to be truly fulfilling. Laravel takes the pain out of development by easing common tasks used in many web projects, such as:

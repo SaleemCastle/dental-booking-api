@@ -144,7 +144,7 @@ class TenantFoundationTest extends TestCase
             $dentist = Dentist::factory()->create();
             $treatment = Treatment::factory()->create();
             $appointment = Appointment::factory()->for($patient)->for($dentist)->for($treatment)->create();
-            $invoice = Invoice::factory()->for($patient)->for($appointment)->create();
+            $invoice = Invoice::factory()->issued()->for($patient)->for($appointment)->create();
             $payment = Payment::factory()->for($invoice)->create();
             $note = ClinicalNote::factory()->for($patient)->for($dentist)->for($appointment)->create();
             $task = Task::factory()->for($patient)->for($appointment)->create();
@@ -212,11 +212,11 @@ class TenantFoundationTest extends TestCase
             $this->seed(AppointmentLocationSeeder::class);
             $this->assertSame(6, Role::count());
             $this->assertSame(2, Chair::count());
-            $this->assertSame(61, Role::where('slug', Role::ADMIN)->sole()->permissions()->count());
+            $this->assertSame(58, Role::where('slug', Role::ADMIN)->sole()->permissions()->count());
         });
         $this->assertSame(6, Role::count());
         $this->assertSame(2, Chair::count());
-        $this->assertSame(61, Permission::count());
+        $this->assertSame(58, Permission::count());
     }
 
     public function test_stale_models_cannot_be_written_in_another_clinic(): void

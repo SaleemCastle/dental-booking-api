@@ -102,8 +102,8 @@ Route::middleware(['auth:sanctum', 'tenant'])->group(function () {
     Route::apiResource('referrals', ReferralController::class);
     Route::apiResource('users', UserController::class);
     Route::apiResource('treatments', TreatmentController::class);
-    Route::apiResource('invoices', InvoiceController::class);
-    Route::apiResource('payments', PaymentController::class);
+    Route::apiResource('invoices', InvoiceController::class)->except('destroy');
+    Route::apiResource('payments', PaymentController::class)->only(['index', 'store', 'show']);
     Route::apiResource('clinical-notes', ClinicalNoteController::class);
     Route::apiResource('tasks', TaskController::class);
 

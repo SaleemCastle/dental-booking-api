@@ -49,13 +49,13 @@ class DatabaseSeeder extends Seeder
             ->create()
             ->each(function (Appointment $appointment) use ($user): void {
                 $invoice = Invoice::factory()
+                    ->issued()
                     ->for($appointment->patient)
                     ->for($appointment)
                     ->create();
 
                 Payment::factory()->for($invoice)->create([
-                    'amount' => $invoice->amount_paid,
-                    'status' => $invoice->status === 'refunded' ? 'refunded' : 'paid',
+                    'amount' => '25.00',
                 ]);
 
                 ClinicalNote::factory()

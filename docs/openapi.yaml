@@ -1187,12 +1187,19 @@ paths:
     get:
       tags: [Invoices]
       summary: List invoices
+      description: Requires billing read access. Paginated data array with immutable line snapshots; see docs/billing.md.
+      parameters:
+        - { name: patient_id, in: query, schema: { type: integer } }
+        - { name: status, in: query, schema: { $ref: "#/components/schemas/InvoiceStatus" } }
+        - { name: page, in: query, schema: { type: integer, minimum: 1, default: 1 } }
+        - { name: per_page, in: query, schema: { type: integer, minimum: 1, maximum: 100, default: 15 } }
       responses:
         "200":
           $ref: "#/components/responses/InvoiceList"
     post:
       tags: [Invoices]
       summary: Create invoice
+      description: Creates a draft with immutable price snapshots. All money uses two decimal places. Totals and lifecycle timestamps are server-controlled. Requires Admin/Billing role or invoices.create. See docs/billing.md.
       requestBody:
         $ref: "#/components/requestBodies/InvoiceBody"
       responses:
@@ -1224,27 +1231,28 @@ paths:
       responses:
         "200":
           $ref: "#/components/responses/InvoiceEnvelope"
-    delete:
-      tags: [Invoices]
-      summary: Delete invoice
-      responses:
-        "200":
-          $ref: "#/components/responses/DeleteMessage"
   /api/payments:
     parameters:
       - $ref: "#/components/parameters/TenantHeader"
     get:
       tags: [Payments]
       summary: List payments
+      parameters:
+        - { name: invoice_id, in: query, schema: { type: integer } }
+        - { name: page, in: query, schema: { type: integer, minimum: 1, default: 1 } }
+        - { name: per_page, in: query, schema: { type: integer, minimum: 1, maximum: 100, default: 15 } }
       responses:
         "200":
           $ref: "#/components/responses/PaymentList"
     post:
       tags: [Payments]
-      summary: Create payment
+      summary: Record settled payment
+      description: Records a positive settled payment up to the outstanding balance in the invoice currency. Requires Admin/Billing role or payments.create. The invoice-scoped idempotency key deduplicates identical retries. Unknown fields, card data and arbitrary metadata are rejected. See docs/billing.md.
       requestBody:
         $ref: "#/components/requestBodies/PaymentBody"
       responses:
+        "200":
+          $ref: "#/components/responses/PaymentEnvelope"
         "201":
           $ref: "#/components/responses/PaymentEnvelope"
   /api/payments/{payment}:
@@ -1257,28 +1265,6 @@ paths:
       responses:
         "200":
           $ref: "#/components/responses/PaymentEnvelope"
-    patch:
-      tags: [Payments]
-      summary: Update payment
-      requestBody:
-        $ref: "#/components/requestBodies/PaymentUpdateBody"
-      responses:
-        "200":
-          $ref: "#/components/responses/PaymentEnvelope"
-    put:
-      tags: [Payments]
-      summary: Update payment
-      requestBody:
-        $ref: "#/components/requestBodies/PaymentUpdateBody"
-      responses:
-        "200":
-          $ref: "#/components/responses/PaymentEnvelope"
-    delete:
-      tags: [Payments]
-      summary: Delete payment
-      responses:
-        "200":
-          $ref: "#/components/responses/DeleteMessage"
   /api/tasks:
     parameters:
       - $ref: "#/components/parameters/TenantHeader"
@@ -1970,9 +1956,6 @@ components:
     PaymentBody:
       required: true
       content: { application/json: { schema: { $ref: "#/components/schemas/PaymentRequest" } } }
-    PaymentUpdateBody:
-      required: true
-      content: { application/json: { schema: { $ref: "#/components/schemas/PaymentUpdateRequest" } } }
     ClinicalNoteBody:
       required: true
       content: { application/json: { schema: { $ref: "#/components/schemas/ClinicalNoteRequest" } } }
@@ -2230,7 +2213,7 @@ components:
                     properties:
                       treatment: { $ref: "#/components/schemas/Treatment" }
     InvoiceList:
-      description: Invoice list.
+      description: Paginated invoice array; meta.pagination uses the standard pagination contract.
       content:
         application/json:
           schema:
@@ -2238,10 +2221,7 @@ components:
               - $ref: "#/components/schemas/ApiEnvelope"
               - type: object
                 properties:
-                  data:
-                    type: object
-                    properties:
-                      invoices: { type: array, items: { $ref: "#/components/schemas/Invoice" } }
+                  data: { type: array, items: { $ref: "#/components/schemas/Invoice" } }
     InvoiceEnvelope:
       description: Invoice envelope.
       content:
@@ -2256,7 +2236,7 @@ components:
                     properties:
                       invoice: { $ref: "#/components/schemas/Invoice" }
     PaymentList:
-      description: Payment list.
+      description: Paginated payment array; meta.pagination uses the standard pagination contract.
       content:
         application/json:
           schema:
@@ -2264,10 +2244,7 @@ components:
               - $ref: "#/components/schemas/ApiEnvelope"
               - type: object
                 properties:
-                  data:
-                    type: object
-                    properties:
-                      payments: { type: array, items: { $ref: "#/components/schemas/Payment" } }
+                  data: { type: array, items: { $ref: "#/components/schemas/Payment" } }
     PaymentEnvelope:
       description: Payment envelope.
       content:
@@ -2880,65 +2857,95 @@ components:
         invoice_number: { type: string, example: INV-1001 }
         amount_due: { type: string, example: "250.00" }
         amount_paid: { type: string, example: "100.00" }
-        status: { $ref: "#/components/schemas/PaymentStatus" }
+        status: { $ref: "#/components/schemas/InvoiceStatus" }
+        currency: { type: string, example: USD }
+        balance: { type: string, example: "150.00" }
+        items: { type: array, items: { $ref: "#/components/schemas/InvoiceItem" } }
+        voided_at: { type: string, format: date-time, nullable: true }
+        void_reason: { type: string, nullable: true }
         issued_at: { type: string, format: date-time, nullable: true }
         due_date: { type: string, format: date, nullable: true }
         created_at: { type: string, format: date-time, nullable: true }
         updated_at: { type: string, format: date-time, nullable: true }
     InvoiceRequest:
       type: object
-      required: [patient_id, invoice_number, amount_due, status]
+      additionalProperties: false
+      required: [patient_id, invoice_number, currency, items]
       properties:
         patient_id: { type: integer }
         appointment_id: { type: integer, nullable: true }
-        invoice_number: { type: string }
-        amount_due: { type: number, minimum: 0 }
-        amount_paid: { type: number, minimum: 0 }
-        status: { $ref: "#/components/schemas/PaymentStatus" }
-        issued_at: { type: string, format: date-time, nullable: true }
+        invoice_number: { type: string, maxLength: 255 }
+        currency: { type: string, pattern: '^[A-Z]{3}$', example: USD }
+        items:
+          type: array
+          minItems: 1
+          maxItems: 100
+          items: { $ref: "#/components/schemas/InvoiceItemRequest" }
         due_date: { type: string, format: date, nullable: true }
     InvoiceUpdateRequest:
       type: object
+      additionalProperties: false
+      description: Draft number/due date edits, issue, or void with a nonblank reason. Snapshots and amounts are immutable. Issued invoices cannot change header fields. Invoices with payments cannot be voided.
       properties:
-        patient_id: { type: integer }
-        appointment_id: { type: integer, nullable: true }
-        invoice_number: { type: string }
-        amount_due: { type: number, minimum: 0 }
-        amount_paid: { type: number, minimum: 0 }
-        status: { $ref: "#/components/schemas/PaymentStatus" }
-        issued_at: { type: string, format: date-time, nullable: true }
+        invoice_number: { type: string, maxLength: 255 }
+        status: { type: string, enum: [issued, void] }
+        void_reason: { type: string, maxLength: 500, description: Required only when status is void. }
         due_date: { type: string, format: date, nullable: true }
+    InvoiceStatus:
+      type: string
+      enum: [draft, issued, partially_paid, paid, void]
+    InvoiceItem:
+      type: object
+      properties:
+        id: { type: integer }
+        treatment_id: { type: integer, nullable: true }
+        treatment_plan_item_id: { type: integer, nullable: true }
+        description: { type: string }
+        quantity: { type: integer }
+        unit_price: { type: string, example: "10.25" }
+        line_total: { type: string, example: "20.50" }
+    InvoiceItemRequest:
+      type: object
+      additionalProperties: false
+      description: Choose exactly one source. Sourced items cannot supply description/unit_price. Custom items require both. Quantity defaults to 1.
+      properties:
+        treatment_id: { type: integer }
+        treatment_plan_item_id: { type: integer }
+        description: { type: string, maxLength: 255, example: Custom service }
+        unit_price: { type: string, pattern: '^(0|[1-9][0-9]{0,7})(\.[0-9]{1,2})?$', example: "10.25" }
+        quantity: { type: integer, minimum: 1, maximum: 10000, default: 1 }
+      oneOf:
+        - required: [treatment_id]
+        - required: [treatment_plan_item_id]
+        - required: [description, unit_price]
     Payment:
       type: object
       properties:
         id: { type: integer, example: 1 }
         invoice_id: { type: integer, example: 1 }
         amount: { type: string, example: "100.00" }
-        payment_method: { type: string, nullable: true, example: card }
-        status: { $ref: "#/components/schemas/PaymentStatus" }
+        currency: { type: string, example: USD }
+        payment_method: { type: string, enum: [cash, bank_transfer, card, check, other] }
+        status: { type: string, enum: [paid] }
         paid_at: { type: string, format: date-time, nullable: true }
         reference: { type: string, nullable: true }
+        receipt_number: { type: string, nullable: true }
+        idempotency_key: { type: string, nullable: true, description: Null only for historical payments predating the billing foundation. }
         created_at: { type: string, format: date-time, nullable: true }
         updated_at: { type: string, format: date-time, nullable: true }
     PaymentRequest:
       type: object
-      required: [invoice_id, amount, status]
+      additionalProperties: false
+      required: [invoice_id, amount, currency, payment_method, idempotency_key]
       properties:
         invoice_id: { type: integer }
-        amount: { type: number, minimum: 0 }
-        payment_method: { type: string, nullable: true }
-        status: { $ref: "#/components/schemas/PaymentStatus" }
-        paid_at: { type: string, format: date-time, nullable: true }
-        reference: { type: string, nullable: true }
-    PaymentUpdateRequest:
-      type: object
-      properties:
-        invoice_id: { type: integer }
-        amount: { type: number, minimum: 0 }
-        payment_method: { type: string, nullable: true }
-        status: { $ref: "#/components/schemas/PaymentStatus" }
-        paid_at: { type: string, format: date-time, nullable: true }
-        reference: { type: string, nullable: true }
+        amount: { type: string, pattern: '^(0|[1-9][0-9]{0,7})(\.[0-9]{1,2})?$', example: "25.00", description: Must be positive and no greater than the remaining invoice balance. }
+        currency: { type: string, pattern: '^[A-Z]{3}$', example: USD }
+        payment_method: { type: string, enum: [cash, bank_transfer, card, check, other] }
+        idempotency_key: { type: string, maxLength: 100, pattern: '^[A-Za-z0-9._:-]+$', example: receipt-2026-001 }
+        paid_at: { type: string, format: date-time, description: Optional past or current timestamp; defaults to server time. }
+        reference: { type: string, maxLength: 255, nullable: true }
+        receipt_number: { type: string, maxLength: 255, nullable: true }
     TaskPriority:
       type: string
       enum: [low, normal, high, urgent]
@@ -3020,8 +3027,18 @@ components:
         bookedToday: { type: integer, example: 12 }
         waitingRoom: { type: integer, example: 3 }
         treatmentsDone: { type: integer, example: 8 }
-        unpaidInvoiceAmount: { type: number, example: 1250.5 }
-        collectionRate: { type: number, example: 82.4 }
+        unpaidInvoiceAmount: { type: number, nullable: true, example: 1250.5, description: Null without invoice read access or when multiple currencies exist. Drafts and void invoices are excluded. }
+        collectionRate: { type: number, nullable: true, example: 82.4 }
+        billingTotals:
+          type: array
+          nullable: true
+          description: Per-currency financial totals; null without invoice read access.
+          items:
+            type: object
+            properties:
+              currency: { type: string }
+              unpaidInvoiceAmount: { type: number }
+              collectionRate: { type: number }
         todayAppointments:
           type: array
           items: { $ref: "#/components/schemas/Appointment" }
@@ -3099,5 +3116,6 @@ components:
       example: scheduled
     PaymentStatus:
       type: string
-      enum: [unpaid, partial, paid, refunded]
+      description: Appointment projection uses unpaid when no invoice exists; otherwise the invoice lifecycle status.
+      enum: [unpaid, draft, issued, partially_paid, paid, void]
       example: unpaid

@@ -69,6 +69,29 @@ class PostmanExportTest extends TestCase
         $this->assertSame('{{base_url}}/api/audit-logs/{{audit_log_id}}', $folder['item'][2]['request']['url']['raw']);
     }
 
+    public function test_billing_requests_follow_the_snapshot_and_append_only_contract(): void
+    {
+        $invoice = $this->bodyFor('POST', '/api/invoices');
+        $this->assertSame('USD', $invoice['currency']);
+        $this->assertSame('100.00', $invoice['items'][0]['unit_price']);
+        $this->assertArrayNotHasKey('amount_due', $invoice);
+        $this->assertArrayNotHasKey('status', $invoice);
+        $this->assertSame(['status' => 'issued'], $this->bodyFor('PATCH', '/api/invoices/{{invoice_id}}'));
+        $payment = $this->bodyFor('POST', '/api/payments');
+        $this->assertArrayHasKey('idempotency_key', $payment);
+        $this->assertArrayHasKey('currency', $payment);
+        $this->assertArrayNotHasKey('status', $payment);
+        foreach ($this->requests() as $request) {
+            $path = '/'.implode('/', $request['url']['path']);
+            if (str_starts_with($path, '/api/payments')) {
+                $this->assertContains($request['method'], ['GET', 'POST']);
+            }
+            if (str_starts_with($path, '/api/invoices')) {
+                $this->assertNotSame('DELETE', $request['method']);
+            }
+        }
+    }
+
     public function test_request_bodies_are_json_objects_with_declared_variables(): void
     {
         $variables = array_fill_keys(array_column($this->export['environment']['values'], 'key'), 'test-value');

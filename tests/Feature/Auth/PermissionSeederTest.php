@@ -22,13 +22,18 @@ class PermissionSeederTest extends TestCase
         $this->seed(PermissionSeeder::class);
 
         $this->assertSame($originalIds, Permission::orderBy('slug')->pluck('id', 'slug')->all());
-        $this->assertDatabaseCount('permissions', 61);
+        $this->assertDatabaseCount('permissions', 58);
         $this->assertDatabaseCount('roles', 0);
         $this->assertDatabaseCount('users', 0);
 
-        foreach (['appointments', 'treatments', 'tasks', 'clinical_notes', 'dentists', 'invoices', 'payments', 'messages', 'referrals', 'users', 'roles'] as $resource) {
+        foreach (['appointments', 'treatments', 'tasks', 'clinical_notes', 'dentists', 'messages', 'referrals', 'users', 'roles'] as $resource) {
             foreach (['view', 'create', 'update', 'delete'] as $action) {
                 $this->assertDatabaseHas('permissions', ['slug' => $resource.'.'.$action, 'resource' => $resource, 'action' => $action]);
+            }
+        }
+        foreach (['invoices' => ['view', 'create', 'update'], 'payments' => ['view', 'create']] as $resource => $actions) {
+            foreach ($actions as $action) {
+                $this->assertDatabaseHas('permissions', ['slug' => $resource.'.'.$action]);
             }
         }
         foreach (['view', 'create', 'update', 'archive', 'medical.update'] as $action) {
@@ -77,8 +82,8 @@ class PermissionSeederTest extends TestCase
         $this->seed(PermissionSeeder::class);
         $this->seed(PermissionSeeder::class);
 
-        $this->assertSame(62, $admin->permissions()->count());
-        $this->assertDatabaseCount('permission_role', 64);
+        $this->assertSame(59, $admin->permissions()->count());
+        $this->assertDatabaseCount('permission_role', 61);
         $this->assertSame([$permission->id], $receptionist->permissions()->pluck('permissions.id')->all());
         $this->assertSame([$permission->id], $custom->permissions()->pluck('permissions.id')->all());
         foreach ([Role::DENTIST, Role::HYGIENIST, Role::BILLING, Role::AUDITOR] as $slug) {
@@ -96,11 +101,11 @@ class PermissionSeederTest extends TestCase
         Sanctum::actingAs($user);
 
         $response = $this->getJson('/api/user')->assertOk();
-        $this->assertCount(61, $response->json('data.permissions'));
+        $this->assertCount(58, $response->json('data.permissions'));
         foreach (['appointments.create', 'appointments.update', 'patients.medical.update', 'clinical_notes.create', 'tasks.update', 'audit_logs.view'] as $slug) {
             $this->assertContains($slug, $response->json('data.permissions'));
         }
-        $catalog = $this->getJson('/api/permissions')->assertOk()->assertJsonCount(61, 'data.permissions');
+        $catalog = $this->getJson('/api/permissions')->assertOk()->assertJsonCount(58, 'data.permissions');
         $this->assertContains('appointments.create', array_column($catalog->json('data.permissions'), 'slug'));
     }
 }

@@ -64,6 +64,7 @@ trait BelongsToTenant
             'chairs' => ['room_id' => 'rooms'],
             'invoices' => ['patient_id' => 'patient', 'appointment_id' => 'appointment'],
             'payments' => ['invoice_id' => 'invoices'],
+            'invoice_items' => ['invoice_id' => 'invoices', 'treatment_id' => 'treatments', 'treatment_plan_item_id' => 'treatment_plan_items'],
             'messages' => ['sender_id' => 'patient', 'receiver_id' => 'patient'],
             'referral' => ['patient_id' => 'patient', 'dentist_id' => 'dentist'],
             'clinical_notes' => ['patient_id' => 'patient', 'dentist_id' => 'dentist', 'appointment_id' => 'appointment'],

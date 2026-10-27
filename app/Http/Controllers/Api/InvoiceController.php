@@ -3,8 +3,10 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\InvoiceRequest;
 use App\Http\Resources\InvoiceResource;
 use App\Models\Invoice;
+use App\Services\BillingWorkflow;
 use App\Support\ApiResponse;
 use App\Tenancy\TenantRules;
 use Illuminate\Http\Request;
@@ -12,64 +14,44 @@ use Illuminate\Validation\Rule;
 
 class InvoiceController extends Controller
 {
-    public function index()
+    public function index(Request $request)
     {
-        return ApiResponse::success([
-            'invoices' => InvoiceResource::collection(Invoice::all()),
-        ], 'Invoices retrieved.');
+        $this->authorize('viewAny', Invoice::class);
+        $data = $request->validate([
+            'patient_id' => ['sometimes', 'integer', TenantRules::exists('patient')],
+            'status' => ['sometimes', Rule::in(Invoice::STATUSES)],
+            'page' => ['sometimes', 'integer', 'min:1'],
+            'per_page' => ['sometimes', 'integer', 'between:1,100'],
+        ]);
+        $invoices = Invoice::query()->with('items')
+            ->when(isset($data['patient_id']), fn ($query) => $query->where('patient_id', $data['patient_id']))
+            ->when(isset($data['status']), fn ($query) => $query->where('status', $data['status']))
+            ->orderByDesc('id')->paginate($data['per_page'] ?? 15);
+        $invoices->setCollection($invoices->getCollection()->map(fn ($invoice) => new InvoiceResource($invoice)));
+
+        return ApiResponse::success($invoices, 'Invoices retrieved.')->header('Cache-Control', 'private, no-store');
     }
 
-    public function store(Request $request)
+    public function store(InvoiceRequest $request, BillingWorkflow $workflow)
     {
-        $validated = $request->validate([
-            'patient_id' => ['required', 'integer', TenantRules::exists('patient')],
-            'appointment_id' => ['nullable', 'integer', TenantRules::exists('appointment')],
-            'invoice_number' => ['required', 'string', 'max:255', TenantRules::unique('invoices', 'invoice_number')],
-            'amount_due' => ['required', 'numeric', 'min:0'],
-            'amount_paid' => ['nullable', 'numeric', 'min:0'],
-            'status' => ['required', Rule::in(['unpaid', 'partial', 'paid', 'refunded'])],
-            'issued_at' => ['nullable', 'date'],
-            'due_date' => ['nullable', 'date'],
-        ]);
-
-        $validated['amount_paid'] = $validated['amount_paid'] ?? 0;
-
-        return ApiResponse::success([
-            'invoice' => new InvoiceResource(Invoice::create($validated)),
-        ], 'Invoice successfully created.', 201);
+        return $this->invoiceResponse($workflow->create($request->all(), $request->user()), 'Invoice created.', 201);
     }
 
     public function show(Invoice $invoice)
     {
-        return ApiResponse::success([
-            'invoice' => new InvoiceResource($invoice),
-        ], 'Invoice retrieved.');
+        $this->authorize('view', $invoice);
+
+        return $this->invoiceResponse($invoice->load('items'), 'Invoice retrieved.');
     }
 
-    public function update(Request $request, Invoice $invoice)
+    public function update(InvoiceRequest $request, Invoice $invoice, BillingWorkflow $workflow)
     {
-        $validated = $request->validate([
-            'patient_id' => ['sometimes', 'required', 'integer', TenantRules::exists('patient')],
-            'appointment_id' => ['nullable', 'integer', TenantRules::exists('appointment')],
-            'invoice_number' => ['sometimes', 'required', 'string', 'max:255', TenantRules::unique('invoices', 'invoice_number')->ignore($invoice->id)],
-            'amount_due' => ['sometimes', 'required', 'numeric', 'min:0'],
-            'amount_paid' => ['nullable', 'numeric', 'min:0'],
-            'status' => ['sometimes', 'required', Rule::in(['unpaid', 'partial', 'paid', 'refunded'])],
-            'issued_at' => ['nullable', 'date'],
-            'due_date' => ['nullable', 'date'],
-        ]);
-
-        $invoice->update($validated);
-
-        return ApiResponse::success([
-            'invoice' => new InvoiceResource($invoice->refresh()),
-        ], 'Invoice successfully updated.');
+        return $this->invoiceResponse($workflow->update($invoice, $request->all(), $request->user()), 'Invoice updated.');
     }
 
-    public function destroy(Invoice $invoice)
+    private function invoiceResponse(Invoice $invoice, string $message, int $status = 200)
     {
-        $invoice->delete();
-
-        return ApiResponse::success(message: 'Invoice successfully deleted.');
+        return ApiResponse::success(['invoice' => new InvoiceResource($invoice)], $message, $status)
+            ->header('Cache-Control', 'private, no-store');
     }
 }

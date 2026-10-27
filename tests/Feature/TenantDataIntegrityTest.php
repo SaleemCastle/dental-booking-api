@@ -56,7 +56,7 @@ class TenantDataIntegrityTest extends TestCase
                 }
                 $this->fail('Cross-clinic '.$operation.' succeeded.');
             } catch (QueryException $exception) {
-                $this->assertStringContainsString('Tenant integrity violation', $exception->getMessage());
+                $this->assertMatchesRegularExpression('/Tenant integrity violation|Billing integrity violation/', $exception->getMessage());
             }
         }
         $this->assertEquals($original, DB::table($record->getTable())->where('id', $record->id)->first());
@@ -263,7 +263,7 @@ class TenantDataIntegrityTest extends TestCase
         $this->travelTo(now()->startOfDay()->addHours(8));
         $defaultAdmin = $this->admin();
         Patient::factory()->create(['firstName' => 'Shared', 'lastName' => 'Search']);
-        Invoice::factory()->create(['amount_due' => 9000, 'amount_paid' => 9000, 'status' => 'paid']);
+        Invoice::factory()->issued()->withPayment(9000)->create(['amount_due' => 9000]);
         $tenant = Tenant::factory()->create();
         [$admin, $dentist] = app(TenantContext::class)->run($tenant, fn () => [$this->admin(), Dentist::factory()->create()]);
         Sanctum::actingAs($admin);
@@ -283,8 +283,11 @@ class TenantDataIntegrityTest extends TestCase
             'appointment_id' => $appointmentId, 'assignee_id' => $admin->id, 'due_date' => today()->toDateString(), 'description' => 'Follow up',
         ])->assertCreated()->json('data.task.id');
         $invoiceId = $this->postJson('/api/invoices', [
-            'patient_id' => $patientId, 'appointment_id' => $appointmentId, 'invoice_number' => 'INV-shared', 'amount_due' => 100, 'amount_paid' => 25, 'status' => 'partial',
+            'patient_id' => $patientId, 'appointment_id' => $appointmentId, 'invoice_number' => 'INV-shared', 'currency' => 'USD',
+            'items' => [['treatment_id' => $treatmentId]],
         ])->assertCreated()->json('data.invoice.id');
+        $this->patchJson('/api/invoices/'.$invoiceId, ['status' => 'issued'])->assertOk();
+        $this->postJson('/api/payments', ['invoice_id' => $invoiceId, 'amount' => '25.00', 'currency' => 'USD', 'payment_method' => 'cash', 'idempotency_key' => 'tenant-settlement'])->assertCreated();
         foreach (['patient' => $patientId, 'treatments' => $treatmentId, 'appointment' => $appointmentId, 'clinical_notes' => $noteId, 'tasks' => $taskId, 'invoices' => $invoiceId] as $table => $id) {
             $this->assertDatabaseHas($table, ['id' => $id, 'tenant_id' => $tenant->id]);
         }
