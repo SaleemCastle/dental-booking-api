@@ -60,6 +60,16 @@
                     "const texts = [pm.request.url.getPath()];",
                     "pm.request.url.query.each(parameter => { if (!parameter.disabled) texts.push(parameter.value || ''); });",
                     "if (pm.request.body && pm.request.body.raw) texts.push(pm.request.body.raw);",
+                    "if (pm.request.body && pm.request.body.mode === 'formdata') {",
+                    "    pm.request.body.formdata.each(field => {",
+                    "        if (field.disabled) return;",
+                    "        if (field.type === 'file' && (!field.src || !field.src.length)) {",
+                    "            console.warn('Skipped upload; choose a local file in Body > form-data.');",
+                    "            pm.execution.skipRequest();",
+                    "        }",
+                    "        if (field.type === 'text') texts.push(field.value || '');",
+                    "    });",
+                    "}",
                     "const required = [...new Set((texts.join('\\n').match(/\\{\\{[a-zA-Z0-9_]+\\}\\}/g) || []).map(value => value.slice(2, -2)))];",
                     "for (const key of ['password', 'new_user_password']) {",
                     "    if (required.includes(key + '_json')) required.push(key);",
@@ -90,7 +100,8 @@
                 "exec": [
                     "pm.test('Request succeeded', () => pm.expect(pm.response.code).to.be.within(200, 299));",
                     "let body;",
-                    "try { body = pm.response.json(); } catch (error) {",
+                    "const binaryDownload = pm.request.method === 'GET' && /\\/documents\\/[^/]+\\/download$/.test(pm.request.url.getPath()) && pm.response.code === 200;",
+                    "try { if (!binaryDownload) body = pm.response.json(); } catch (error) {",
                     "    pm.test('Response is JSON', () => { throw new Error('Expected an API JSON response.'); });",
                     "}",
                     "if (body) {",
@@ -119,6 +130,9 @@
                     "        }",
                     "        if (pm.request.method === 'POST' && body.data.treatmentPlanItem) {",
                     "            pm.environment.set('item_id', String(body.data.treatmentPlanItem.id));",
+                    "        }",
+                    "        if (pm.request.method === 'POST' && /\\/documents$/.test(path) && body.data.document) {",
+                    "            pm.environment.set('document_id', String(body.data.document.id));",
                     "        }",
                     "        if (path === '/api/user' && body.data.id) {",
                     "            pm.environment.set('current_user_id', String(body.data.id));",
@@ -382,6 +396,221 @@
                         "auth": {
                             "type": "noauth"
                         }
+                    },
+                    "response": []
+                }
+            ]
+        },
+        {
+            "name": "Patient Documents",
+            "item": [
+                {
+                    "name": "GET List patient documents",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/api/patients/{{patient_id}}/documents?page=1&per_page=15",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "patients",
+                                "{{patient_id}}",
+                                "documents"
+                            ],
+                            "query": [
+                                {
+                                    "key": "status",
+                                    "value": "active",
+                                    "disabled": true,
+                                    "description": "Optional filter; enable its checkbox to send it."
+                                },
+                                {
+                                    "key": "page",
+                                    "value": "1",
+                                    "disabled": false,
+                                    "description": "Optional filter; enable its checkbox to send it."
+                                },
+                                {
+                                    "key": "per_page",
+                                    "value": "15",
+                                    "disabled": false,
+                                    "description": "Optional filter; enable its checkbox to send it."
+                                }
+                            ]
+                        },
+                        "description": "Admin, Dentist, or patient_documents.view required. Private/no-store. Excludes deleted files. Default active; archived files require status=archived or all. Audits listed with the patient ID. See docs/patient-documents.md.\n\nGET /api/patients/{patient}/documents\nDomain writes require allow_writes=true. Missing required variables skip requests rather than selecting real records automatically."
+                    },
+                    "response": []
+                },
+                {
+                    "name": "POST Upload a private patient document",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/api/patients/{{patient_id}}/documents",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "patients",
+                                "{{patient_id}}",
+                                "documents"
+                            ],
+                            "query": []
+                        },
+                        "description": "Admin or Dentist required; Dentist plus Receptionist denied unless Admin. Wildcard permissions cannot grant clinical writes. Multipart upload only. PDF, JPEG, PNG, WebP; maximum 20 MiB by default, configurable server-side. Detects MIME from bytes and requires a matching extension, a nonempty file and a valid filename up to 255 characters. Optional links must belong to this patient/clinic and agree when the note has an appointment. Archived patients are allowed. Server owns patient, storage, attribution, size, MIME and timestamps. Metadata and uploaded audit commit atomically; failed metadata/audit writes clean up the object. No URL is returned.\n\nPOST /api/patients/{patient}/documents\nDomain writes require allow_writes=true. Missing required variables skip requests rather than selecting real records automatically.",
+                        "body": {
+                            "mode": "formdata",
+                            "formdata": [
+                                {
+                                    "key": "file",
+                                    "type": "file",
+                                    "src": [],
+                                    "disabled": false
+                                },
+                                {
+                                    "key": "appointment_id",
+                                    "type": "text",
+                                    "value": "{{appointment_id}}",
+                                    "disabled": true
+                                },
+                                {
+                                    "key": "clinical_note_id",
+                                    "type": "text",
+                                    "value": "{{clinical_note_id}}",
+                                    "disabled": true
+                                }
+                            ]
+                        }
+                    },
+                    "response": []
+                },
+                {
+                    "name": "GET Get private document metadata",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/api/patients/{{patient_id}}/documents/{{document_id}}",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "patients",
+                                "{{patient_id}}",
+                                "documents",
+                                "{{document_id}}"
+                            ],
+                            "query": []
+                        },
+                        "description": "Same read authorization as listing. Active and archived files are readable; deleted files and mismatched patient/clinic IDs return 404. Audits viewed before returning metadata. No disk, object key, or provider URL.\n\nGET /api/patients/{patient}/documents/{document}\nDomain writes require allow_writes=true. Missing required variables skip requests rather than selecting real records automatically."
+                    },
+                    "response": []
+                },
+                {
+                    "name": "DELETE Delete a private patient document",
+                    "request": {
+                        "method": "DELETE",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/api/patients/{{patient_id}}/documents/{{document_id}}",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "patients",
+                                "{{patient_id}}",
+                                "documents",
+                                "{{document_id}}"
+                            ],
+                            "query": []
+                        },
+                        "description": "Clinical write authorization. Commits an audited soft-delete before removing S3 bytes. Retains metadata/attribution for history; no restore endpoint. Repeated DELETE is idempotent and retries pending object deletion. A 503 still means access has been revoked; retry this DELETE. Successful purge records purged_at and a purged audit. Provider version retention is managed by the bucket lifecycle.\n\nDELETE /api/patients/{patient}/documents/{document}\nDomain writes require allow_writes=true. Missing required variables skip requests rather than selecting real records automatically."
+                    },
+                    "response": []
+                },
+                {
+                    "name": "GET Download a private patient document",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/api/patients/{{patient_id}}/documents/{{document_id}}/download",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "patients",
+                                "{{patient_id}}",
+                                "documents",
+                                "{{document_id}}",
+                                "download"
+                            ],
+                            "query": []
+                        },
+                        "description": "Same read authorization as metadata, checked on every request. Authenticated API streams the private S3 object as an attachment with original filename, detected Content-Type, nosniff, and private/no-store. No redirects, signed bearer links, public or static URLs. Audits downloaded after the stream opens and before response bytes; this records access, not proof of completed client receipt. Errors use the JSON envelope.\n\nGET /api/patients/{patient}/documents/{document}/download\nDomain writes require allow_writes=true. Missing required variables skip requests rather than selecting real records automatically."
+                    },
+                    "response": []
+                },
+                {
+                    "name": "POST Archive a patient document",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/api/patients/{{patient_id}}/documents/{{document_id}}/archive",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "patients",
+                                "{{patient_id}}",
+                                "documents",
+                                "{{document_id}}",
+                                "archive"
+                            ],
+                            "query": []
+                        },
+                        "description": "Clinical write authorization. Idempotently stores archive timestamp/actor and archived audit together. Retains private bytes and authenticated download access. Hidden from the default active list. No unarchive endpoint.\n\nPOST /api/patients/{patient}/documents/{document}/archive\nDomain writes require allow_writes=true. Missing required variables skip requests rather than selecting real records automatically."
                     },
                     "response": []
                 }
@@ -4065,6 +4294,21 @@
             "type": "string"
         },
         {
+            "key": "appointment_id",
+            "value": "",
+            "type": "string"
+        },
+        {
+            "key": "clinical_note_id",
+            "value": "",
+            "type": "string"
+        },
+        {
+            "key": "document_id",
+            "value": "",
+            "type": "string"
+        },
+        {
             "key": "treatment_plan_id",
             "value": "",
             "type": "string"
@@ -4090,11 +4334,6 @@
             "type": "string"
         },
         {
-            "key": "appointment_id",
-            "value": "",
-            "type": "string"
-        },
-        {
             "key": "invoice_id",
             "value": "",
             "type": "string"
@@ -4106,11 +4345,6 @@
         },
         {
             "key": "task_id",
-            "value": "",
-            "type": "string"
-        },
-        {
-            "key": "clinical_note_id",
             "value": "",
             "type": "string"
         },

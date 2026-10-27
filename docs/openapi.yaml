@@ -28,7 +28,117 @@ tags:
   - name: Tenants
   - name: Dental Charts
   - name: Treatment Plans
+  - name: Patient Documents
 paths:
+  /api/patients/{patient}/documents:
+    parameters:
+      - $ref: "#/components/parameters/TenantHeader"
+      - $ref: "#/components/parameters/PatientId"
+    get:
+      tags: [Patient Documents]
+      summary: List patient documents
+      description: Admin, Dentist, or patient_documents.view required. Private/no-store. Excludes deleted files. Default active; archived files require status=archived or all. Audits listed with the patient ID. See docs/patient-documents.md.
+      parameters:
+        - { name: status, in: query, schema: { type: string, enum: [active, archived, all], default: active } }
+        - { name: page, in: query, schema: { type: integer, minimum: 1, default: 1 } }
+        - { name: per_page, in: query, schema: { type: integer, minimum: 1, maximum: 100, default: 15 } }
+      responses:
+        "200":
+          description: Standard envelope with data.documents and meta.pagination; storage locations are never returned.
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/ApiEnvelope"
+                  - properties:
+                      data:
+                        type: object
+                        properties:
+                          documents: { type: array, items: { $ref: "#/components/schemas/PatientDocument" } }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "422": { $ref: "#/components/responses/ValidationError" }
+    post:
+      tags: [Patient Documents]
+      summary: Upload a private patient document
+      description: Admin or Dentist required; Dentist plus Receptionist denied unless Admin. Wildcard permissions cannot grant clinical writes. Multipart upload only. PDF, JPEG, PNG, WebP; maximum 20 MiB by default, configurable server-side. Detects MIME from bytes and requires a matching extension, a nonempty file and a valid filename up to 255 characters. Optional links must belong to this patient/clinic and agree when the note has an appointment. Archived patients are allowed. Server owns patient, storage, attribution, size, MIME and timestamps. Metadata and uploaded audit commit atomically; failed metadata/audit writes clean up the object. No URL is returned.
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required: [file]
+              additionalProperties: false
+              properties:
+                file: { type: string, format: binary }
+                appointment_id: { type: integer, nullable: true }
+                clinical_note_id: { type: integer, nullable: true }
+      responses:
+        "201": { $ref: "#/components/responses/PatientDocumentEnvelope" }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "422": { $ref: "#/components/responses/ValidationError" }
+        "503": { description: Private object storage unavailable; no usable document is created. }
+  /api/patients/{patient}/documents/{document}:
+    parameters:
+      - $ref: "#/components/parameters/TenantHeader"
+      - $ref: "#/components/parameters/PatientId"
+      - $ref: "#/components/parameters/PatientDocumentId"
+    get:
+      tags: [Patient Documents]
+      summary: Get private document metadata
+      description: Same read authorization as listing. Active and archived files are readable; deleted files and mismatched patient/clinic IDs return 404. Audits viewed before returning metadata. No disk, object key, or provider URL.
+      responses:
+        "200": { $ref: "#/components/responses/PatientDocumentEnvelope" }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+    delete:
+      tags: [Patient Documents]
+      summary: Delete a private patient document
+      description: Clinical write authorization. Commits an audited soft-delete before removing S3 bytes. Retains metadata/attribution for history; no restore endpoint. Repeated DELETE is idempotent and retries pending object deletion. A 503 still means access has been revoked; retry this DELETE. Successful purge records purged_at and a purged audit. Provider version retention is managed by the bucket lifecycle.
+      responses:
+        "200": { description: Standard success envelope; file access revoked and current object removed. }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "503": { description: Access revoked; object purge pending. Retry DELETE. }
+  /api/patients/{patient}/documents/{document}/download:
+    parameters:
+      - $ref: "#/components/parameters/TenantHeader"
+      - $ref: "#/components/parameters/PatientId"
+      - $ref: "#/components/parameters/PatientDocumentId"
+    get:
+      tags: [Patient Documents]
+      summary: Download a private patient document
+      description: Same read authorization as metadata, checked on every request. Authenticated API streams the private S3 object as an attachment with original filename, detected Content-Type, nosniff, and private/no-store. No redirects, signed bearer links, public or static URLs. Audits downloaded after the stream opens and before response bytes; this records access, not proof of completed client receipt. Errors use the JSON envelope.
+      responses:
+        "200":
+          description: Binary attachment; this successful response is not a JSON envelope.
+          content:
+            application/octet-stream:
+              schema: { type: string, format: binary }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "503": { description: Private object unavailable; generic JSON error. }
+  /api/patients/{patient}/documents/{document}/archive:
+    parameters:
+      - $ref: "#/components/parameters/TenantHeader"
+      - $ref: "#/components/parameters/PatientId"
+      - $ref: "#/components/parameters/PatientDocumentId"
+    post:
+      tags: [Patient Documents]
+      summary: Archive a patient document
+      description: Clinical write authorization. Idempotently stores archive timestamp/actor and archived audit together. Retains private bytes and authenticated download access. Hidden from the default active list. No unarchive endpoint.
+      responses:
+        "200": { $ref: "#/components/responses/PatientDocumentEnvelope" }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
   /api/patients/{patient}/treatment-plans:
     parameters:
       - $ref: "#/components/parameters/TenantHeader"
@@ -1796,6 +1906,11 @@ components:
       in: cookie
       name: laravel_session
   parameters:
+    PatientDocumentId:
+      name: document
+      in: path
+      required: true
+      schema: { type: integer, minimum: 1 }
     ChartDentition:
       name: dentition
       in: query
@@ -1865,6 +1980,18 @@ components:
       required: true
       content: { application/json: { schema: { $ref: "#/components/schemas/ClinicalNoteUpdateRequest" } } }
   responses:
+    PatientDocumentEnvelope:
+      description: Standard envelope with data.document; private/no-store, no storage location.
+      content:
+        application/json:
+          schema:
+            allOf:
+              - $ref: "#/components/schemas/ApiEnvelope"
+              - properties:
+                  data:
+                    type: object
+                    properties:
+                      document: { $ref: "#/components/schemas/PatientDocument" }
     TreatmentPlanEnvelope:
       description: Standard success envelope with data.treatmentPlan. Private/no-store.
       content:
@@ -2207,6 +2334,21 @@ components:
                     properties:
                       clinicalNote: { $ref: "#/components/schemas/ClinicalNote" }
   schemas:
+    PatientDocument:
+      type: object
+      properties:
+        id: { type: integer }
+        patient_id: { type: integer }
+        appointment_id: { type: integer, nullable: true }
+        clinical_note_id: { type: integer, nullable: true }
+        original_filename: { type: string }
+        mime_type: { type: string, enum: [application/pdf, image/jpeg, image/png, image/webp] }
+        size_bytes: { type: integer, minimum: 1 }
+        uploaded_by_user_id: { type: integer }
+        created_at: { type: string, format: date-time }
+        updated_at: { type: string, format: date-time }
+        archived_at: { type: string, format: date-time, nullable: true }
+        archived_by_user_id: { type: integer, nullable: true }
     TreatmentPlanToothContext:
       type: object
       nullable: true

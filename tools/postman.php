@@ -135,6 +135,21 @@ class PostmanExport
             $request['header'][] = ['key' => 'Content-Type', 'value' => 'application/json'];
             $request['body'] = ['mode' => 'raw', 'raw' => $raw, 'options' => ['raw' => ['language' => 'json']]];
         }
+        $requestBody = $this->expand($operation['requestBody'] ?? []);
+        if (isset($requestBody['content']['multipart/form-data']['schema'])) {
+            $schema = $this->expand($requestBody['content']['multipart/form-data']['schema']);
+            $fields = [];
+            foreach ($schema['properties'] as $name => $property) {
+                $file = ($property['format'] ?? '') === 'binary';
+                $fields[] = [
+                    'key' => $name,
+                    'type' => $file ? 'file' : 'text',
+                    ...($file ? ['src' => []] : ['value' => '{{'.$this->variable($name).'}}']),
+                    'disabled' => ! in_array($name, $schema['required'] ?? [], true),
+                ];
+            }
+            $request['body'] = ['mode' => 'formdata', 'formdata' => $fields];
+        }
 
         return ['name' => strtoupper($method).' '.($operation['summary'] ?? $path), 'request' => $request, 'response' => []];
     }
@@ -318,6 +333,16 @@ for (const key of ['password', 'new_user_password']) {
 const texts = [pm.request.url.getPath()];
 pm.request.url.query.each(parameter => { if (!parameter.disabled) texts.push(parameter.value || ''); });
 if (pm.request.body && pm.request.body.raw) texts.push(pm.request.body.raw);
+if (pm.request.body && pm.request.body.mode === 'formdata') {
+    pm.request.body.formdata.each(field => {
+        if (field.disabled) return;
+        if (field.type === 'file' && (!field.src || !field.src.length)) {
+            console.warn('Skipped upload; choose a local file in Body > form-data.');
+            pm.execution.skipRequest();
+        }
+        if (field.type === 'text') texts.push(field.value || '');
+    });
+}
 const required = [...new Set((texts.join('\n').match(/\{\{[a-zA-Z0-9_]+\}\}/g) || []).map(value => value.slice(2, -2)))];
 for (const key of ['password', 'new_user_password']) {
     if (required.includes(key + '_json')) required.push(key);
@@ -346,7 +371,8 @@ JS;
         return <<<'JS'
 pm.test('Request succeeded', () => pm.expect(pm.response.code).to.be.within(200, 299));
 let body;
-try { body = pm.response.json(); } catch (error) {
+const binaryDownload = pm.request.method === 'GET' && /\/documents\/[^/]+\/download$/.test(pm.request.url.getPath()) && pm.response.code === 200;
+try { if (!binaryDownload) body = pm.response.json(); } catch (error) {
     pm.test('Response is JSON', () => { throw new Error('Expected an API JSON response.'); });
 }
 if (body) {
@@ -375,6 +401,9 @@ if (body) {
         }
         if (pm.request.method === 'POST' && body.data.treatmentPlanItem) {
             pm.environment.set('item_id', String(body.data.treatmentPlanItem.id));
+        }
+        if (pm.request.method === 'POST' && /\/documents$/.test(path) && body.data.document) {
+            pm.environment.set('document_id', String(body.data.document.id));
         }
         if (path === '/api/user' && body.data.id) {
             pm.environment.set('current_user_id', String(body.data.id));

@@ -33,6 +33,7 @@ trait BelongsToTenant
                 'clinical_notes' => ['author_user_id', 'updated_by_user_id', 'deleted_by_user_id'],
                 'dental_chart_revisions' => ['author_user_id'],
                 'patient' => ['archived_by_user_id'],
+                'patient_documents' => ['uploaded_by_user_id', 'archived_by_user_id', 'deleted_by_user_id'],
                 default => [],
             };
             foreach ($attributionColumns as $column) {
@@ -66,6 +67,7 @@ trait BelongsToTenant
             'messages' => ['sender_id' => 'patient', 'receiver_id' => 'patient'],
             'referral' => ['patient_id' => 'patient', 'dentist_id' => 'dentist'],
             'clinical_notes' => ['patient_id' => 'patient', 'dentist_id' => 'dentist', 'appointment_id' => 'appointment'],
+            'patient_documents' => ['patient_id' => 'patient', 'appointment_id' => 'appointment', 'clinical_note_id' => 'clinical_notes'],
             'dental_chart_revisions' => ['patient_id' => 'patient', 'dentist_id' => 'dentist', 'clinical_note_id' => 'clinical_notes'],
             'tasks' => ['patient_id' => 'patient', 'appointment_id' => 'appointment'],
             'treatment_plans' => ['patient_id' => 'patient'],

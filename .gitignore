@@ -21,6 +21,7 @@ yarn-error.log
 !/docs/multi-tenancy.md
 !/docs/dental-charting.md
 !/docs/treatment-planning.md
+!/docs/patient-documents.md
 !/docs/postman.md
 !/docs/postman/
 /docs/postman/*
