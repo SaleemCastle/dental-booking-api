@@ -8,10 +8,11 @@ use App\Models\Appointment;
 use App\Models\Dentist;
 use App\Models\Invoice;
 use App\Support\ApiResponse;
+use Illuminate\Http\Request;
 
 class DashboardController extends Controller
 {
-    public function summary()
+    public function summary(Request $request)
     {
         $today = today();
 
@@ -21,11 +22,16 @@ class DashboardController extends Controller
             ->orderBy('appointment_date_time')
             ->get();
 
-        $totalInvoiceAmount = (float) Invoice::sum('amount_due');
-        $paidInvoiceAmount = (float) Invoice::sum('amount_paid');
-        $collectionRate = $totalInvoiceAmount > 0
-            ? round(($paidInvoiceAmount / $totalInvoiceAmount) * 100, 2)
-            : 0;
+        $canViewBilling = $request->user()->can('viewAny', Invoice::class);
+        $billingTotals = $canViewBilling ? Invoice::query()->whereIn('status', ['issued', 'partially_paid', 'paid'])
+            ->selectRaw('currency, SUM(amount_due) AS invoiced, SUM(amount_paid) AS collected')
+            ->groupBy('currency')->orderBy('currency')->get()->map(fn ($row) => [
+                'currency' => $row->currency,
+                'unpaidInvoiceAmount' => round((float) $row->invoiced - (float) $row->collected, 2),
+                'collectionRate' => (float) $row->invoiced > 0 ? round(((float) $row->collected / (float) $row->invoiced) * 100, 2) : 0,
+            ])->all() : null;
+        // Keep the existing scalar projection only when it has one denomination.
+        $singleCurrency = $billingTotals !== null && count($billingTotals) <= 1;
 
         $staffWorklist = Dentist::query()
             ->withCount([
@@ -53,13 +59,11 @@ class DashboardController extends Controller
             'bookedToday' => $todayAppointments->count(),
             'waitingRoom' => $todayAppointments->where('status', 'checked_in')->count(),
             'treatmentsDone' => $todayAppointments->where('status', 'completed')->count(),
-            'unpaidInvoiceAmount' => (float) Invoice::query()
-                ->whereIn('status', ['unpaid', 'partial'])
-                ->selectRaw('COALESCE(SUM(amount_due - amount_paid), 0) as total')
-                ->value('total'),
-            'collectionRate' => $collectionRate,
+            'unpaidInvoiceAmount' => $singleCurrency ? ($billingTotals[0]['unpaidInvoiceAmount'] ?? 0) : null,
+            'collectionRate' => $singleCurrency ? ($billingTotals[0]['collectionRate'] ?? 0) : null,
+            'billingTotals' => $billingTotals,
             'todayAppointments' => AppointmentResource::collection($todayAppointments),
             'staffWorklist' => $staffWorklist,
-        ], 'Dashboard summary retrieved.');
+        ], 'Dashboard summary retrieved.')->header('Cache-Control', 'private, no-store');
     }
 }

@@ -2462,7 +2462,7 @@
                             }
                         ],
                         "url": {
-                            "raw": "{{base_url}}/api/invoices",
+                            "raw": "{{base_url}}/api/invoices?page=1&per_page=15",
                             "host": [
                                 "{{base_url}}"
                             ],
@@ -2470,9 +2470,34 @@
                                 "api",
                                 "invoices"
                             ],
-                            "query": []
+                            "query": [
+                                {
+                                    "key": "patient_id",
+                                    "value": "{{patient_id}}",
+                                    "disabled": true,
+                                    "description": "Optional filter; enable its checkbox to send it."
+                                },
+                                {
+                                    "key": "status",
+                                    "value": "draft",
+                                    "disabled": true,
+                                    "description": "Optional filter; enable its checkbox to send it."
+                                },
+                                {
+                                    "key": "page",
+                                    "value": "1",
+                                    "disabled": false,
+                                    "description": "Optional filter; enable its checkbox to send it."
+                                },
+                                {
+                                    "key": "per_page",
+                                    "value": "15",
+                                    "disabled": false,
+                                    "description": "Optional filter; enable its checkbox to send it."
+                                }
+                            ]
                         },
-                        "description": "GET /api/invoices\nDomain writes require allow_writes=true. Missing required variables skip requests rather than selecting real records automatically."
+                        "description": "Requires billing read access. Paginated data array with immutable line snapshots; see docs/billing.md.\n\nGET /api/invoices\nDomain writes require allow_writes=true. Missing required variables skip requests rather than selecting real records automatically."
                     },
                     "response": []
                 },
@@ -2501,10 +2526,10 @@
                             ],
                             "query": []
                         },
-                        "description": "POST /api/invoices\nDomain writes require allow_writes=true. Missing required variables skip requests rather than selecting real records automatically.",
+                        "description": "Creates a draft with immutable price snapshots. All money uses two decimal places. Totals and lifecycle timestamps are server-controlled. Requires Admin/Billing role or invoices.create. See docs/billing.md.\n\nPOST /api/invoices\nDomain writes require allow_writes=true. Missing required variables skip requests rather than selecting real records automatically.",
                         "body": {
                             "mode": "raw",
-                            "raw": "{\n    \"patient_id\": \"{{patient_id}}\",\n    \"invoice_number\": \"{{invoice_number}}\",\n    \"amount_due\": 1,\n    \"status\": \"unpaid\"\n}\n",
+                            "raw": "{\n    \"patient_id\": \"{{patient_id}}\",\n    \"invoice_number\": \"{{invoice_number}}\",\n    \"currency\": \"USD\",\n    \"items\": [\n        {\n            \"description\": \"Postman test service\",\n            \"unit_price\": \"100.00\",\n            \"quantity\": 1\n        }\n    ]\n}\n",
                             "options": {
                                 "raw": {
                                     "language": "json"
@@ -2569,7 +2594,7 @@
                         "description": "PATCH /api/invoices/{invoice}\nDomain writes require allow_writes=true. Missing required variables skip requests rather than selecting real records automatically.",
                         "body": {
                             "mode": "raw",
-                            "raw": "{\n    \"amount_due\": 100\n}\n",
+                            "raw": "{\n    \"status\": \"issued\"\n}\n",
                             "options": {
                                 "raw": {
                                     "language": "json"
@@ -2608,39 +2633,13 @@
                         "description": "PUT /api/invoices/{invoice}\nDomain writes require allow_writes=true. Missing required variables skip requests rather than selecting real records automatically.",
                         "body": {
                             "mode": "raw",
-                            "raw": "{\n    \"amount_due\": 100\n}\n",
+                            "raw": "{\n    \"status\": \"issued\"\n}\n",
                             "options": {
                                 "raw": {
                                     "language": "json"
                                 }
                             }
                         }
-                    },
-                    "response": []
-                },
-                {
-                    "name": "DELETE Delete invoice",
-                    "request": {
-                        "method": "DELETE",
-                        "header": [
-                            {
-                                "key": "Accept",
-                                "value": "application/json"
-                            }
-                        ],
-                        "url": {
-                            "raw": "{{base_url}}/api/invoices/{{invoice_id}}",
-                            "host": [
-                                "{{base_url}}"
-                            ],
-                            "path": [
-                                "api",
-                                "invoices",
-                                "{{invoice_id}}"
-                            ],
-                            "query": []
-                        },
-                        "description": "DELETE /api/invoices/{invoice}\nDomain writes require allow_writes=true. Missing required variables skip requests rather than selecting real records automatically."
                     },
                     "response": []
                 }
@@ -2660,7 +2659,7 @@
                             }
                         ],
                         "url": {
-                            "raw": "{{base_url}}/api/payments",
+                            "raw": "{{base_url}}/api/payments?page=1&per_page=15",
                             "host": [
                                 "{{base_url}}"
                             ],
@@ -2668,14 +2667,33 @@
                                 "api",
                                 "payments"
                             ],
-                            "query": []
+                            "query": [
+                                {
+                                    "key": "invoice_id",
+                                    "value": "{{invoice_id}}",
+                                    "disabled": true,
+                                    "description": "Optional filter; enable its checkbox to send it."
+                                },
+                                {
+                                    "key": "page",
+                                    "value": "1",
+                                    "disabled": false,
+                                    "description": "Optional filter; enable its checkbox to send it."
+                                },
+                                {
+                                    "key": "per_page",
+                                    "value": "15",
+                                    "disabled": false,
+                                    "description": "Optional filter; enable its checkbox to send it."
+                                }
+                            ]
                         },
                         "description": "GET /api/payments\nDomain writes require allow_writes=true. Missing required variables skip requests rather than selecting real records automatically."
                     },
                     "response": []
                 },
                 {
-                    "name": "POST Create payment",
+                    "name": "POST Record settled payment",
                     "request": {
                         "method": "POST",
                         "header": [
@@ -2699,10 +2717,10 @@
                             ],
                             "query": []
                         },
-                        "description": "POST /api/payments\nDomain writes require allow_writes=true. Missing required variables skip requests rather than selecting real records automatically.",
+                        "description": "Records a positive settled payment up to the outstanding balance in the invoice currency. Requires Admin/Billing role or payments.create. The invoice-scoped idempotency key deduplicates identical retries. Unknown fields, card data and arbitrary metadata are rejected. See docs/billing.md.\n\nPOST /api/payments\nDomain writes require allow_writes=true. Missing required variables skip requests rather than selecting real records automatically.",
                         "body": {
                             "mode": "raw",
-                            "raw": "{\n    \"invoice_id\": \"{{invoice_id}}\",\n    \"amount\": 1,\n    \"status\": \"unpaid\"\n}\n",
+                            "raw": "{\n    \"invoice_id\": \"{{invoice_id}}\",\n    \"amount\": \"25.00\",\n    \"currency\": \"USD\",\n    \"payment_method\": \"cash\",\n    \"idempotency_key\": \"receipt-2026-001\"\n}\n",
                             "options": {
                                 "raw": {
                                     "language": "json"
@@ -2735,110 +2753,6 @@
                             "query": []
                         },
                         "description": "GET /api/payments/{payment}\nDomain writes require allow_writes=true. Missing required variables skip requests rather than selecting real records automatically."
-                    },
-                    "response": []
-                },
-                {
-                    "name": "PATCH Update payment",
-                    "request": {
-                        "method": "PATCH",
-                        "header": [
-                            {
-                                "key": "Accept",
-                                "value": "application/json"
-                            },
-                            {
-                                "key": "Content-Type",
-                                "value": "application/json"
-                            }
-                        ],
-                        "url": {
-                            "raw": "{{base_url}}/api/payments/{{payment_id}}",
-                            "host": [
-                                "{{base_url}}"
-                            ],
-                            "path": [
-                                "api",
-                                "payments",
-                                "{{payment_id}}"
-                            ],
-                            "query": []
-                        },
-                        "description": "PATCH /api/payments/{payment}\nDomain writes require allow_writes=true. Missing required variables skip requests rather than selecting real records automatically.",
-                        "body": {
-                            "mode": "raw",
-                            "raw": "{\n    \"amount\": 100\n}\n",
-                            "options": {
-                                "raw": {
-                                    "language": "json"
-                                }
-                            }
-                        }
-                    },
-                    "response": []
-                },
-                {
-                    "name": "PUT Update payment",
-                    "request": {
-                        "method": "PUT",
-                        "header": [
-                            {
-                                "key": "Accept",
-                                "value": "application/json"
-                            },
-                            {
-                                "key": "Content-Type",
-                                "value": "application/json"
-                            }
-                        ],
-                        "url": {
-                            "raw": "{{base_url}}/api/payments/{{payment_id}}",
-                            "host": [
-                                "{{base_url}}"
-                            ],
-                            "path": [
-                                "api",
-                                "payments",
-                                "{{payment_id}}"
-                            ],
-                            "query": []
-                        },
-                        "description": "PUT /api/payments/{payment}\nDomain writes require allow_writes=true. Missing required variables skip requests rather than selecting real records automatically.",
-                        "body": {
-                            "mode": "raw",
-                            "raw": "{\n    \"amount\": 100\n}\n",
-                            "options": {
-                                "raw": {
-                                    "language": "json"
-                                }
-                            }
-                        }
-                    },
-                    "response": []
-                },
-                {
-                    "name": "DELETE Delete payment",
-                    "request": {
-                        "method": "DELETE",
-                        "header": [
-                            {
-                                "key": "Accept",
-                                "value": "application/json"
-                            }
-                        ],
-                        "url": {
-                            "raw": "{{base_url}}/api/payments/{{payment_id}}",
-                            "host": [
-                                "{{base_url}}"
-                            ],
-                            "path": [
-                                "api",
-                                "payments",
-                                "{{payment_id}}"
-                            ],
-                            "query": []
-                        },
-                        "description": "DELETE /api/payments/{payment}\nDomain writes require allow_writes=true. Missing required variables skip requests rather than selecting real records automatically."
                     },
                     "response": []
                 }

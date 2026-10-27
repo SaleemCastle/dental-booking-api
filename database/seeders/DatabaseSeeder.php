@@ -20,6 +20,11 @@ class DatabaseSeeder extends Seeder
      */
     public function run(): void
     {
+        $currency = config('billing.seed_currency');
+        if (! is_string($currency) || ! preg_match('/\A[A-Z]{3}\z/', $currency)) {
+            throw new \RuntimeException('Set BILLING_SEED_CURRENCY to an uppercase three-letter currency before seeding.');
+        }
+
         $this->call(TenantSeeder::class);
         $this->call(RoleSeeder::class);
         $this->call(PermissionSeeder::class);
@@ -47,15 +52,16 @@ class DatabaseSeeder extends Seeder
             ->recycle($dentists)
             ->recycle($treatments)
             ->create()
-            ->each(function (Appointment $appointment) use ($user): void {
+            ->each(function (Appointment $appointment) use ($user, $currency): void {
                 $invoice = Invoice::factory()
+                    ->issued()
                     ->for($appointment->patient)
                     ->for($appointment)
-                    ->create();
+                    ->create(['currency' => $currency]);
 
                 Payment::factory()->for($invoice)->create([
-                    'amount' => $invoice->amount_paid,
-                    'status' => $invoice->status === 'refunded' ? 'refunded' : 'paid',
+                    'amount' => '25.00',
+                    'currency' => $invoice->currency,
                 ]);
 
                 ClinicalNote::factory()

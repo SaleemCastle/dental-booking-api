@@ -7,8 +7,10 @@ use App\Models\AuditLog;
 use App\Models\ClinicalNote;
 use App\Models\Concerns\BelongsToTenant;
 use App\Models\DentalChartRevision;
+use App\Models\Invoice;
 use App\Models\Patient;
 use App\Models\PatientDocument;
+use App\Models\Payment;
 use App\Models\Task;
 use App\Models\Treatment;
 use App\Models\TreatmentPlan;
@@ -17,8 +19,10 @@ use App\Policies\AppointmentPolicy;
 use App\Policies\AuditLogPolicy;
 use App\Policies\ClinicalNotePolicy;
 use App\Policies\DentalChartRevisionPolicy;
+use App\Policies\InvoicePolicy;
 use App\Policies\PatientDocumentPolicy;
 use App\Policies\PatientPolicy;
+use App\Policies\PaymentPolicy;
 use App\Policies\TaskPolicy;
 use App\Policies\TreatmentPlanPolicy;
 use App\Policies\TreatmentPolicy;
@@ -42,6 +46,8 @@ class AuthServiceProvider extends ServiceProvider
         DentalChartRevision::class => DentalChartRevisionPolicy::class,
         Patient::class => PatientPolicy::class,
         PatientDocument::class => PatientDocumentPolicy::class,
+        Invoice::class => InvoicePolicy::class,
+        Payment::class => PaymentPolicy::class,
         Task::class => TaskPolicy::class,
         Treatment::class => TreatmentPolicy::class,
         TreatmentPlan::class => TreatmentPlanPolicy::class,
@@ -71,6 +77,8 @@ class AuthServiceProvider extends ServiceProvider
                 || $resource instanceof PatientDocument || $resource === PatientDocument::class
                 || $resource instanceof DentalChartRevision || $resource === DentalChartRevision::class
                 || $resource instanceof TreatmentPlan || $resource === TreatmentPlan::class
+                || $resource instanceof Invoice || $resource === Invoice::class
+                || $resource instanceof Payment || $resource === Payment::class
                 || $resource instanceof AuditLog || $resource === AuditLog::class) {
                 return null;
             }

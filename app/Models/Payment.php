@@ -17,6 +17,9 @@ class Payment extends Model
         'status',
         'paid_at',
         'reference',
+        'currency',
+        'receipt_number',
+        'idempotency_key',
     ];
 
     protected $casts = [

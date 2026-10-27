@@ -300,7 +300,7 @@ class TenantIsolationTest extends TestCase
         app(TenantContext::class)->run($this->foreign['tenant'], function (): void {
             Role::create(['slug' => 'private-slug', 'name' => 'ForeignSecret role']);
             $this->foreign['dentist']->update(['email' => 'private-provider@example.test']);
-            $this->foreign['invoice']->update(['invoice_number' => 'INV-FOREIGN']);
+            Invoice::factory()->create(['invoice_number' => 'INV-FOREIGN']);
         });
         $before = $this->foreignSnapshot();
         foreach ([
@@ -324,7 +324,8 @@ class TenantIsolationTest extends TestCase
                     'appointment_date_time' => today()->addHours(12),
                 ]);
             }
-            $this->foreign['invoice']->update(['amount_due' => 9000, 'amount_paid' => 3000]);
+            // Existing financial snapshots remain immutable; create additional activity.
+            Invoice::factory()->issued()->withPayment(2975)->create(['amount_due' => 8900]);
         });
         $this->getJson('/api/dashboard/summary')->assertOk()->assertJsonPath('data.bookedToday', 1)
             ->assertJsonPath('data.waitingRoom', 0)->assertJsonPath('data.treatmentsDone', 0)
@@ -463,9 +464,9 @@ class TenantIsolationTest extends TestCase
                 'patient_id' => $patient->id, 'appointment_id' => $appointment->id, 'assignee_id' => $user->id,
                 'due_date' => today()->toDateString(), 'status' => 'pending', 'description' => $marker.' task',
             ]);
-            $invoice = Invoice::factory()->create([
+            $invoice = Invoice::factory()->issued()->withPayment(25)->create([
                 'patient_id' => $patient->id, 'appointment_id' => $appointment->id,
-                'invoice_number' => 'INV-SHARED', 'amount_due' => 100, 'amount_paid' => 25, 'status' => 'partial',
+                'invoice_number' => 'INV-SHARED', 'amount_due' => 100,
             ]);
             $request = Request::create('/internal');
             $request->attributes->set('request_id', $marker === 'ForeignSecret' ? 'foreign-correlation' : 'local-correlation');
@@ -485,7 +486,7 @@ class TenantIsolationTest extends TestCase
             ],
             'clinical-notes' => ['patient_id' => $clinic['patient']->id, 'dentist_id' => $clinic['dentist']->id, 'appointment_id' => $clinic['appointment']->id, 'note_text' => 'Review'],
             'tasks' => ['patient_id' => $clinic['patient']->id, 'appointment_id' => $clinic['appointment']->id, 'assignee_id' => $clinic['user']->id, 'due_date' => today()->toDateString(), 'description' => 'Review'],
-            'invoices' => ['patient_id' => $clinic['patient']->id, 'appointment_id' => $clinic['appointment']->id, 'invoice_number' => 'INV-NEW', 'amount_due' => 100, 'status' => 'unpaid'],
+            'invoices' => ['patient_id' => $clinic['patient']->id, 'appointment_id' => $clinic['appointment']->id, 'invoice_number' => 'INV-NEW', 'currency' => 'USD', 'items' => [['description' => 'Review', 'unit_price' => '100.00']]],
         };
     }
 

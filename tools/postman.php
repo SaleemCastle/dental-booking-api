@@ -176,6 +176,12 @@ class PostmanExport
         if (str_starts_with($path, '/api/referrals')) {
             return ['patient_id' => '{{'.$this->variable('patient_id').'}}', 'dentist_id' => '{{'.$this->variable('dentist_id').'}}', 'referred_to_email' => 'referral@example.test', 'referral_date' => '{{due_date}}', 'referral_notes' => 'Postman test referral'];
         }
+        if ($path === '/api/invoices' && $method === 'post') {
+            return ['patient_id' => '{{'.$this->variable('patient_id').'}}', 'invoice_number' => '{{invoice_number}}', 'currency' => 'USD', 'items' => [['description' => 'Postman test service', 'unit_price' => '100.00', 'quantity' => 1]]];
+        }
+        if (preg_match('#^/api/invoices/\{[^}]+\}$#', $path) && in_array($method, ['patch', 'put'], true)) {
+            return ['status' => 'issued'];
+        }
         $requestBody = $this->expand($operation['requestBody'] ?? []);
         if (! isset($requestBody['content']['application/json']['schema'])) {
             return null;
@@ -191,7 +197,6 @@ class PostmanExport
             $field = match (explode('/', $path)[2] ?? '') {
                 'patients' => 'notes', 'appointments', 'treatments', 'tasks', 'roles' => 'description',
                 'clinical-notes' => 'note_text', 'dentists' => 'specialization',
-                'invoices' => 'amount_due', 'payments' => 'amount',
                 default => null,
             };
             if ($field !== null) {

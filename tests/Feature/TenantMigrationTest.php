@@ -12,7 +12,8 @@ use App\Models\Tenant;
 use App\Models\Treatment;
 use App\Models\User;
 use App\Services\AuditLogService;
-use Database\Seeders\DatabaseSeeder;
+use Database\Seeders\PermissionSeeder;
+use Database\Seeders\RoleSeeder;
 use Illuminate\Contracts\Console\Kernel;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Foundation\Testing\RefreshDatabaseState;
@@ -37,7 +38,19 @@ class TenantMigrationTest extends TestCase
 
     public function test_phase_one_records_ids_links_and_history_survive_migration(): void
     {
-        $this->seed(DatabaseSeeder::class);
+        // Exercise the Phase 1 schema before the later billing foundation exists.
+        $billing = require database_path('migrations/2026_10_27_000001_build_billing_foundation.php');
+        $billing->down();
+        $this->seed(RoleSeeder::class);
+        $this->seed(PermissionSeeder::class);
+        User::factory()->create();
+        $patient = Patient::factory()->create();
+        $dentist = Dentist::factory()->create();
+        $treatment = Treatment::factory()->create();
+        $appointment = \App\Models\Appointment::factory()->for($patient)->for($dentist)->for($treatment)->create();
+        ClinicalNote::factory()->for($patient)->for($dentist)->for($appointment)->create();
+        $invoiceId = DB::table('invoices')->insertGetId(['patient_id' => $patient->id, 'appointment_id' => $appointment->id, 'invoice_number' => 'LEGACY', 'amount_due' => 100, 'amount_paid' => 25, 'status' => 'partial', 'created_at' => now(), 'updated_at' => now(), 'tenant_id' => $patient->tenant_id]);
+        DB::table('payments')->insert(['invoice_id' => $invoiceId, 'amount' => 25, 'status' => 'paid', 'paid_at' => now(), 'created_at' => now(), 'updated_at' => now(), 'tenant_id' => $patient->tenant_id]);
         User::firstOrFail()->createToken('legacy-token');
         $patient = Patient::firstOrFail();
         $patient->archive(User::firstOrFail());
