@@ -2,6 +2,8 @@
 
 namespace Tests\Feature\Auth;
 
+use App\Models\Invoice;
+use App\Models\Payment;
 use App\Models\Permission;
 use App\Models\Role;
 use App\Models\User;
@@ -51,8 +53,15 @@ class RoleSeederTest extends TestCase
 
     public function test_database_seeder_can_be_run_more_than_once(): void
     {
+        config(['billing.seed_currency' => 'JMD', 'billing.legacy_currency' => 'USD']);
+
         $this->seed(DatabaseSeeder::class);
         $this->seed(DatabaseSeeder::class);
+
+        $this->assertSame(40, Invoice::where('currency', 'JMD')->count());
+        $this->assertSame(40, Payment::where('currency', 'JMD')->count());
+        $this->assertSame(0, Invoice::where('currency', '!=', 'JMD')->count());
+        $this->assertSame(0, Payment::where('currency', '!=', 'JMD')->count());
 
         $this->assertSame(6, Role::count());
         $this->assertSame(1, User::where('email', 'test@example.com')->count());
