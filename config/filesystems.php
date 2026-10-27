@@ -30,6 +30,23 @@ return [
 
     'disks' => [
 
+        'clinical_documents' => [
+            'driver' => 's3',
+            'key' => env('PATIENT_DOCUMENT_S3_KEY'),
+            'secret' => env('PATIENT_DOCUMENT_S3_SECRET'),
+            'region' => env('PATIENT_DOCUMENT_S3_REGION', 'us-east-2'),
+            'bucket' => env('PATIENT_DOCUMENT_S3_BUCKET'),
+            'endpoint' => env('PATIENT_DOCUMENT_S3_ENDPOINT'),
+            'use_path_style_endpoint' => env('PATIENT_DOCUMENT_S3_PATH_STYLE', false),
+            'visibility' => 'private',
+            'stream_reads' => true,
+            'throw' => true,
+            'options' => [
+                'ACL' => 'bucket-owner-full-control',
+                'ServerSideEncryption' => env('PATIENT_DOCUMENT_S3_ENCRYPTION', 'AES256'),
+            ],
+        ],
+
         'local' => [
             'driver' => 'local',
             'root' => storage_path('app'),

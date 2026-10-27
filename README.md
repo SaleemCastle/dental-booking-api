@@ -15,6 +15,8 @@ Tenant resolution, service/policy usage, and queue propagation conventions are d
 
 The [dental charting contract](docs/dental-charting.md) defines adult/primary numbering, surface findings, immutable revisions, concurrency, authorization, and audit behavior.
 
+Private patient document uploads, S3 configuration, authorization, retrieval, archive/delete semantics and operational recovery are documented in [patient documents and imaging](docs/patient-documents.md).
+
 ## About Laravel
 
 Laravel is a web application framework with expressive, elegant syntax. We believe development must be an enjoyable and creative experience to be truly fulfilling. Laravel takes the pain out of development by easing common tasks used in many web projects, such as:

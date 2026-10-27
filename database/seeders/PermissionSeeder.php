@@ -49,6 +49,7 @@ class PermissionSeeder extends Seeder
             'invoices' => $crud,
             'payments' => $crud,
             'clinical_notes' => $crud,
+            'patient_documents' => ['view', 'create', 'archive', 'delete'],
             'dental_charts' => ['view', 'create'],
             'treatment_plans' => ['view', 'create', 'update'],
             'tasks' => $crud,

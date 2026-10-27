@@ -14,6 +14,9 @@ function contextFor(method, route, overrides = {}) {
     const definition = requests.find(request => request.method === method && '/' + request.url.path.join('/') === route);
     assert.ok(definition, `${method} ${route} exists`);
     const request = structuredClone(definition);
+    if (request.body && request.body.mode === 'formdata') {
+        request.body.formdata.each = callback => request.body.formdata.forEach(callback);
+    }
     const values = new Map(environment.values.map(variable => [variable.key, variable.value]));
     for (const [key, value] of Object.entries(overrides)) values.set(key, value);
     const local = new Map();
@@ -92,6 +95,27 @@ test('public health runs without a token, protected reads require one', () => {
     assert.equal(runPreRequest(contextFor('GET', '/api/health')), true);
     assert.equal(runPreRequest(contextFor('GET', '/api/audit-logs')), false);
     assert.equal(runPreRequest(contextFor('GET', '/api/audit-logs', { access_token: 'test-token' })), true);
+});
+
+test('document upload requires a selected file and checks optional form variables', () => {
+    const state = contextFor('POST', '/api/patients/{{patient_id}}/documents', { access_token: 'token', allow_writes: 'true', patient_id: '42' });
+    assert.equal(runPreRequest(state), false);
+    state.request.body.formdata.find(field => field.type === 'file').src = '/local/test.pdf';
+    assert.equal(runPreRequest(state), true);
+    state.request.body.formdata.find(field => field.key === 'clinical_note_id').disabled = false;
+    assert.equal(runPreRequest(state), false);
+    state.values.set('clinical_note_id', '7');
+    assert.equal(runPreRequest(state), true);
+    respond(state, { document: { id: 8 } }, 201);
+    assert.equal(state.values.get('document_id'), '8');
+});
+
+test('successful binary downloads skip JSON parsing while error responses retain envelope assertions', () => {
+    const state = contextFor('GET', '/api/patients/{{patient_id}}/documents/{{document_id}}/download');
+    state.context.pm.response = { code: 200, json: () => { throw new Error('Binary file'); } };
+    vm.runInNewContext(scripts.test, { ...state.context });
+    assert.deepEqual(state.failures, []);
+    assert.throws(() => respond(state, null, 403));
 });
 
 test('clinic selection is opt-in and membership discovery remains authenticated', () => {

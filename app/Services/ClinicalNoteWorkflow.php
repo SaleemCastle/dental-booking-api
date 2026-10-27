@@ -7,6 +7,7 @@ use App\Models\Appointment;
 use App\Models\ClinicalNote;
 use App\Models\Dentist;
 use App\Models\Patient;
+use App\Models\PatientDocument;
 use App\Models\User;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
@@ -39,6 +40,13 @@ class ClinicalNoteWorkflow
             $note = ClinicalNote::query()->lockForUpdate()->findOrFail($clinicalNote->id);
             $before = $note->attributesToArray();
             $note->fill($data);
+            if ($note->isDirty(['patient_id', 'appointment_id'])) {
+                $documents = PatientDocument::withTrashed()->where('clinical_note_id', $note->id);
+                if ($documents->exists() && ($note->isDirty('patient_id')
+                    || ($note->appointment_id !== null && $documents->whereNotNull('appointment_id')->where('appointment_id', '<>', $note->appointment_id)->exists()))) {
+                    throw ValidationException::withMessages(['clinical_note_id' => ['Linked documents must retain their patient and appointment relationships.']]);
+                }
+            }
             $this->validateRelationships($note);
 
             if (! $note->isDirty()) {

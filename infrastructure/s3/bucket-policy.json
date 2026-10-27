@@ -1,0 +1,21 @@
+{
+    "Version": "2012-10-17",
+    "Statement": [
+        {
+            "Sid": "DenyInsecureTransport",
+            "Effect": "Deny",
+            "Principal": "*",
+            "Action": "s3:*",
+            "Resource": [
+                "arn:aws:s3:::dental-app-booking",
+                "arn:aws:s3:::dental-app-booking/*"
+            ],
+            "Condition": {
+                "Bool": {
+                    "aws:SecureTransport": "false",
+                    "aws:PrincipalIsAWSService": "false"
+                }
+            }
+        }
+    ]
+}

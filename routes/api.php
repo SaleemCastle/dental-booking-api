@@ -10,6 +10,7 @@ use App\Http\Controllers\Api\DentistController;
 use App\Http\Controllers\Api\InvoiceController;
 use App\Http\Controllers\Api\MessageController;
 use App\Http\Controllers\Api\PatientController;
+use App\Http\Controllers\Api\PatientDocumentController;
 use App\Http\Controllers\Api\PaymentController;
 use App\Http\Controllers\Api\ReferralController;
 use App\Http\Controllers\Api\RoleController;
@@ -67,6 +68,12 @@ Route::middleware(['auth:sanctum', 'tenant'])->group(function () {
     Route::get('appointment-locations', [AppointmentLocationController::class, 'index']);
 
     Route::get('dental-chart/metadata', [DentalChartController::class, 'metadata']);
+    Route::get('patients/{patient}/documents', [PatientDocumentController::class, 'index']);
+    Route::post('patients/{patient}/documents', [PatientDocumentController::class, 'store']);
+    Route::get('patients/{patient}/documents/{document}', [PatientDocumentController::class, 'show']);
+    Route::get('patients/{patient}/documents/{document}/download', [PatientDocumentController::class, 'download']);
+    Route::post('patients/{patient}/documents/{document}/archive', [PatientDocumentController::class, 'archive']);
+    Route::delete('patients/{patient}/documents/{document}', [PatientDocumentController::class, 'destroy'])->withTrashed();
     Route::get('patients/{patient}/treatment-plans', [TreatmentPlanController::class, 'index']);
     Route::post('patients/{patient}/treatment-plans', [TreatmentPlanController::class, 'store']);
     Route::get('treatment-plans/{treatment_plan}', [TreatmentPlanController::class, 'show']);

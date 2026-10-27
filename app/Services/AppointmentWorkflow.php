@@ -6,6 +6,7 @@ use App\Models\Appointment;
 use App\Models\Chair;
 use App\Models\Dentist;
 use App\Models\Patient;
+use App\Models\PatientDocument;
 use App\Models\Room;
 use App\Models\Treatment;
 use App\Models\User;
@@ -114,6 +115,11 @@ class AppointmentWorkflow
         }
 
         $appointment->fill($data);
+
+        if ($appointment->exists && $appointment->isDirty('patient_id')
+            && PatientDocument::withTrashed()->where('appointment_id', $appointment->id)->exists()) {
+            throw ValidationException::withMessages(['patient_id' => ['An appointment with documents cannot be reassigned to a different patient.']]);
+        }
 
         if ($appointment->exists && $appointment->isDirty('patient_id') && $appointment->tasks()->exists()) {
             throw ValidationException::withMessages([

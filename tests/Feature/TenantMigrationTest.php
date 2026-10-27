@@ -48,6 +48,8 @@ class TenantMigrationTest extends TestCase
         app(AuditLogService::class)->record('created', 'patients', $patient->id, User::firstOrFail()->id);
         $note = ClinicalNote::firstOrFail();
         $note->delete();
+        $documents = require database_path('migrations/2026_10_26_000001_create_patient_documents.php');
+        $documents->down();
         $plans = require database_path('migrations/2026_10_24_000001_create_treatment_plans.php');
         $plans->down();
         $charts = require database_path('migrations/2026_10_23_000002_create_dental_chart_revisions.php');
@@ -67,6 +69,7 @@ class TenantMigrationTest extends TestCase
         $integrity->up();
         $charts->up();
         $plans->up();
+        $documents->up();
 
         $tenantId = DB::table('tenants')->where('slug', Tenant::DEFAULT_SLUG)->value('id');
         foreach ($before as $table => $records) {

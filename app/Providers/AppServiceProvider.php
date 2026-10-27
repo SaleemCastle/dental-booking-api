@@ -13,6 +13,7 @@ class AppServiceProvider extends ServiceProvider
     public function register(): void
     {
         $this->app->scoped(\App\Tenancy\TenantContext::class);
+        $this->app->bind(\App\Documents\DocumentStorage::class, \App\Documents\FilesystemDocumentStorage::class);
     }
 
     /**
