@@ -23,6 +23,7 @@ yarn-error.log
 !/docs/treatment-planning.md
 !/docs/patient-documents.md
 !/docs/billing.md
+!/docs/provider-availability.md
 !/docs/postman.md
 !/docs/postman/
 /docs/postman/*

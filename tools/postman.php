@@ -173,6 +173,13 @@ class PostmanExport
         if (str_starts_with($path, '/api/messages')) {
             return ['sender_id' => '{{'.$this->variable('patient_id').'}}', 'receiver_id' => '{{'.$this->variable('receiver_patient_id').'}}', 'message_text' => 'Postman test message'];
         }
+        if ($path === '/api/dentists/{dentist}/availability' && $method === 'put') {
+            return [
+                'weekly_hours' => array_map(fn ($day) => ['day_of_week' => $day, 'start_time' => '09:00', 'end_time' => '17:00'], range(1, 5)),
+                'breaks' => array_map(fn ($day) => ['day_of_week' => $day, 'start_time' => '12:00', 'end_time' => '13:00'], range(1, 5)),
+                'exceptions' => [],
+            ];
+        }
         if (str_starts_with($path, '/api/referrals')) {
             return ['patient_id' => '{{'.$this->variable('patient_id').'}}', 'dentist_id' => '{{'.$this->variable('dentist_id').'}}', 'referred_to_email' => 'referral@example.test', 'referral_date' => '{{due_date}}', 'referral_notes' => 'Postman test referral'];
         }

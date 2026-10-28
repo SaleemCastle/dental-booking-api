@@ -44,6 +44,7 @@ class PermissionSeeder extends Seeder
             'dashboard' => ['view'],
             'patients' => ['view', 'create', 'update', 'archive', 'medical.update'],
             'appointments' => $crud,
+            'provider_availabilities' => ['view', 'update'],
             'dentists' => $crud,
             'treatments' => $crud,
             'invoices' => ['view', 'create', 'update'],

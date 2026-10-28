@@ -16,7 +16,10 @@ use Illuminate\Validation\ValidationException;
 
 class AppointmentWorkflow
 {
-    public function __construct(private readonly AuditLogService $auditLogs) {}
+    public function __construct(
+        private readonly AuditLogService $auditLogs,
+        private readonly ProviderAvailabilityService $availability,
+    ) {}
 
     private const TRANSITIONS = [
         'scheduled' => ['checked_in', 'cancelled', 'no_show'],
@@ -148,6 +151,9 @@ class AppointmentWorkflow
         }
 
         if (in_array($status, Appointment::ACTIVE_STATUSES, true)) {
+            if ($creating || $appointment->isDirty(['dentist_id', 'appointment_date_time', 'duration_minutes', 'treatment_id', 'room_id', 'chair_id'])) {
+                $this->availability->ensureAvailable($appointment);
+            }
             $this->ensureAvailable($appointment);
         }
 
