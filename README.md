@@ -19,7 +19,7 @@ Private patient document uploads, S3 configuration, authorization, retrieval, ar
 
 The [billing contract](docs/billing.md) documents invoice snapshots, lifecycle, partial payments, idempotent retries, authorization, audits and legacy migration requirements.
 
-The [hosted payment-link contract](docs/payment-links.md) covers the HandyPay adapter, tenant credential provisioning, invoice-controlled checkout amounts, idempotency, audits and provider limitations.
+The [hosted payment-link contract](docs/payment-links.md) covers the HandyPay adapter, signed webhook and status reconciliation, invoice-controlled checkout amounts, sandbox rollout checks, credential revisions, idempotency, audits and provider limitations.
 
 The [provider availability contract](docs/provider-availability.md) documents weekly working hours, breaks, date exceptions/time off, permissions, and booking/rescheduling enforcement.
 

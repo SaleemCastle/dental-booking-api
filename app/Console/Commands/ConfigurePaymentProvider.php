@@ -10,6 +10,7 @@ use App\Tenancy\TenantContext;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Validator;
+use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 
 class ConfigurePaymentProvider extends Command
@@ -36,17 +37,30 @@ class ConfigurePaymentProvider extends Command
         ])->validate();
         $key = $this->secret('Merchant API key', false);
         Validator::make(['api_key' => $key], ['api_key' => ['required', 'string', 'max:500', 'regex:/\Ahp_(test|live)_[A-Za-z0-9_-]+\z/']])->validate();
-        $context->run($tenant, fn () => DB::transaction(function () use ($data, $key) {
+        $endpoint = (string) Str::uuid();
+        $this->info('Register the HandyPay webhook endpoint: '.url('/api/webhooks/handypay/'.$endpoint));
+        $webhookSecret = $this->secret('Webhook signing secret', false);
+        Validator::make(['webhook_secret' => $webhookSecret], ['webhook_secret' => ['required', 'string', 'min:16', 'max:500']])->validate();
+        $context->run($tenant, fn () => DB::transaction(function () use ($data, $key, $webhookSecret, $endpoint) {
             // Lock even when there is no configuration yet, serializing provisioning.
             Tenant::whereKey(app(TenantContext::class)->id())->lockForUpdate()->firstOrFail();
-            $configuration = PaymentProviderConfiguration::query()->lockForUpdate()->first();
+            $configuration = PaymentProviderConfiguration::where('enabled', true)->lockForUpdate()->first();
             if ($configuration && PaymentLink::where('payment_provider_configuration_id', $configuration->id)
                 ->whereIn('status', PaymentLink::OUTSTANDING)->exists()) {
                 throw ValidationException::withMessages(['provider' => ['Resolve outstanding checkouts before changing merchant configuration.']]);
             }
-            ($configuration ?? new PaymentProviderConfiguration)->fill([
-                ...$data, 'credentials' => ['api_key' => $key], 'enabled' => true,
-            ])->save();
+            $verified = PaymentProviderConfiguration::where('provider', $data['provider'])->whereNotNull('sandbox_verified_at')->exists();
+            if (str_starts_with($key, 'hp_live_') && ! $verified) {
+                throw ValidationException::withMessages(['provider' => ['Complete an authoritative sandbox settlement before provisioning live credentials.']]);
+            }
+            // Preserve endpoint secrets and merchant identity for all existing attempts.
+            $configuration?->update(['enabled' => false]);
+
+            $next = new PaymentProviderConfiguration([
+                ...$data, 'credentials' => ['api_key' => $key, 'webhook_secret' => $webhookSecret], 'enabled' => true,
+            ]);
+            $next->webhook_endpoint = $endpoint;
+            $next->save();
         }, 3));
         $this->info('Clinic payment provider configured. Credentials are encrypted and hidden from API responses.');
 

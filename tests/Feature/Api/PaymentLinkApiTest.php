@@ -201,7 +201,7 @@ class PaymentLinkApiTest extends TestCase
         $this->assertCount(0, $this->provider->created);
     }
 
-    public function test_status_refresh_audits_only_changes_and_never_settles_the_ledger(): void
+    public function test_verified_status_refresh_settles_the_ledger_once(): void
     {
         $this->actor();
         $this->configuration();
@@ -215,9 +215,11 @@ class PaymentLinkApiTest extends TestCase
         $this->provider->status = 'completed';
         $this->postJson('/api/payment-links/'.$id.'/refresh')->assertOk()->assertJsonPath('data.payment_link.status', 'completed');
         $this->assertDatabaseHas('audit_logs', ['action' => 'completed', 'resource_type' => 'payment_links']);
-        $this->assertSame('issued', $invoice->refresh()->status);
-        $this->assertSame('0.00', $invoice->amount_paid);
-        $this->assertDatabaseCount('payments', 0);
+        $this->assertSame('paid', $invoice->refresh()->status);
+        $this->assertSame('100.00', $invoice->amount_paid);
+        $this->assertDatabaseCount('payments', 1);
+        $this->postJson('/api/payment-links/'.$id.'/refresh')->assertOk();
+        $this->assertDatabaseCount('payments', 1);
         $this->createLink($invoice, 'another')->assertUnprocessable();
         $this->postJson('/api/payment-links/'.$id.'/cancel')->assertUnprocessable();
     }
@@ -365,7 +367,8 @@ class PaymentLinkApiTest extends TestCase
             $this->artisan('billing:configure-provider', [
                 'tenant' => $invoice->tenant_id, 'provider' => 'handypay',
                 '--success-url' => 'https://clinic.example.test/complete', '--cancel-url' => 'https://clinic.example.test/cancel',
-            ])->expectsQuestion('Merchant API key', 'hp_live_different_merchant')->run();
+            ])->expectsQuestion('Merchant API key', 'hp_live_different_merchant')
+                ->expectsQuestion('Webhook signing secret', 'sandbox_replacement_secret')->run();
             $this->fail('Expected outstanding checkout to prevent configuration changes.');
         } catch (\Illuminate\Validation\ValidationException $error) {
             $this->assertArrayHasKey('provider', $error->errors());
@@ -380,7 +383,7 @@ class PaymentLinkApiTest extends TestCase
         $invoice = Invoice::factory()->issued()->create();
         $audit = Mockery::mock(AuditLogService::class);
         $audit->shouldReceive('record')->once()->andThrow(new RuntimeException('Audit unavailable'));
-        $workflow = new PaymentLinkWorkflow(app(\App\Billing\Providers\PaymentProviderRegistry::class), $audit);
+        $workflow = new PaymentLinkWorkflow(app(\App\Billing\Providers\PaymentProviderRegistry::class), $audit, app(\App\Services\PaymentSettlement::class));
         try {
             $workflow->create($invoice, ['idempotency_key' => 'link'], $actor);
             $this->fail('Expected audit failure.');

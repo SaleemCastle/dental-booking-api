@@ -21,7 +21,11 @@ use Throwable;
 
 class PaymentLinkWorkflow
 {
-    public function __construct(private readonly PaymentProviderRegistry $providers, private readonly AuditLogService $auditLogs) {}
+    public function __construct(
+        private readonly PaymentProviderRegistry $providers,
+        private readonly AuditLogService $auditLogs,
+        private readonly PaymentSettlement $settlement,
+    ) {}
 
     public function create(Invoice $invoice, array $data, User $actor): PaymentLink
     {
@@ -47,7 +51,10 @@ class PaymentLinkWorkflow
             if (! in_array($invoice->status, ['issued', 'partially_paid'], true)) {
                 $this->invalid('invoice_id', 'Payment links require an issued invoice with an outstanding balance.');
             }
-            if ($invoice->paymentLinks()->whereIn('status', [...PaymentLink::OUTSTANDING, 'completed'])->exists()) {
+            if ($invoice->paymentLinks()->where(function ($query) {
+                $query->whereIn('status', PaymentLink::OUTSTANDING)
+                    ->orWhere(fn ($query) => $query->where('status', 'completed')->whereNotIn('id', Payment::whereNotNull('payment_link_id')->select('payment_link_id')));
+            })->exists()) {
                 $this->invalid('invoice_id', 'Resolve the existing checkout before creating another payment link.');
             }
             $paid = $invoice->payments()->get()->sum(fn (Payment $payment) => Money::minor($payment->amount));
@@ -59,7 +66,14 @@ class PaymentLinkWorkflow
             if (! $configuration) {
                 throw new ProviderException('not_configured');
             }
-            $this->providers->resolve($configuration->provider);
+            $provider = $this->providers->resolve($configuration->provider);
+            if ($provider instanceof \App\Billing\Providers\WebhookPaymentProvider && empty($configuration->credentials['webhook_secret'])) {
+                throw new ProviderException('not_configured');
+            }
+            if (str_starts_with($configuration->credentials['api_key'] ?? '', 'hp_live_')
+                && ! PaymentProviderConfiguration::where('provider', $configuration->provider)->whereNotNull('sandbox_verified_at')->exists()) {
+                throw new ProviderException('sandbox_required');
+            }
             $link = $invoice->paymentLinks()->create([
                 'payment_provider_configuration_id' => $configuration->id,
                 'provider' => $configuration->provider,
@@ -87,6 +101,9 @@ class PaymentLinkWorkflow
             $safe = $error instanceof ProviderException ? $error : new ProviderException('unavailable', uncertain: true);
             DB::transaction(function () use ($link, $safe, $actor) {
                 $stored = PaymentLink::query()->lockForUpdate()->findOrFail($link->id);
+                if (! in_array($stored->status, ['creating', 'unknown'], true)) {
+                    return; // A signed callback already established the remote outcome.
+                }
                 $stored->update(['status' => $safe->uncertain ? 'unknown' : 'failed']);
                 $this->auditLogs->record($stored->status, 'payment_links', $stored->id, $actor->id);
             }, 3);
@@ -95,11 +112,23 @@ class PaymentLinkWorkflow
 
         try {
             return DB::transaction(function () use ($link, $result, $actor) {
+                $invoice = Invoice::query()->lockForUpdate()->findOrFail($link->invoice_id);
                 $stored = PaymentLink::query()->lockForUpdate()->findOrFail($link->id);
+                if ($stored->status !== 'creating') {
+                    if ($stored->external_reference !== $result->reference) {
+                        throw new ProviderException('reconciliation_required');
+                    }
+                    $stored->wasRecentlyCreated = true;
+
+                    return $stored;
+                }
                 $stored->fill([
                     'external_reference' => $result->reference, 'checkout_url' => $result->checkoutUrl,
                     'expires_at' => $result->expiresAt, 'status' => $result->status,
                 ])->save();
+                if ($result->status === 'completed') {
+                    $this->settlement->record($invoice, $stored, $result, $actor->id);
+                }
                 $this->auditLogs->record('created', 'payment_links', $stored->id, $actor->id);
                 $this->auditLogs->record($stored->status, 'payment_links', $stored->id, $actor->id);
                 $stored->wasRecentlyCreated = true;
@@ -139,9 +168,9 @@ class PaymentLinkWorkflow
         // Bounded remote operation under the invoice lock. Never automatically retry
         // this transaction: a cancellation is an external side effect.
         return DB::transaction(function () use ($link, $actor, $cancel) {
-            Invoice::query()->lockForUpdate()->findOrFail($link->invoice_id);
+            $invoice = Invoice::query()->lockForUpdate()->findOrFail($link->invoice_id);
             $link = PaymentLink::query()->lockForUpdate()->findOrFail($link->id);
-            if (! in_array($link->status, PaymentLink::OUTSTANDING, true)) {
+            if (! in_array($link->status, PaymentLink::OUTSTANDING, true) && ! (! $cancel && $link->status === 'completed' && ! Payment::where('payment_link_id', $link->id)->exists())) {
                 if ($cancel && $link->status !== 'cancelled') {
                     $this->invalid('payment_link', 'Only an outstanding checkout can be cancelled.');
                 }
@@ -169,6 +198,9 @@ class PaymentLinkWorkflow
                 throw new ProviderException('unavailable');
             }
             $oldStatus = $link->status;
+            if ($result->status === 'completed') {
+                $this->settlement->record($invoice, $link, $result, $actor->id);
+            }
             $link->fill([
                 'status' => $result->status,
                 'checkout_url' => $result->checkoutUrl ?? $link->checkout_url,

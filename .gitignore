@@ -23,6 +23,7 @@ yarn-error.log
 !/docs/treatment-planning.md
 !/docs/patient-documents.md
 !/docs/billing.md
+!/docs/payment-links.md
 !/docs/provider-availability.md
 !/docs/reporting.md
 !/docs/postman.md
@@ -46,3 +47,6 @@ Thumbs.db
 # Test and coverage output
 /coverage
 /build/coverage
+
+# Private captures used only by opt-in merchant sandbox tests
+/storage/app/handypay-sandbox/

@@ -28,6 +28,9 @@ class Handler extends ExceptionHandler
         'current_password',
         'password',
         'password_confirmation',
+        'api_key',
+        'webhook_secret',
+        'credentials',
     ];
 
     /**

@@ -4,7 +4,7 @@ namespace App\Billing\Providers;
 
 use DateTimeImmutable;
 
-/** Normalized status: active, pending, completed, expired, cancelled or failed. Never settles the ledger. */
+/** Normalized server-to-server result. Settlement additionally requires amount and currency. */
 final class CheckoutResult
 {
     public function __construct(
@@ -14,5 +14,6 @@ final class CheckoutResult
         public readonly ?DateTimeImmutable $expiresAt = null,
         public readonly ?int $amountMinor = null,
         public readonly ?string $currency = null,
+        public readonly ?string $transactionReference = null,
     ) {}
 }

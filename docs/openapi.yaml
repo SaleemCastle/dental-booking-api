@@ -1442,7 +1442,7 @@ paths:
     post:
       tags: [Payment Links]
       summary: Create an invoice hosted checkout
-      description: Requires payment_links.create or Admin/Billing. Server derives amount and currency from the issued invoice ledger under lock. Only one unresolved checkout per invoice. Unknown fields including card data and amount overrides are rejected. Keys are case-sensitive and scoped to the invoice. No settlement is recorded. Private/no-store. See docs/payment-links.md for reconciliation and HandyPay limits.
+      description: Requires payment_links.create or Admin/Billing. Server derives amount and currency from the issued invoice ledger under lock. Only one unresolved checkout per invoice. Unknown fields including card data and amount overrides are rejected. Keys are case-sensitive and scoped to the invoice. Only verified server-to-server paid results can settle the ledger. Private/no-store. See docs/payment-links.md for reconciliation and HandyPay limits.
       requestBody:
         required: true
         content:
@@ -1484,7 +1484,7 @@ paths:
     post:
       tags: [Payment Links]
       summary: Refresh payment-link status from the provider
-      description: Empty body. Requires payment_links.refresh or Admin/Billing. Audits confirmed changes without settling the invoice. Terminal statuses are no-ops. Private/no-store.
+      description: Empty body. Requires payment_links.refresh or Admin/Billing. A verified paid session with matching amount and currency records one ledger payment and updates the invoice balance. Settled terminal statuses are no-ops; historical completed-but-unsettled sessions can be reconciled. Browser parameters cannot prove payment. Private/no-store.
       responses:
         "200": { $ref: "#/components/responses/PaymentLinkEnvelope" }
         "401": { $ref: "#/components/responses/Unauthenticated" }
@@ -1513,6 +1513,35 @@ paths:
         "502": { $ref: "#/components/responses/PaymentProviderError" }
         "503": { $ref: "#/components/responses/PaymentProviderError" }
         "504": { $ref: "#/components/responses/PaymentProviderError" }
+  /api/webhooks/handypay/{endpoint}:
+    post:
+      tags: [Payments]
+      security: []
+      summary: Receive a signed HandyPay payment event
+      description: Uses the credential revision identified by endpoint, independent of browser authentication and X-Tenant-Id. Verifies HMAC-SHA256 against the exact raw body before parsing. Event receipt and settlement commit atomically. Duplicates are idempotent. Unknown events are ignored. Signed unmatched or conflicting events are retained for operator reconciliation and acknowledged; identical redelivery can retry unresolved events. Raw payloads are never stored or logged.
+      parameters:
+        - { name: endpoint, in: path, required: true, schema: { type: string, format: uuid } }
+        - { name: X-HandyPay-Signature, in: header, required: true, schema: { type: string, pattern: '^sha256=[a-fA-F0-9]{64}$' } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [id, type, data]
+              properties:
+                id: { type: string, example: evt_abc123 }
+                type: { type: string, example: checkout.session.completed }
+                created: { type: integer }
+                livemode: { type: boolean }
+                data: { type: object, description: "HandyPay resource directly in data. Successful sessions require id, amount_total, currency and payment_status paid." }
+      responses:
+        "200": { description: Verified event durably received; data.received is true. Check stored event outcome for settlement or reconciliation status. }
+        "400": { description: Invalid signed event. }
+        "401": { description: Missing or invalid signature or unknown endpoint. }
+        "409": { description: An event ID was reused with different raw content. }
+        "413": { description: Payload exceeds 1 MiB. }
+        "503": { description: Configuration unavailable or transient processing failure; delivery may be retried. }
   /api/tasks:
     parameters:
       - $ref: "#/components/parameters/TenantHeader"
@@ -3353,6 +3382,8 @@ components:
         status: { type: string, enum: [paid] }
         paid_at: { type: string, format: date-time, nullable: true }
         reference: { type: string, nullable: true }
+        payment_link_id: { type: integer, nullable: true }
+        provider_transaction_reference: { type: string, nullable: true }
         receipt_number: { type: string, nullable: true }
         idempotency_key: { type: string, nullable: true, description: Null only for historical payments predating the billing foundation. }
         created_at: { type: string, format: date-time, nullable: true }

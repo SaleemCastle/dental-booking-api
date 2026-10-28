@@ -7,9 +7,65 @@ use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Support\Facades\Http;
 
 /** HandyPay Ecommerce API 2025-01-01, https://api.handypay.me/api/openapi.json */
-final class HandyPayProvider implements PaymentProvider
+final class HandyPayProvider implements WebhookPaymentProvider
 {
     private const BASE_URL = 'https://api.handypay.me/api/v1';
+
+    public function verifyWebhook(#[\SensitiveParameter] string $body, #[\SensitiveParameter] string $signature, #[\SensitiveParameter] array $credentials): VerifiedPaymentEvent
+    {
+        $secret = $credentials['webhook_secret'] ?? null;
+        if (! is_string($secret) || $secret === '') {
+            throw new ProviderException('not_configured');
+        }
+        if (! preg_match('/\Asha256=([a-fA-F0-9]{64})\z/', $signature, $matches)
+            || ! hash_equals(hash_hmac('sha256', $body, $secret), strtolower($matches[1]))) {
+            throw new ProviderException('invalid_signature');
+        }
+        try {
+            $event = json_decode($body, true, 32, JSON_THROW_ON_ERROR);
+        } catch (\JsonException) {
+            throw new ProviderException('invalid_event');
+        }
+        if (! is_array($event) || ! is_string($event['id'] ?? null) || ! preg_match('/\Aevt_[A-Za-z0-9_]{1,240}\z/', $event['id'])
+            || ! is_string($event['type'] ?? null) || ! preg_match('/\A[a-z_.]{1,100}\z/', $event['type'])
+            || ! is_array($event['data'] ?? null) || (isset($event['livemode']) && ! is_bool($event['livemode']))) {
+            throw new ProviderException('invalid_event');
+        }
+        $data = $event['data']; // HandyPay forwards the resource directly in data, not data.object.
+        $status = match ($event['type']) {
+            'checkout.session.completed' => ($data['payment_status'] ?? null) === 'paid' ? 'completed' : 'pending',
+            'checkout.session.async_payment_succeeded', 'payment_intent.succeeded' => 'completed',
+            'checkout.session.expired' => 'expired',
+            'checkout.session.async_payment_failed' => 'failed',
+            // A declined card can be retried on the same hosted checkout; keep it outstanding.
+            'payment_intent.payment_failed' => ($data['status'] ?? null) === 'canceled' ? 'cancelled' : 'pending',
+            default => null,
+        };
+        if ($status === null) {
+            return new VerifiedPaymentEvent($event['id'], $event['type'], null);
+        }
+        $session = str_starts_with($event['type'], 'checkout.session.');
+        $reference = $data['id'] ?? null;
+        $operation = $data['metadata']['operation_key'] ?? null;
+        $amount = $session ? ($data['amount_total'] ?? null) : ($status === 'completed' ? ($data['amount_received'] ?? null) : null);
+        $currency = $data['currency'] ?? null;
+        $transaction = $session ? ($data['payment_intent'] ?? $reference) : $reference;
+        if (! is_string($reference) || ! preg_match($session ? '/\Acs_[A-Za-z0-9_]{1,240}\z/' : '/\Api_[A-Za-z0-9_]{1,240}\z/', $reference)
+            || ($operation !== null && (! is_string($operation) || ! \Illuminate\Support\Str::isUuid($operation)))
+            || ! is_string($transaction) || ! preg_match('/\A(?:pi|cs)_[A-Za-z0-9_]{1,240}\z/', $transaction)
+            || ($amount !== null && (! is_int($amount) || $amount < 0 || $amount > 99999999))
+            || ($currency !== null && (! is_string($currency) || ! preg_match('/\A[A-Za-z]{3}\z/', $currency)))
+            || ($status === 'completed' && ($amount === null || $currency === null
+                || ($session && ($data['payment_status'] ?? null) !== 'paid')
+                || (! $session && ($data['status'] ?? null) !== 'succeeded')))) {
+            throw new ProviderException('invalid_event');
+        }
+
+        return new VerifiedPaymentEvent(
+            $event['id'], $event['type'], $status, $session ? $reference : null, $operation,
+            $amount, $currency === null ? null : strtoupper($currency), $transaction, $event['livemode'] ?? null,
+        );
+    }
 
     public function createCheckout(CheckoutRequest $request, #[\SensitiveParameter] array $credentials): CheckoutResult
     {
@@ -73,7 +129,8 @@ final class HandyPayProvider implements PaymentProvider
             || ! in_array($data['status'] ?? null, ['open', 'complete', 'expired'], true)
             || (isset($data['amount_total']) && ! is_int($data['amount_total']))
             || (isset($data['currency']) && (! is_string($data['currency']) || ! preg_match('/\A[a-zA-Z]{3}\z/', $data['currency'])))
-            || (isset($data['expires_at']) && ! is_int($data['expires_at']))) {
+            || (isset($data['expires_at']) && ! is_int($data['expires_at']))
+            || (isset($data['payment_intent']) && (! is_string($data['payment_intent']) || ! preg_match('/\Api_[A-Za-z0-9_]{1,240}\z/', $data['payment_intent'])))) {
             throw new ProviderException('invalid_response', uncertain: $method === 'POST');
         }
 
@@ -87,6 +144,7 @@ final class HandyPayProvider implements PaymentProvider
             $data['id'], is_string($data['url'] ?? null) ? $data['url'] : null, $status,
             isset($data['expires_at']) ? new DateTimeImmutable('@'.$data['expires_at']) : null,
             $data['amount_total'] ?? null, isset($data['currency']) ? strtoupper($data['currency']) : null,
+            $data['payment_intent'] ?? $data['id'],
         );
     }
 }
