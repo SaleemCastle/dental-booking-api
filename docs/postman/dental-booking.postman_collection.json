@@ -1722,6 +1722,78 @@
             ]
         },
         {
+            "name": "Provider Availability",
+            "item": [
+                {
+                    "name": "GET Get provider scheduling rules",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/api/dentists/{{dentist_id}}/availability",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "dentists",
+                                "{{dentist_id}}",
+                                "availability"
+                            ],
+                            "query": []
+                        },
+                        "description": "Requires provider_availabilities.view or the admin role in the selected clinic. Returns configured false with empty lists for a provider without a saved schedule; such providers retain legacy overlap-only booking. Rules use the application timezone. Foreign-clinic providers return 404.\n\nGET /api/dentists/{dentist}/availability\nDomain writes require allow_writes=true. Missing required variables skip requests rather than selecting real records automatically."
+                    },
+                    "response": []
+                },
+                {
+                    "name": "PUT Replace provider scheduling rules",
+                    "request": {
+                        "method": "PUT",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            },
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/api/dentists/{{dentist_id}}/availability",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "dentists",
+                                "{{dentist_id}}",
+                                "availability"
+                            ],
+                            "query": []
+                        },
+                        "description": "Requires provider_availabilities.update or the admin role. All three lists must be present; empty weekly_hours closes unlisted dates. Exceptions replace weekly hours and breaks for their date; empty working_hours means a full day off. Day numbers are 0 (Sunday) through 6 (Saturday). Intervals must increase within one day; end_time may be 24:00. Split overnight hours across days. Overlapping or adjacent working windows form continuous coverage; breaks subtract availability. Existing appointments remain unchanged. Writes and minimal created/updated audits are atomic; identical payloads emit no audit. Provider-row locks coordinate rule changes with bookings. No per-room/chair hours are introduced. See docs/provider-availability.md.\n\nPUT /api/dentists/{dentist}/availability\nDomain writes require allow_writes=true. Missing required variables skip requests rather than selecting real records automatically.",
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"weekly_hours\": [\n        {\n            \"day_of_week\": 1,\n            \"start_time\": \"09:00\",\n            \"end_time\": \"17:00\"\n        },\n        {\n            \"day_of_week\": 2,\n            \"start_time\": \"09:00\",\n            \"end_time\": \"17:00\"\n        },\n        {\n            \"day_of_week\": 3,\n            \"start_time\": \"09:00\",\n            \"end_time\": \"17:00\"\n        },\n        {\n            \"day_of_week\": 4,\n            \"start_time\": \"09:00\",\n            \"end_time\": \"17:00\"\n        },\n        {\n            \"day_of_week\": 5,\n            \"start_time\": \"09:00\",\n            \"end_time\": \"17:00\"\n        }\n    ],\n    \"breaks\": [\n        {\n            \"day_of_week\": 1,\n            \"start_time\": \"12:00\",\n            \"end_time\": \"13:00\"\n        },\n        {\n            \"day_of_week\": 2,\n            \"start_time\": \"12:00\",\n            \"end_time\": \"13:00\"\n        },\n        {\n            \"day_of_week\": 3,\n            \"start_time\": \"12:00\",\n            \"end_time\": \"13:00\"\n        },\n        {\n            \"day_of_week\": 4,\n            \"start_time\": \"12:00\",\n            \"end_time\": \"13:00\"\n        },\n        {\n            \"day_of_week\": 5,\n            \"start_time\": \"12:00\",\n            \"end_time\": \"13:00\"\n        }\n    ],\n    \"exceptions\": []\n}\n",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        }
+                    },
+                    "response": []
+                }
+            ]
+        },
+        {
             "name": "Appointments",
             "item": [
                 {
@@ -1806,7 +1878,7 @@
                             ],
                             "query": []
                         },
-                        "description": "Requires appointments.create permission or the admin role. Creates a scheduled appointment. Accepts canonical snake_case fields and documented camelCase aliases; canonical values take precedence. Archived patients and inactive treatments cannot be selected. Duration defaults to the selected treatment duration or 30 minutes. Optional chair_id derives room_id when room_id is omitted. Provider, chair, and room overlaps with active appointments return 422, including across midnight; adjacent intervals are allowed. Offset timestamps are normalized to UTC. See docs/appointment-workflow.md for transition and locking rules.\n\nPOST /api/appointments\nDomain writes require allow_writes=true. Missing required variables skip requests rather than selecting real records automatically.",
+                        "description": "Requires appointments.create permission or the admin role. Creates a scheduled appointment. Accepts canonical snake_case fields and documented camelCase aliases; canonical values take precedence. Archived patients and inactive treatments cannot be selected. Duration defaults to the selected treatment duration or 30 minutes. Optional chair_id derives room_id when room_id is omitted. For configured providers the entire appointment must fit working hours after breaks and date overrides, otherwise returns 422 with dentist_id and appointment_date_time errors. Unconfigured providers retain legacy overlap-only booking. Provider, chair, and room overlaps with active appointments return 422, including across midnight; adjacent intervals are allowed. Offset timestamps are normalized to UTC. See docs/appointment-workflow.md for transition and locking rules.\n\nPOST /api/appointments\nDomain writes require allow_writes=true. Missing required variables skip requests rather than selecting real records automatically.",
                         "body": {
                             "mode": "raw",
                             "raw": "{\n    \"description\": \"Postman test data\",\n    \"patient_id\": \"{{patient_id}}\",\n    \"dentist_id\": \"{{dentist_id}}\",\n    \"appointment_date_time\": \"{{appointment_start}}\",\n    \"appointment_type\": \"Postman test data\"\n}\n",
@@ -1871,7 +1943,7 @@
                             ],
                             "query": []
                         },
-                        "description": "Requires appointments.update permission or the admin role. PATCH and PUT both accept partial updates and preserve omitted fields. Changes to provider, chair, room, start, treatment-derived duration, or explicit duration are checked for overlaps. Completed, cancelled, and no_show appointments cannot be rescheduled. Appointments with clinical notes, including soft-deleted notes, cannot change patient/provider. Appointments linked to tasks cannot change patient. Status changes use the workflow rules described in docs/appointment-workflow.md. Repeating the current status is idempotent and preserves timestamps.\n\nPATCH /api/appointments/{appointment}\nDomain writes require allow_writes=true. Missing required variables skip requests rather than selecting real records automatically.",
+                        "description": "Requires appointments.update permission or the admin role. PATCH and PUT both accept partial updates and preserve omitted fields. Active changes to provider, chair, room, start, treatment, or explicit duration validate configured provider availability and existing overlaps. Availability failures return 422 under dentist_id and appointment_date_time without saving changes. Notes and status-only updates remain possible after later schedule edits. Completed, cancelled, and no_show appointments cannot be rescheduled. Appointments with clinical notes, including soft-deleted notes, cannot change patient/provider. Appointments linked to tasks cannot change patient. Status changes use the workflow rules described in docs/appointment-workflow.md. Repeating the current status is idempotent and preserves timestamps.\n\nPATCH /api/appointments/{appointment}\nDomain writes require allow_writes=true. Missing required variables skip requests rather than selecting real records automatically.",
                         "body": {
                             "mode": "raw",
                             "raw": "{\n    \"description\": \"Postman updated test data\"\n}\n",

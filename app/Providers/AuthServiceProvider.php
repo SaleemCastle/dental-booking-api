@@ -11,6 +11,7 @@ use App\Models\Invoice;
 use App\Models\Patient;
 use App\Models\PatientDocument;
 use App\Models\Payment;
+use App\Models\ProviderAvailability;
 use App\Models\Task;
 use App\Models\Treatment;
 use App\Models\TreatmentPlan;
@@ -23,6 +24,7 @@ use App\Policies\InvoicePolicy;
 use App\Policies\PatientDocumentPolicy;
 use App\Policies\PatientPolicy;
 use App\Policies\PaymentPolicy;
+use App\Policies\ProviderAvailabilityPolicy;
 use App\Policies\TaskPolicy;
 use App\Policies\TreatmentPlanPolicy;
 use App\Policies\TreatmentPolicy;
@@ -48,6 +50,7 @@ class AuthServiceProvider extends ServiceProvider
         PatientDocument::class => PatientDocumentPolicy::class,
         Invoice::class => InvoicePolicy::class,
         Payment::class => PaymentPolicy::class,
+        ProviderAvailability::class => ProviderAvailabilityPolicy::class,
         Task::class => TaskPolicy::class,
         Treatment::class => TreatmentPolicy::class,
         TreatmentPlan::class => TreatmentPlanPolicy::class,

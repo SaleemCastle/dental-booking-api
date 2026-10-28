@@ -92,6 +92,15 @@ class PostmanExportTest extends TestCase
         }
     }
 
+    public function test_availability_sample_has_working_hours_a_lunch_break_and_no_fixed_date_override(): void
+    {
+        $body = $this->bodyFor('PUT', '/api/dentists/{{dentist_id}}/availability');
+        $this->assertCount(5, $body['weekly_hours']);
+        $this->assertSame(['day_of_week' => 1, 'start_time' => '09:00', 'end_time' => '17:00'], $body['weekly_hours'][0]);
+        $this->assertSame(['day_of_week' => 1, 'start_time' => '12:00', 'end_time' => '13:00'], $body['breaks'][0]);
+        $this->assertSame([], $body['exceptions']);
+    }
+
     public function test_request_bodies_are_json_objects_with_declared_variables(): void
     {
         $variables = array_fill_keys(array_column($this->export['environment']['values'], 'key'), 'test-value');

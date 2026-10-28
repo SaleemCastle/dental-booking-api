@@ -10,6 +10,7 @@ Phase 2 M0: records belong to the selected clinic, with existing history backfil
 | --- | --- | --- |
 | Patient create, general/medical edit, archive (including legacy API aliases) | `patients` / patient ID | `created`, `updated`, `archived` |
 | Appointment create, edit/reschedule, status transition (PATCH/PUT and check-in/complete/cancel endpoints) | `appointments` / appointment ID | `created`, `updated`, `status_changed` |
+| Replace provider working hours, breaks, and date exceptions | `provider_availabilities` / configuration ID | `created`, `updated` |
 | Clinical-note create, edit, soft-delete | `clinical_notes` / note ID | `created`, `updated`, `deleted` |
 | User API create, edit (including password), delete | `users` / target user ID | `created`, `updated`, `deleted` |
 | Public registration | `users` / newly created user ID | `created`, with null actor because the request is unauthenticated |

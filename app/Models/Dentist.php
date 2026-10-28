@@ -25,6 +25,11 @@ class Dentist extends Model
         return $this->hasMany(Appointment::class);
     }
 
+    public function availability()
+    {
+        return $this->hasOne(ProviderAvailability::class);
+    }
+
     public function referrals()
     {
         return $this->hasMany(Referral::class);

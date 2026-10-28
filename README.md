@@ -19,6 +19,8 @@ Private patient document uploads, S3 configuration, authorization, retrieval, ar
 
 The [billing contract](docs/billing.md) documents invoice snapshots, lifecycle, partial payments, idempotent retries, authorization, audits and legacy migration requirements.
 
+The [provider availability contract](docs/provider-availability.md) documents weekly working hours, breaks, date exceptions/time off, permissions, and booking/rescheduling enforcement.
+
 ## About Laravel
 
 Laravel is a web application framework with expressive, elegant syntax. We believe development must be an enjoyable and creative experience to be truly fulfilling. Laravel takes the pain out of development by easing common tasks used in many web projects, such as:

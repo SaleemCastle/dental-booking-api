@@ -14,6 +14,7 @@ tags:
   - name: Dashboard
   - name: Patients
   - name: Appointments
+  - name: Provider Availability
   - name: Dentists
   - name: Treatments
   - name: Invoices
@@ -782,6 +783,44 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/PatientEnvelope"
+  /api/dentists/{dentist}/availability:
+    parameters:
+      - $ref: "#/components/parameters/TenantHeader"
+      - $ref: "#/components/parameters/DentistId"
+    get:
+      tags: [Provider Availability]
+      summary: Get provider scheduling rules
+      description: Requires provider_availabilities.view or the admin role in the selected clinic. Returns configured false with empty lists for a provider without a saved schedule; such providers retain legacy overlap-only booking. Rules use the application timezone. Foreign-clinic providers return 404.
+      responses:
+        "200":
+          $ref: "#/components/responses/ProviderAvailabilityEnvelope"
+        "401":
+          $ref: "#/components/responses/Unauthenticated"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+    put:
+      tags: [Provider Availability]
+      summary: Replace provider scheduling rules
+      description: Requires provider_availabilities.update or the admin role. All three lists must be present; empty weekly_hours closes unlisted dates. Exceptions replace weekly hours and breaks for their date; empty working_hours means a full day off. Day numbers are 0 (Sunday) through 6 (Saturday). Intervals must increase within one day; end_time may be 24:00. Split overnight hours across days. Overlapping or adjacent working windows form continuous coverage; breaks subtract availability. Existing appointments remain unchanged. Writes and minimal created/updated audits are atomic; identical payloads emit no audit. Provider-row locks coordinate rule changes with bookings. No per-room/chair hours are introduced. See docs/provider-availability.md.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ProviderAvailabilityRequest"
+      responses:
+        "200":
+          $ref: "#/components/responses/ProviderAvailabilityEnvelope"
+        "401":
+          $ref: "#/components/responses/Unauthenticated"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "422":
+          $ref: "#/components/responses/ValidationError"
   /api/appointment-locations:
     parameters:
       - $ref: "#/components/parameters/TenantHeader"
@@ -848,7 +887,7 @@ paths:
     post:
       tags: [Appointments]
       summary: Create appointment
-      description: Requires appointments.create permission or the admin role. Creates a scheduled appointment. Accepts canonical snake_case fields and documented camelCase aliases; canonical values take precedence. Archived patients and inactive treatments cannot be selected. Duration defaults to the selected treatment duration or 30 minutes. Optional chair_id derives room_id when room_id is omitted. Provider, chair, and room overlaps with active appointments return 422, including across midnight; adjacent intervals are allowed. Offset timestamps are normalized to UTC. See docs/appointment-workflow.md for transition and locking rules.
+      description: Requires appointments.create permission or the admin role. Creates a scheduled appointment. Accepts canonical snake_case fields and documented camelCase aliases; canonical values take precedence. Archived patients and inactive treatments cannot be selected. Duration defaults to the selected treatment duration or 30 minutes. Optional chair_id derives room_id when room_id is omitted. For configured providers the entire appointment must fit working hours after breaks and date overrides, otherwise returns 422 with dentist_id and appointment_date_time errors. Unconfigured providers retain legacy overlap-only booking. Provider, chair, and room overlaps with active appointments return 422, including across midnight; adjacent intervals are allowed. Offset timestamps are normalized to UTC. See docs/appointment-workflow.md for transition and locking rules.
       requestBody:
         $ref: "#/components/requestBodies/AppointmentBody"
       responses:
@@ -888,7 +927,7 @@ paths:
     patch:
       tags: [Appointments]
       summary: Update appointment
-      description: Requires appointments.update permission or the admin role. PATCH and PUT both accept partial updates and preserve omitted fields. Changes to provider, chair, room, start, treatment-derived duration, or explicit duration are checked for overlaps. Completed, cancelled, and no_show appointments cannot be rescheduled. Appointments with clinical notes, including soft-deleted notes, cannot change patient/provider. Appointments linked to tasks cannot change patient. Status changes use the workflow rules described in docs/appointment-workflow.md. Repeating the current status is idempotent and preserves timestamps.
+      description: Requires appointments.update permission or the admin role. PATCH and PUT both accept partial updates and preserve omitted fields. Active changes to provider, chair, room, start, treatment, or explicit duration validate configured provider availability and existing overlaps. Availability failures return 422 under dentist_id and appointment_date_time without saving changes. Notes and status-only updates remain possible after later schedule edits. Completed, cancelled, and no_show appointments cannot be rescheduled. Appointments with clinical notes, including soft-deleted notes, cannot change patient/provider. Appointments linked to tasks cannot change patient. Status changes use the workflow rules described in docs/appointment-workflow.md. Repeating the current status is idempotent and preserves timestamps.
       requestBody:
         $ref: "#/components/requestBodies/AppointmentUpdateBody"
       responses:
@@ -1963,6 +2002,28 @@ components:
       required: true
       content: { application/json: { schema: { $ref: "#/components/schemas/ClinicalNoteUpdateRequest" } } }
   responses:
+    ProviderAvailabilityEnvelope:
+      description: Standard envelope containing data.availability, including whether rules have been configured.
+      content:
+        application/json:
+          schema:
+            allOf:
+              - $ref: "#/components/schemas/ApiEnvelope"
+              - type: object
+                properties:
+                  data:
+                    type: object
+                    required: [availability]
+                    properties:
+                      availability:
+                        allOf:
+                          - $ref: "#/components/schemas/ProviderAvailabilityRequest"
+                          - type: object
+                            required: [dentist_id, configured, timezone]
+                            properties:
+                              dentist_id: { type: integer }
+                              configured: { type: boolean }
+                              timezone: { type: string, example: UTC }
     PatientDocumentEnvelope:
       description: Standard envelope with data.document; private/no-store, no storage location.
       content:
@@ -2311,6 +2372,53 @@ components:
                     properties:
                       clinicalNote: { $ref: "#/components/schemas/ClinicalNote" }
   schemas:
+    AvailabilityPeriod:
+      type: object
+      additionalProperties: false
+      required: [start_time, end_time]
+      properties:
+        start_time: { type: string, pattern: '^(?:[01][0-9]|2[0-3]):[0-5][0-9]$', example: "09:00" }
+        end_time: { type: string, pattern: '^(?:(?:[01][0-9]|2[0-3]):[0-5][0-9]|24:00)$', example: "17:00" }
+    WeeklyAvailabilityPeriod:
+      type: object
+      additionalProperties: false
+      required: [day_of_week, start_time, end_time]
+      properties:
+        day_of_week: { type: integer, minimum: 0, maximum: 6, example: 2, description: "0 Sunday through 6 Saturday." }
+        start_time: { type: string, pattern: '^(?:[01][0-9]|2[0-3]):[0-5][0-9]$', example: "09:00" }
+        end_time: { type: string, pattern: '^(?:(?:[01][0-9]|2[0-3]):[0-5][0-9]|24:00)$', example: "17:00" }
+    ProviderAvailabilityRequest:
+      type: object
+      description: Complete replacement. All lists are required and may be empty. Ownership, timezone, and configured state are server-controlled. Interval objects only accept documented fields; dates must be unique. Every end must be later than its start.
+      required: [weekly_hours, breaks, exceptions]
+      properties:
+        weekly_hours:
+          type: array
+          maxItems: 100
+          items: { $ref: "#/components/schemas/WeeklyAvailabilityPeriod" }
+        breaks:
+          type: array
+          maxItems: 100
+          items: { $ref: "#/components/schemas/WeeklyAvailabilityPeriod" }
+        exceptions:
+          type: array
+          maxItems: 366
+          items:
+            type: object
+            additionalProperties: false
+            required: [date, working_hours, breaks]
+            properties:
+              date: { type: string, format: date, example: "2026-11-03" }
+              working_hours:
+                type: array
+                maxItems: 24
+                description: Replaces the weekly working hours for this date. Empty means a day off.
+                items: { $ref: "#/components/schemas/AvailabilityPeriod" }
+              breaks:
+                type: array
+                maxItems: 24
+                description: Replaces the recurring breaks for this date.
+                items: { $ref: "#/components/schemas/AvailabilityPeriod" }
     PatientDocument:
       type: object
       properties:
@@ -2816,7 +2924,7 @@ components:
         appointmentStatus: { type: string, enum: [scheduled], description: Frontend alias for status }
     AppointmentUpdateRequest:
       type: object
-      description: Only supplied fields change. A newly selected treatment supplies duration_minutes when explicit duration is omitted; an unchanged treatment preserves the current duration. Same-status retries preserve workflow timestamps. cancellation_reason may only be supplied when the resulting status is cancelled.
+      description: Only supplied fields change. A newly selected treatment supplies duration_minutes when explicit duration is omitted; an unchanged treatment preserves the current duration. Active appointments revalidate provider availability when provider, start, duration, treatment, room, or chair changes. Availability failures return 422 under dentist_id and appointment_date_time without persisting changes. Notes and status-only changes preserve existing bookings after schedule edits. Existing overlap checks still apply to active saves. Same-status retries preserve workflow timestamps. cancellation_reason may only be supplied when the resulting status is cancelled.
       properties:
         patient_id: { type: integer }
         dentist_id: { type: integer }

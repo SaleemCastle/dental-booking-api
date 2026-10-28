@@ -60,6 +60,7 @@ trait BelongsToTenant
     private static function tenantRelationships(): array
     {
         return [
+            'provider_availabilities' => ['dentist_id' => 'dentist'],
             'appointment' => ['patient_id' => 'patient', 'dentist_id' => 'dentist', 'treatment_id' => 'treatments', 'room_id' => 'rooms', 'chair_id' => 'chairs'],
             'chairs' => ['room_id' => 'rooms'],
             'invoices' => ['patient_id' => 'patient', 'appointment_id' => 'appointment'],
