@@ -402,6 +402,215 @@
             ]
         },
         {
+            "name": "Reporting",
+            "item": [
+                {
+                    "name": "GET Report appointment volume and current status by scheduled date",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/api/reports/appointments?date_from=2026-10-01&date_to=2026-10-31",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "reports",
+                                "appointments"
+                            ],
+                            "query": [
+                                {
+                                    "key": "date_from",
+                                    "value": "2026-10-01",
+                                    "disabled": false,
+                                    "description": "Inclusive calendar date in application timezone (UTC). Exact YYYY-MM-DD; required. At most 366 inclusive dates with date_to."
+                                },
+                                {
+                                    "key": "date_to",
+                                    "value": "2026-10-31",
+                                    "disabled": false,
+                                    "description": "Inclusive date, on/after date_from, at most 365 days later. Exact YYYY-MM-DD."
+                                },
+                                {
+                                    "key": "dentist_id",
+                                    "value": "{{dentist_id}}",
+                                    "disabled": true,
+                                    "description": "Optional provider ID within the selected clinic. Invalid, blank and foreign-clinic IDs return 422."
+                                }
+                            ]
+                        },
+                        "description": "Requires appointment read access. Counts every status by scheduled start in UTC, including cancellations/no-shows. Empty dates are omitted. Maximum 366 inclusive dates. Clinic-scoped, private/no-store; no patient fields. See docs/reporting.md for metric definitions and export strategy.\n\nGET /api/reports/appointments\nDomain writes require allow_writes=true. Missing required variables skip requests rather than selecting real records automatically."
+                    },
+                    "response": []
+                },
+                {
+                    "name": "GET Report provider activity and occupation of configured capacity",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/api/reports/providers?date_from=2026-10-01&date_to=2026-10-31&page=1&per_page=25",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "reports",
+                                "providers"
+                            ],
+                            "query": [
+                                {
+                                    "key": "date_from",
+                                    "value": "2026-10-01",
+                                    "disabled": false,
+                                    "description": "Inclusive calendar date in application timezone (UTC). Exact YYYY-MM-DD; required. At most 366 inclusive dates with date_to."
+                                },
+                                {
+                                    "key": "date_to",
+                                    "value": "2026-10-31",
+                                    "disabled": false,
+                                    "description": "Inclusive date, on/after date_from, at most 365 days later. Exact YYYY-MM-DD."
+                                },
+                                {
+                                    "key": "dentist_id",
+                                    "value": "{{dentist_id}}",
+                                    "disabled": true,
+                                    "description": "Optional provider ID within the selected clinic. Invalid, blank and foreign-clinic IDs return 422."
+                                },
+                                {
+                                    "key": "page",
+                                    "value": "1",
+                                    "disabled": false,
+                                    "description": "Optional filter; enable its checkbox to send it."
+                                },
+                                {
+                                    "key": "per_page",
+                                    "value": "25",
+                                    "disabled": false,
+                                    "description": "Optional filter; enable its checkbox to send it."
+                                }
+                            ]
+                        },
+                        "description": "Requires appointment read access. All current providers, including zero activity, ordered by ID. Capacity/occupied/utilization fields require provider_availabilities.view or admin; otherwise null. Unconfigured capacity is unknown; zero capacity has null utilization. Booked/completed minutes are planned durations by start date; occupied minutes union overlapping bookings intersected with current working hours minus breaks/time off, including cross-midnight carry-in. See docs/reporting.md. Private/no-store.\n\nGET /api/reports/providers\nDomain writes require allow_writes=true. Missing required variables skip requests rather than selecting real records automatically."
+                    },
+                    "response": []
+                },
+                {
+                    "name": "GET Report appointment and completed-procedure counts by treatment",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/api/reports/treatments?date_from=2026-10-01&date_to=2026-10-31&page=1&per_page=25",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "reports",
+                                "treatments"
+                            ],
+                            "query": [
+                                {
+                                    "key": "date_from",
+                                    "value": "2026-10-01",
+                                    "disabled": false,
+                                    "description": "Inclusive calendar date in application timezone (UTC). Exact YYYY-MM-DD; required. At most 366 inclusive dates with date_to."
+                                },
+                                {
+                                    "key": "date_to",
+                                    "value": "2026-10-31",
+                                    "disabled": false,
+                                    "description": "Inclusive date, on/after date_from, at most 365 days later. Exact YYYY-MM-DD."
+                                },
+                                {
+                                    "key": "dentist_id",
+                                    "value": "{{dentist_id}}",
+                                    "disabled": true,
+                                    "description": "Optional provider ID within the selected clinic. Invalid, blank and foreign-clinic IDs return 422."
+                                },
+                                {
+                                    "key": "page",
+                                    "value": "1",
+                                    "disabled": false,
+                                    "description": "Optional filter; enable its checkbox to send it."
+                                },
+                                {
+                                    "key": "per_page",
+                                    "value": "25",
+                                    "disabled": false,
+                                    "description": "Optional filter; enable its checkbox to send it."
+                                }
+                            ]
+                        },
+                        "description": "Requires both appointment and treatment catalog read access. One completed appointment counts as one occurrence of its assigned catalog treatment; plan proposals and invoice quantities do not imply performance. Null treatments are excluded; inactive treatments remain included. Ordered by treatment ID. Clinic-scoped and private/no-store. See docs/reporting.md.\n\nGET /api/reports/treatments\nDomain writes require allow_writes=true. Missing required variables skip requests rather than selecting real records automatically."
+                    },
+                    "response": []
+                },
+                {
+                    "name": "GET Report issued totals, current outstanding balances and period collections",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/api/reports/billing?date_from=2026-10-01&date_to=2026-10-31",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "reports",
+                                "billing"
+                            ],
+                            "query": [
+                                {
+                                    "key": "date_from",
+                                    "value": "2026-10-01",
+                                    "disabled": false,
+                                    "description": "Inclusive calendar date in application timezone (UTC). Exact YYYY-MM-DD; required. At most 366 inclusive dates with date_to."
+                                },
+                                {
+                                    "key": "date_to",
+                                    "value": "2026-10-31",
+                                    "disabled": false,
+                                    "description": "Inclusive date, on/after date_from, at most 365 days later. Exact YYYY-MM-DD."
+                                },
+                                {
+                                    "key": "dentist_id",
+                                    "value": "{{dentist_id}}",
+                                    "disabled": true,
+                                    "description": "Optional provider ID within the selected clinic. Invalid, blank and foreign-clinic IDs return 422."
+                                }
+                            ]
+                        },
+                        "description": "Requires BOTH invoice and payment read access (including Billing/Auditor/Admin roles). The invoice cohort uses issued_at and current issued/partially_paid/paid statuses; excludes drafts/voids. paid_total and outstanding_balance use current balances, including payments after date_to. Collections instead use payments.paid_at, including older invoices. Currency totals are separate decimal strings. Provider attribution uses invoice.appointment.dentist_id; unlinked invoices are excluded only when a provider filter is supplied. Current-data report without a cross-query snapshot. Private/no-store. See docs/reporting.md.\n\nGET /api/reports/billing\nDomain writes require allow_writes=true. Missing required variables skip requests rather than selecting real records automatically."
+                    },
+                    "response": []
+                }
+            ]
+        },
+        {
             "name": "Patient Documents",
             "item": [
                 {
@@ -4275,6 +4484,11 @@
             "type": "string"
         },
         {
+            "key": "dentist_id",
+            "value": "",
+            "type": "string"
+        },
+        {
             "key": "patient_id",
             "value": "",
             "type": "string"
@@ -4301,11 +4515,6 @@
         },
         {
             "key": "treatment_id",
-            "value": "",
-            "type": "string"
-        },
-        {
-            "key": "dentist_id",
             "value": "",
             "type": "string"
         },
