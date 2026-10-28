@@ -21,6 +21,8 @@ The [billing contract](docs/billing.md) documents invoice snapshots, lifecycle, 
 
 The [provider availability contract](docs/provider-availability.md) documents weekly working hours, breaks, date exceptions/time off, permissions, and booking/rescheduling enforcement.
 
+The [reporting contract](docs/reporting.md) defines permission-aware appointment, provider, treatment and billing aggregates, date/provider filters, utilization and financial calculations, pagination and the detailed-export strategy.
+
 ## About Laravel
 
 Laravel is a web application framework with expressive, elegant syntax. We believe development must be an enjoyable and creative experience to be truly fulfilling. Laravel takes the pain out of development by easing common tasks used in many web projects, such as:

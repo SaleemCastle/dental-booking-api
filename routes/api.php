@@ -14,6 +14,7 @@ use App\Http\Controllers\Api\PatientDocumentController;
 use App\Http\Controllers\Api\PaymentController;
 use App\Http\Controllers\Api\ProviderAvailabilityController;
 use App\Http\Controllers\Api\ReferralController;
+use App\Http\Controllers\Api\ReportController;
 use App\Http\Controllers\Api\RoleController;
 use App\Http\Controllers\Api\TaskController;
 use App\Http\Controllers\Api\TokenController;
@@ -65,6 +66,11 @@ Route::middleware(['auth:sanctum', 'tenant'])->group(function () {
     });
 
     Route::get('dashboard/summary', [DashboardController::class, 'summary']);
+
+    Route::get('reports/appointments', [ReportController::class, 'appointments']);
+    Route::get('reports/providers', [ReportController::class, 'providers']);
+    Route::get('reports/treatments', [ReportController::class, 'treatments']);
+    Route::get('reports/billing', [ReportController::class, 'billing']);
 
     Route::get('appointment-locations', [AppointmentLocationController::class, 'index']);
     Route::get('dentists/{dentist}/availability', [ProviderAvailabilityController::class, 'show']);
