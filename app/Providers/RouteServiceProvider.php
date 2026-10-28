@@ -29,6 +29,10 @@ class RouteServiceProvider extends ServiceProvider
         });
 
         $this->routes(function () {
+            // Provider callbacks use signatures, without browser sessions, CSRF or per-user API throttles.
+            Route::post('api/webhooks/handypay/{endpoint}', \App\Http\Controllers\Api\PaymentWebhookController::class)
+                ->whereUuid('endpoint');
+
             Route::middleware('api')
                 ->prefix('api')
                 ->group(base_path('routes/api.php'));

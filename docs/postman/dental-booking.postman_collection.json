@@ -134,6 +134,9 @@
                     "        if (pm.request.method === 'POST' && /\\/documents$/.test(path) && body.data.document) {",
                     "            pm.environment.set('document_id', String(body.data.document.id));",
                     "        }",
+                    "        if (pm.request.method === 'POST' && /\\/payment-links$/.test(path) && body.data.payment_link) {",
+                    "            pm.environment.set('payment_link_id', String(body.data.payment_link.id));",
+                    "        }",
                     "        if (path === '/api/user' && body.data.id) {",
                     "            pm.environment.set('current_user_id', String(body.data.id));",
                     "            if (!pm.environment.get('assignee_id')) pm.environment.set('assignee_id', String(body.data.id));",
@@ -3040,6 +3043,171 @@
             ]
         },
         {
+            "name": "Payment Links",
+            "item": [
+                {
+                    "name": "GET List invoice payment-link attempts",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/api/invoices/{{invoice_id}}/payment-links?page=1&per_page=15",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "invoices",
+                                "{{invoice_id}}",
+                                "payment-links"
+                            ],
+                            "query": [
+                                {
+                                    "key": "page",
+                                    "value": "1",
+                                    "disabled": false,
+                                    "description": "Optional filter; enable its checkbox to send it."
+                                },
+                                {
+                                    "key": "per_page",
+                                    "value": "15",
+                                    "disabled": false,
+                                    "description": "Optional filter; enable its checkbox to send it."
+                                }
+                            ]
+                        },
+                        "description": "Requires payment_links.view or Admin/Billing/Auditor. Private/no-store. Does not contact the gateway. See docs/payment-links.md.\n\nGET /api/invoices/{invoice}/payment-links\nDomain writes require allow_writes=true. Missing required variables skip requests rather than selecting real records automatically."
+                    },
+                    "response": []
+                },
+                {
+                    "name": "POST Create an invoice hosted checkout",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            },
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/api/invoices/{{invoice_id}}/payment-links",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "invoices",
+                                "{{invoice_id}}",
+                                "payment-links"
+                            ],
+                            "query": []
+                        },
+                        "description": "Requires payment_links.create or Admin/Billing. Server derives amount and currency from the issued invoice ledger under lock. Only one unresolved checkout per invoice. Unknown fields including card data and amount overrides are rejected. Keys are case-sensitive and scoped to the invoice. No settlement is recorded. Private/no-store. See docs/payment-links.md for reconciliation and HandyPay limits.\n\nPOST /api/invoices/{invoice}/payment-links\nDomain writes require allow_writes=true. Missing required variables skip requests rather than selecting real records automatically.",
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"idempotency_key\": \"checkout-2026-001\"\n}\n",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        }
+                    },
+                    "response": []
+                },
+                {
+                    "name": "GET Get stored hosted payment-link attempt",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/api/payment-links/{{payment_link_id}}",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "payment-links",
+                                "{{payment_link_id}}"
+                            ],
+                            "query": []
+                        },
+                        "description": "Requires payment_links.view or Admin/Billing/Auditor. Private/no-store. Never returns tenant credentials.\n\nGET /api/payment-links/{payment_link}\nDomain writes require allow_writes=true. Missing required variables skip requests rather than selecting real records automatically."
+                    },
+                    "response": []
+                },
+                {
+                    "name": "POST Refresh payment-link status from the provider",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/api/payment-links/{{payment_link_id}}/refresh",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "payment-links",
+                                "{{payment_link_id}}",
+                                "refresh"
+                            ],
+                            "query": []
+                        },
+                        "description": "Empty body. Requires payment_links.refresh or Admin/Billing. Audits confirmed changes without settling the invoice. Terminal statuses are no-ops. Private/no-store.\n\nPOST /api/payment-links/{payment_link}/refresh\nDomain writes require allow_writes=true. Missing required variables skip requests rather than selecting real records automatically."
+                    },
+                    "response": []
+                },
+                {
+                    "name": "POST Cancel a hosted payment link if supported by the provider",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/api/payment-links/{{payment_link_id}}/cancel",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "payment-links",
+                                "{{payment_link_id}}",
+                                "cancel"
+                            ],
+                            "query": []
+                        },
+                        "description": "Empty body. Requires payment_links.cancel or Admin/Billing. Cancellation is stored and audited only after provider confirmation. HandyPay hosted sessions currently return 409 PAYMENT_PROVIDER_OPERATION_UNSUPPORTED; the checkout remains outstanding. Private/no-store.\n\nPOST /api/payment-links/{payment_link}/cancel\nDomain writes require allow_writes=true. Missing required variables skip requests rather than selecting real records automatically."
+                    },
+                    "response": []
+                }
+            ]
+        },
+        {
             "name": "Tasks",
             "item": [
                 {
@@ -4535,6 +4703,11 @@
         },
         {
             "key": "payment_id",
+            "value": "",
+            "type": "string"
+        },
+        {
+            "key": "payment_link_id",
             "value": "",
             "type": "string"
         },

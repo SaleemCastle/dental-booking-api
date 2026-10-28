@@ -9,6 +9,7 @@ use App\Models\Appointment;
 use App\Models\Invoice;
 use App\Models\Patient;
 use App\Models\Payment;
+use App\Models\PaymentLink;
 use App\Models\Treatment;
 use App\Models\TreatmentPlan;
 use App\Models\TreatmentPlanItem;
@@ -107,6 +108,7 @@ class BillingWorkflow
                 $this->invalid('status', 'Issued invoice details are immutable.');
             }
             if ($status === 'void' && in_array($invoice->status, ['draft', 'issued'], true)) {
+                $this->assertNoOutstandingCheckout($invoice);
                 if ($invoice->payments()->exists()) {
                     $this->invalid('status', 'Invoices with payments require a refund workflow and cannot be voided.');
                 }
@@ -166,6 +168,7 @@ class BillingWorkflow
             if (! in_array($invoice->status, ['issued', 'partially_paid'], true)) {
                 $this->invalid('invoice_id', 'Payments require an issued invoice with an outstanding balance.');
             }
+            $this->assertNoOutstandingCheckout($invoice);
             if ($data['currency'] !== $invoice->currency) {
                 $this->invalid('currency', 'Payment currency must match the invoice.');
             }
@@ -197,6 +200,13 @@ class BillingWorkflow
         }
 
         return Validator::make($data, $rules)->validate();
+    }
+
+    private function assertNoOutstandingCheckout(Invoice $invoice): void
+    {
+        if ($invoice->paymentLinks()->whereIn('status', PaymentLink::OUTSTANDING)->exists()) {
+            $this->invalid('invoice_id', 'Resolve the outstanding hosted checkout before changing the collectible balance.');
+        }
     }
 
     private function invalid(string $field, string $message): never

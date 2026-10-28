@@ -27,4 +27,14 @@ class InvoicePolicy
     {
         return $user->hasAnyRole([Role::ADMIN, Role::BILLING]) || $user->canAccessResource('invoices', 'update');
     }
+
+    public function createPaymentLink(User $user, Invoice $invoice): bool
+    {
+        return (new PaymentLinkPolicy)->create($user);
+    }
+
+    public function viewPaymentLinks(User $user, Invoice $invoice): bool
+    {
+        return (new PaymentLinkPolicy)->viewAny($user);
+    }
 }

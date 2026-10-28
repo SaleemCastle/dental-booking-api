@@ -11,6 +11,7 @@ use App\Models\Invoice;
 use App\Models\Patient;
 use App\Models\PatientDocument;
 use App\Models\Payment;
+use App\Models\PaymentLink;
 use App\Models\ProviderAvailability;
 use App\Models\Task;
 use App\Models\Treatment;
@@ -23,6 +24,7 @@ use App\Policies\DentalChartRevisionPolicy;
 use App\Policies\InvoicePolicy;
 use App\Policies\PatientDocumentPolicy;
 use App\Policies\PatientPolicy;
+use App\Policies\PaymentLinkPolicy;
 use App\Policies\PaymentPolicy;
 use App\Policies\ProviderAvailabilityPolicy;
 use App\Policies\TaskPolicy;
@@ -50,6 +52,7 @@ class AuthServiceProvider extends ServiceProvider
         PatientDocument::class => PatientDocumentPolicy::class,
         Invoice::class => InvoicePolicy::class,
         Payment::class => PaymentPolicy::class,
+        PaymentLink::class => PaymentLinkPolicy::class,
         ProviderAvailability::class => ProviderAvailabilityPolicy::class,
         Task::class => TaskPolicy::class,
         Treatment::class => TreatmentPolicy::class,
@@ -82,6 +85,7 @@ class AuthServiceProvider extends ServiceProvider
                 || $resource instanceof TreatmentPlan || $resource === TreatmentPlan::class
                 || $resource instanceof Invoice || $resource === Invoice::class
                 || $resource instanceof Payment || $resource === Payment::class
+                || $resource instanceof PaymentLink || $resource === PaymentLink::class
                 || $resource instanceof AuditLog || $resource === AuditLog::class) {
                 return null;
             }

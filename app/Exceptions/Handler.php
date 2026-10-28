@@ -2,6 +2,7 @@
 
 namespace App\Exceptions;
 
+use App\Billing\Providers\ProviderException;
 use App\Support\ApiResponse;
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Auth\AuthenticationException;
@@ -27,6 +28,9 @@ class Handler extends ExceptionHandler
         'current_password',
         'password',
         'password_confirmation',
+        'api_key',
+        'webhook_secret',
+        'credentials',
     ];
 
     /**
@@ -34,6 +38,7 @@ class Handler extends ExceptionHandler
      */
     public function register(): void
     {
+        $this->dontReport[] = ProviderException::class;
         $this->reportable(function (Throwable $e) {
             //
         });
@@ -43,6 +48,15 @@ class Handler extends ExceptionHandler
     {
         if (! $this->shouldReturnApiResponse($request)) {
             return parent::render($request, $e);
+        }
+
+        if ($e instanceof ProviderException) {
+            return ApiResponse::error(
+                message: 'The payment provider could not complete this operation.',
+                statusCode: $e->httpStatus(),
+                code: $e->apiCode(),
+                request: $request,
+            )->header('Cache-Control', 'private, no-store');
         }
 
         if ($e instanceof ValidationException) {
