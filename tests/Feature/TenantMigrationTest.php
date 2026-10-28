@@ -39,6 +39,8 @@ class TenantMigrationTest extends TestCase
     public function test_phase_one_records_ids_links_and_history_survive_migration(): void
     {
         // Exercise the Phase 1 schema before the later billing foundation exists.
+        $paymentLinks = require database_path('migrations/2026_10_28_000001_create_payment_links.php');
+        $paymentLinks->down();
         $reporting = require database_path('migrations/2026_10_28_000001_add_reporting_indexes.php');
         $reporting->down();
         $availability = require database_path('migrations/2026_10_27_000002_create_provider_availabilities.php');
@@ -89,6 +91,7 @@ class TenantMigrationTest extends TestCase
         $documents->up();
         $availability->up();
         $reporting->up();
+        $paymentLinks->up();
 
         $tenantId = DB::table('tenants')->where('slug', Tenant::DEFAULT_SLUG)->value('id');
         foreach ($before as $table => $records) {

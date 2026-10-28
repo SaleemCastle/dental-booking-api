@@ -12,6 +12,7 @@ use App\Http\Controllers\Api\MessageController;
 use App\Http\Controllers\Api\PatientController;
 use App\Http\Controllers\Api\PatientDocumentController;
 use App\Http\Controllers\Api\PaymentController;
+use App\Http\Controllers\Api\PaymentLinkController;
 use App\Http\Controllers\Api\ProviderAvailabilityController;
 use App\Http\Controllers\Api\ReferralController;
 use App\Http\Controllers\Api\ReportController;
@@ -113,6 +114,11 @@ Route::middleware(['auth:sanctum', 'tenant'])->group(function () {
     Route::apiResource('treatments', TreatmentController::class);
     Route::apiResource('invoices', InvoiceController::class)->except('destroy');
     Route::apiResource('payments', PaymentController::class)->only(['index', 'store', 'show']);
+    Route::get('invoices/{invoice}/payment-links', [PaymentLinkController::class, 'index']);
+    Route::post('invoices/{invoice}/payment-links', [PaymentLinkController::class, 'store']);
+    Route::get('payment-links/{payment_link}', [PaymentLinkController::class, 'show']);
+    Route::post('payment-links/{payment_link}/cancel', [PaymentLinkController::class, 'cancel']);
+    Route::post('payment-links/{payment_link}/refresh', [PaymentLinkController::class, 'refresh']);
     Route::apiResource('clinical-notes', ClinicalNoteController::class);
     Route::apiResource('tasks', TaskController::class);
 

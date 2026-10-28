@@ -19,6 +19,7 @@ tags:
   - name: Treatments
   - name: Invoices
   - name: Payments
+  - name: Payment Links
   - name: Clinical Notes
   - name: Tasks
   - name: Messages
@@ -1413,6 +1414,105 @@ paths:
       responses:
         "200":
           $ref: "#/components/responses/PaymentEnvelope"
+  /api/invoices/{invoice}/payment-links:
+    parameters:
+      - { $ref: "#/components/parameters/TenantHeader" }
+      - { $ref: "#/components/parameters/InvoiceId" }
+    get:
+      tags: [Payment Links]
+      summary: List invoice payment-link attempts
+      description: Requires payment_links.view or Admin/Billing/Auditor. Private/no-store. Does not contact the gateway. See docs/payment-links.md.
+      parameters:
+        - { name: page, in: query, schema: { type: integer, minimum: 1, default: 1 } }
+        - { name: per_page, in: query, schema: { type: integer, minimum: 1, maximum: 100, default: 15 } }
+      responses:
+        "200":
+          description: Paginated payment-link array with standard meta.pagination.
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - { $ref: "#/components/schemas/ApiEnvelope" }
+                  - properties:
+                      data: { type: array, items: { $ref: "#/components/schemas/PaymentLink" } }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "422": { $ref: "#/components/responses/ValidationError" }
+    post:
+      tags: [Payment Links]
+      summary: Create an invoice hosted checkout
+      description: Requires payment_links.create or Admin/Billing. Server derives amount and currency from the issued invoice ledger under lock. Only one unresolved checkout per invoice. Unknown fields including card data and amount overrides are rejected. Keys are case-sensitive and scoped to the invoice. No settlement is recorded. Private/no-store. See docs/payment-links.md for reconciliation and HandyPay limits.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required: [idempotency_key]
+              properties:
+                idempotency_key: { type: string, maxLength: 100, pattern: '^[A-Za-z0-9._:-]+$', example: checkout-2026-001 }
+      responses:
+        "201": { $ref: "#/components/responses/PaymentLinkEnvelope" }
+        "200": { $ref: "#/components/responses/PaymentLinkEnvelope" }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "409": { $ref: "#/components/responses/PaymentProviderError" }
+        "422": { $ref: "#/components/responses/ValidationError" }
+        "502": { $ref: "#/components/responses/PaymentProviderError" }
+        "503": { $ref: "#/components/responses/PaymentProviderError" }
+        "504": { $ref: "#/components/responses/PaymentProviderError" }
+  /api/payment-links/{payment_link}:
+    parameters:
+      - { $ref: "#/components/parameters/TenantHeader" }
+      - { $ref: "#/components/parameters/PaymentLinkId" }
+    get:
+      tags: [Payment Links]
+      summary: Get stored hosted payment-link attempt
+      description: Requires payment_links.view or Admin/Billing/Auditor. Private/no-store. Never returns tenant credentials.
+      responses:
+        "200": { $ref: "#/components/responses/PaymentLinkEnvelope" }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+  /api/payment-links/{payment_link}/refresh:
+    parameters:
+      - { $ref: "#/components/parameters/TenantHeader" }
+      - { $ref: "#/components/parameters/PaymentLinkId" }
+    post:
+      tags: [Payment Links]
+      summary: Refresh payment-link status from the provider
+      description: Empty body. Requires payment_links.refresh or Admin/Billing. Audits confirmed changes without settling the invoice. Terminal statuses are no-ops. Private/no-store.
+      responses:
+        "200": { $ref: "#/components/responses/PaymentLinkEnvelope" }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "409": { $ref: "#/components/responses/PaymentProviderError" }
+        "422": { $ref: "#/components/responses/ValidationError" }
+        "502": { $ref: "#/components/responses/PaymentProviderError" }
+        "503": { $ref: "#/components/responses/PaymentProviderError" }
+        "504": { $ref: "#/components/responses/PaymentProviderError" }
+  /api/payment-links/{payment_link}/cancel:
+    parameters:
+      - { $ref: "#/components/parameters/TenantHeader" }
+      - { $ref: "#/components/parameters/PaymentLinkId" }
+    post:
+      tags: [Payment Links]
+      summary: Cancel a hosted payment link if supported by the provider
+      description: Empty body. Requires payment_links.cancel or Admin/Billing. Cancellation is stored and audited only after provider confirmation. HandyPay hosted sessions currently return 409 PAYMENT_PROVIDER_OPERATION_UNSUPPORTED; the checkout remains outstanding. Private/no-store.
+      responses:
+        "200": { $ref: "#/components/responses/PaymentLinkEnvelope" }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "409": { $ref: "#/components/responses/PaymentProviderError" }
+        "422": { $ref: "#/components/responses/ValidationError" }
+        "502": { $ref: "#/components/responses/PaymentProviderError" }
+        "503": { $ref: "#/components/responses/PaymentProviderError" }
+        "504": { $ref: "#/components/responses/PaymentProviderError" }
   /api/tasks:
     parameters:
       - $ref: "#/components/parameters/TenantHeader"
@@ -2040,6 +2140,7 @@ components:
       in: cookie
       name: laravel_session
   parameters:
+    PaymentLinkId: { name: payment_link, in: path, required: true, schema: { type: integer, example: 1 } }
     ReportDateFrom:
       name: date_from
       in: query
@@ -2430,6 +2531,23 @@ components:
                     type: object
                     properties:
                       invoice: { $ref: "#/components/schemas/Invoice" }
+    PaymentLinkEnvelope:
+      description: Stored hosted checkout attempt. No merchant secrets or card data.
+      content:
+        application/json:
+          schema:
+            allOf:
+              - { $ref: "#/components/schemas/ApiEnvelope" }
+              - properties:
+                  data:
+                    type: object
+                    properties:
+                      payment_link: { $ref: "#/components/schemas/PaymentLink" }
+    PaymentProviderError:
+      description: Sanitized provider failure. Codes include PAYMENT_PROVIDER_NOT_CONFIGURED, PAYMENT_PROVIDER_TIMEOUT, PAYMENT_PROVIDER_RATE_LIMITED, PAYMENT_PROVIDER_OPERATION_UNSUPPORTED, PAYMENT_LINK_IN_PROGRESS, PAYMENT_LINK_RECONCILIATION_REQUIRED and PAYMENT_PROVIDER_ERROR. Upstream payloads and credentials are never returned.
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/ApiErrorEnvelope" }
     PaymentList:
       description: Paginated payment array; meta.pagination uses the standard pagination contract.
       content:
@@ -3209,6 +3327,21 @@ components:
         - required: [treatment_id]
         - required: [treatment_plan_item_id]
         - required: [description, unit_price]
+    PaymentLink:
+      type: object
+      properties:
+        id: { type: integer }
+        invoice_id: { type: integer }
+        provider: { type: string, example: handypay }
+        external_reference: { type: string, nullable: true }
+        checkout_url: { type: string, format: uri, nullable: true, description: HTTPS hosted URL exposed only while active. }
+        expires_at: { type: string, format: date-time, nullable: true, description: Null when the provider does not supply expiry. }
+        status: { type: string, enum: [creating, active, pending, completed, expired, cancelled, failed, unknown] }
+        amount: { type: string, example: "75.00" }
+        currency: { type: string, example: JMD }
+        idempotency_key: { type: string }
+        created_at: { type: string, format: date-time }
+        updated_at: { type: string, format: date-time }
     Payment:
       type: object
       properties:

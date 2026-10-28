@@ -101,6 +101,13 @@ class PostmanExportTest extends TestCase
         $this->assertSame([], $body['exceptions']);
     }
 
+    public function test_payment_link_creation_only_accepts_an_idempotency_key(): void
+    {
+        $body = $this->bodyFor('POST', '/api/invoices/{{invoice_id}}/payment-links');
+        $this->assertSame(['idempotency_key' => 'checkout-2026-001'], $body);
+        $this->assertSame('', array_column($this->export['environment']['values'], 'value', 'key')['payment_link_id']);
+    }
+
     public function test_request_bodies_are_json_objects_with_declared_variables(): void
     {
         $variables = array_fill_keys(array_column($this->export['environment']['values'], 'key'), 'test-value');

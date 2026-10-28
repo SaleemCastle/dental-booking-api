@@ -1,6 +1,6 @@
 # Billing API contract
 
-Billing is provider neutral. It records settled payments; it does not initiate charges, tokenize cards, handle webhooks or implement refunds. Future gateway adapters must verify settlement outside this domain, map their event to the documented payment fields and call `BillingWorkflow::recordPayment` with an authorized clinic member. Do not add gateway clients, credentials or card payloads to invoices or payments.
+Billing is provider neutral. It records settled payments; it does not initiate charges, tokenize cards, handle webhooks or implement refunds. M1 adds a separate [hosted payment-link workflow](payment-links.md) with a provider adapter boundary. Gateway adapters must verify settlement outside the ledger domain, map their event to the documented payment fields and call `BillingWorkflow::recordPayment` with an authorized clinic member. Outstanding hosted checkouts block manual settlement and voiding until resolved, preventing stale payable amounts. Do not add gateway clients, credentials or card payloads to invoices or payments.
 
 All endpoints require Sanctum authentication and active clinic membership, use the existing `X-Tenant-Id` selection and return the standard response envelope. Foreign invoice/payment route IDs return 404. Foreign relationship IDs return 422. Successful reads and writes are private/no-store.
 

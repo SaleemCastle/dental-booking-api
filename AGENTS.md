@@ -4,7 +4,7 @@
 Selected Region: us-east-2
 AWS CLI profile: default
 AWS experience: The new AWS experience
-help_level: HIGH
+help_level: MEDIUM
 
 # AWS Guidance for the new AWS experience
 
