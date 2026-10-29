@@ -101,7 +101,7 @@ Middleware clears cached user roles before use and on exit, and restores request
 
 ## Queue/job propagation contract
 
-There are currently no clinic jobs. New jobs, queued listeners, notifications, exports, and scheduled commands that access clinic data must follow this contract:
+The communications outbox and scheduled `communications:work` worker implement the trusted orchestration path described below; see [communications.md](communications.md). New jobs, queued listeners, notifications, exports, and scheduled commands that access clinic data must follow this contract:
 
 1. At dispatch, capture the tenant with `TenantContext::requireId()` inside the verified request/context, plus the acting user's ID for user-initiated work. Store only scalar tenant/actor/resource IDs in the job payload. Never copy tenant selection directly from request input, serialize the context/service/request, or serialize Eloquent clinical models with `SerializesModels`: Laravel can restore those models before job middleware runs and without the clinic scope.
 2. At execution and on every retry, reload the actor and resolve the captured tenant through `TenantResolver`. Missing/deleted actors, revoked memberships, and inactive/deleted clinics must stop processing before any clinical query/write. Recheck the relevant policy/permission inside the established context; membership alone does not authorize an operation. Treat authorization failures as terminal job failures, not reasons to fall back to the default or another membership.

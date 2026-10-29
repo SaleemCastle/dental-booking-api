@@ -420,6 +420,9 @@ if (body) {
         if (pm.request.method === 'POST' && /\/payment-links$/.test(path) && body.data.payment_link) {
             pm.environment.set('payment_link_id', String(body.data.payment_link.id));
         }
+        if (pm.request.method === 'POST' && /\/contacts$/.test(path) && body.data.contact) {
+            pm.environment.set('contact_id', String(body.data.contact.id));
+        }
         if (path === '/api/user' && body.data.id) {
             pm.environment.set('current_user_id', String(body.data.id));
             if (!pm.environment.get('assignee_id')) pm.environment.set('assignee_id', String(body.data.id));

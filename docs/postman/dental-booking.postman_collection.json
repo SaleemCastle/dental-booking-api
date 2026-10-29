@@ -137,6 +137,9 @@
                     "        if (pm.request.method === 'POST' && /\\/payment-links$/.test(path) && body.data.payment_link) {",
                     "            pm.environment.set('payment_link_id', String(body.data.payment_link.id));",
                     "        }",
+                    "        if (pm.request.method === 'POST' && /\\/contacts$/.test(path) && body.data.contact) {",
+                    "            pm.environment.set('contact_id', String(body.data.contact.id));",
+                    "        }",
                     "        if (path === '/api/user' && body.data.id) {",
                     "            pm.environment.set('current_user_id', String(body.data.id));",
                     "            if (!pm.environment.get('assignee_id')) pm.environment.set('assignee_id', String(body.data.id));",
@@ -399,6 +402,188 @@
                         "auth": {
                             "type": "noauth"
                         }
+                    },
+                    "response": []
+                }
+            ]
+        },
+        {
+            "name": "Communications",
+            "item": [
+                {
+                    "name": "GET List the patient's communication contacts",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/api/patients/{{patient_id}}/contacts",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "patients",
+                                "{{patient_id}}",
+                                "contacts"
+                            ],
+                            "query": []
+                        },
+                        "description": "Requires patient view permission. Returns contacts including addresses, verification and revocation metadata. See docs/communications.md.\n\nGET /api/patients/{patient}/contacts\nDomain writes require allow_writes=true. Missing required variables skip requests rather than selecting real records automatically."
+                    },
+                    "response": []
+                },
+                {
+                    "name": "POST Register an unverified patient or authorized billing-copy contact",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            },
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/api/patients/{{patient_id}}/contacts",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "patients",
+                                "{{patient_id}}",
+                                "contacts"
+                            ],
+                            "query": []
+                        },
+                        "description": "Requires patient update permission. Verification and ownership fields cannot be supplied. A billing_copy must be authorized for this patient's named events; emergency contacts are never implicit recipients.\n\nPOST /api/patients/{patient}/contacts\nDomain writes require allow_writes=true. Missing required variables skip requests rather than selecting real records automatically.",
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"channel\": \"email\",\n    \"address\": \"patient@example.test\",\n    \"role\": \"patient\",\n    \"authorized_events\": [\n        \"payment.recorded\"\n    ]\n}\n",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        }
+                    },
+                    "response": []
+                },
+                {
+                    "name": "POST Attest verified contact control and patient billing disclosure authorization",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            },
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/api/patients/{{patient_id}}/contacts/{{contact_id}}/verify",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "patients",
+                                "{{patient_id}}",
+                                "contacts",
+                                "{{contact_id}}",
+                                "verify"
+                            ],
+                            "query": []
+                        },
+                        "description": "Requires patient update permission. Staff must verify the address and recipient relationship in person or by verified callback. This records staff attestation, not an automated verification challenge. Revoked contacts cannot be reverified.\n\nPOST /api/patients/{patient}/contacts/{contact}/verify\nDomain writes require allow_writes=true. Missing required variables skip requests rather than selecting real records automatically.",
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"verification_method\": \"in_person\"\n}\n",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        }
+                    },
+                    "response": []
+                },
+                {
+                    "name": "DELETE Revoke communication authorization and preserve contact history",
+                    "request": {
+                        "method": "DELETE",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/api/patients/{{patient_id}}/contacts/{{contact_id}}",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "patients",
+                                "{{patient_id}}",
+                                "contacts",
+                                "{{contact_id}}"
+                            ],
+                            "query": []
+                        },
+                        "description": "Requires patient update permission. Stops unsent deliveries using this contact. Does not erase history or resend prior events.\n\nDELETE /api/patients/{patient}/contacts/{contact}\nDomain writes require allow_writes=true. Missing required variables skip requests rather than selecting real records automatically."
+                    },
+                    "response": []
+                },
+                {
+                    "name": "GET Inspect invoice communication and delivery history",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/api/invoices/{{invoice_id}}/communications?per_page=15&page=1",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "invoices",
+                                "{{invoice_id}}",
+                                "communications"
+                            ],
+                            "query": [
+                                {
+                                    "key": "per_page",
+                                    "value": "15",
+                                    "disabled": false,
+                                    "description": "Optional filter; enable its checkbox to send it."
+                                },
+                                {
+                                    "key": "page",
+                                    "value": "1",
+                                    "disabled": false,
+                                    "description": "Optional filter; enable its checkbox to send it."
+                                }
+                            ]
+                        },
+                        "description": "Requires invoice view permission. Tenant-scoped and private/no-store. Excludes addresses, recipient hashes, operation keys, message bodies, variables, credentials and checkout URLs. Configuration is managed by a trusted operator command. See docs/communications.md for worker and retry semantics.\n\nGET /api/invoices/{invoice}/communications\nDomain writes require allow_writes=true. Missing required variables skip requests rather than selecting real records automatically."
                     },
                     "response": []
                 }
@@ -3039,6 +3224,49 @@
                         "description": "GET /api/payments/{payment}\nDomain writes require allow_writes=true. Missing required variables skip requests rather than selecting real records automatically."
                     },
                     "response": []
+                },
+                {
+                    "name": "POST Receive a signed HandyPay payment event",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            },
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/api/webhooks/handypay/{{endpoint_id}}",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "webhooks",
+                                "handypay",
+                                "{{endpoint_id}}"
+                            ],
+                            "query": []
+                        },
+                        "description": "Uses the credential revision identified by endpoint, independent of browser authentication and X-Tenant-Id. Verifies HMAC-SHA256 against the exact raw body before parsing. Event receipt and settlement commit atomically. Duplicates are idempotent. Unknown events are ignored. Signed unmatched or conflicting events are retained for operator reconciliation and acknowledged; identical redelivery can retry unresolved events. Raw payloads are never stored or logged.\n\nPOST /api/webhooks/handypay/{endpoint}\nDomain writes require allow_writes=true. Missing required variables skip requests rather than selecting real records automatically.",
+                        "auth": {
+                            "type": "noauth"
+                        },
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"id\": \"evt_abc123\",\n    \"type\": \"checkout.session.completed\",\n    \"data\": \"Postman test data\"\n}\n",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        }
+                    },
+                    "response": []
                 }
             ]
         },
@@ -3112,7 +3340,7 @@
                             ],
                             "query": []
                         },
-                        "description": "Requires payment_links.create or Admin/Billing. Server derives amount and currency from the issued invoice ledger under lock. Only one unresolved checkout per invoice. Unknown fields including card data and amount overrides are rejected. Keys are case-sensitive and scoped to the invoice. No settlement is recorded. Private/no-store. See docs/payment-links.md for reconciliation and HandyPay limits.\n\nPOST /api/invoices/{invoice}/payment-links\nDomain writes require allow_writes=true. Missing required variables skip requests rather than selecting real records automatically.",
+                        "description": "Requires payment_links.create or Admin/Billing. Server derives amount and currency from the issued invoice ledger under lock. Only one unresolved checkout per invoice. Unknown fields including card data and amount overrides are rejected. Keys are case-sensitive and scoped to the invoice. Only verified server-to-server paid results can settle the ledger. Private/no-store. See docs/payment-links.md for reconciliation and HandyPay limits.\n\nPOST /api/invoices/{invoice}/payment-links\nDomain writes require allow_writes=true. Missing required variables skip requests rather than selecting real records automatically.",
                         "body": {
                             "mode": "raw",
                             "raw": "{\n    \"idempotency_key\": \"checkout-2026-001\"\n}\n",
@@ -3174,7 +3402,7 @@
                             ],
                             "query": []
                         },
-                        "description": "Empty body. Requires payment_links.refresh or Admin/Billing. Audits confirmed changes without settling the invoice. Terminal statuses are no-ops. Private/no-store.\n\nPOST /api/payment-links/{payment_link}/refresh\nDomain writes require allow_writes=true. Missing required variables skip requests rather than selecting real records automatically."
+                        "description": "Empty body. Requires payment_links.refresh or Admin/Billing. A verified paid session with matching amount and currency records one ledger payment and updates the invoice balance. Settled terminal statuses are no-ops; historical completed-but-unsettled sessions can be reconciled. Browser parameters cannot prove payment. Private/no-store.\n\nPOST /api/payment-links/{payment_link}/refresh\nDomain writes require allow_writes=true. Missing required variables skip requests rather than selecting real records automatically."
                     },
                     "response": []
                 },
@@ -4652,12 +4880,22 @@
             "type": "string"
         },
         {
-            "key": "dentist_id",
+            "key": "patient_id",
             "value": "",
             "type": "string"
         },
         {
-            "key": "patient_id",
+            "key": "contact_id",
+            "value": "",
+            "type": "string"
+        },
+        {
+            "key": "invoice_id",
+            "value": "",
+            "type": "string"
+        },
+        {
+            "key": "dentist_id",
             "value": "",
             "type": "string"
         },
@@ -4697,17 +4935,17 @@
             "type": "string"
         },
         {
-            "key": "invoice_id",
-            "value": "",
-            "type": "string"
-        },
-        {
             "key": "payment_id",
             "value": "",
             "type": "string"
         },
         {
             "key": "payment_link_id",
+            "value": "",
+            "type": "string"
+        },
+        {
+            "key": "endpoint_id",
             "value": "",
             "type": "string"
         },

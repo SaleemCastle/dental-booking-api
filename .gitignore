@@ -24,6 +24,7 @@ yarn-error.log
 !/docs/patient-documents.md
 !/docs/billing.md
 !/docs/payment-links.md
+!/docs/communications.md
 !/docs/provider-availability.md
 !/docs/reporting.md
 !/docs/postman.md

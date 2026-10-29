@@ -61,6 +61,9 @@ final class PaymentSettlement
         ]);
         $this->auditLogs->record('recorded', 'payments', $payment->id, $actorId);
         $this->auditLogs->record($invoice->status, 'invoices', $invoice->id, $actorId);
+        // The provider result is authoritative even when staff initiated the lookup.
+        // Delivery must not depend on that staff member retaining payment-entry access.
+        app(ClinicNotificationService::class)->paymentRecorded($payment->id, null);
         $configuration = $link->configuration;
         if (str_starts_with($configuration->credentials['api_key'] ?? '', 'hp_test_') && $configuration->sandbox_verified_at === null) {
             $configuration->sandbox_verified_at = now('UTC');

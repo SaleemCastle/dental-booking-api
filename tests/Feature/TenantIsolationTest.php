@@ -433,6 +433,13 @@ class TenantIsolationTest extends TestCase
 
                 continue;
             }
+            // Provider callbacks authenticate their exact raw body with the tenant endpoint's signing secret.
+            if ($route->uri() === 'api/webhooks/handypay/{endpoint}') {
+                $this->assertSame(['POST'], $route->methods());
+                $this->assertSame(\App\Http\Controllers\Api\PaymentWebhookController::class, $route->getActionName());
+
+                continue;
+            }
             $this->assertContains('auth:sanctum', $route->gatherMiddleware(), $route->uri());
             $this->assertContains('tenant', $route->gatherMiddleware(), $route->uri());
         }

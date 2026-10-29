@@ -21,6 +21,8 @@ The [billing contract](docs/billing.md) documents invoice snapshots, lifecycle, 
 
 The [hosted payment-link contract](docs/payment-links.md) covers the HandyPay adapter, signed webhook and status reconciliation, invoice-controlled checkout amounts, sandbox rollout checks, credential revisions, idempotency, audits and provider limitations.
 
+The [transactional communications contract](docs/communications.md) covers verified patient contacts, tenant senders, payment receipts and checkout notices, event-specific authorized copies, encrypted outbox delivery, retries, status tracking and worker setup.
+
 The [provider availability contract](docs/provider-availability.md) documents weekly working hours, breaks, date exceptions/time off, permissions, and booking/rescheduling enforcement.
 
 The [reporting contract](docs/reporting.md) defines permission-aware appointment, provider, treatment and billing aggregates, date/provider filters, utilization and financial calculations, pagination and the detailed-export strategy.

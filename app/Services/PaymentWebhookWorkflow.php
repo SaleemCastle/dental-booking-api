@@ -140,6 +140,7 @@ final class PaymentWebhookWorkflow
             $this->auditLogs->record($link->status, 'payment_links', $link->id, null);
         }
         $link->save();
+        app(ClinicNotificationService::class)->paymentLinkUnavailable($link->id);
 
         return 'processed';
     }

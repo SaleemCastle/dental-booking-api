@@ -100,12 +100,14 @@ class PaymentLinkWorkflow
             // Adapter exceptions may contain secrets; never propagate upstream errors.
             $safe = $error instanceof ProviderException ? $error : new ProviderException('unavailable', uncertain: true);
             DB::transaction(function () use ($link, $safe, $actor) {
+                Invoice::query()->lockForUpdate()->findOrFail($link->invoice_id);
                 $stored = PaymentLink::query()->lockForUpdate()->findOrFail($link->id);
                 if (! in_array($stored->status, ['creating', 'unknown'], true)) {
                     return; // A signed callback already established the remote outcome.
                 }
                 $stored->update(['status' => $safe->uncertain ? 'unknown' : 'failed']);
                 $this->auditLogs->record($stored->status, 'payment_links', $stored->id, $actor->id);
+                app(ClinicNotificationService::class)->paymentLinkUnavailable($stored->id, $actor->id);
             }, 3);
             throw $safe;
         }
@@ -131,6 +133,8 @@ class PaymentLinkWorkflow
                 }
                 $this->auditLogs->record('created', 'payment_links', $stored->id, $actor->id);
                 $this->auditLogs->record($stored->status, 'payment_links', $stored->id, $actor->id);
+                app(ClinicNotificationService::class)->paymentLinkCreated($stored->id, $actor->id);
+                app(ClinicNotificationService::class)->paymentLinkUnavailable($stored->id, $actor->id);
                 $stored->wasRecentlyCreated = true;
 
                 return $stored;
@@ -209,6 +213,8 @@ class PaymentLinkWorkflow
             if ($oldStatus !== $link->status) {
                 $this->auditLogs->record($link->status, 'payment_links', $link->id, $actor->id);
             }
+            app(ClinicNotificationService::class)->paymentLinkCreated($link->id, $actor->id);
+            app(ClinicNotificationService::class)->paymentLinkUnavailable($link->id, $actor->id);
 
             return $link;
         });

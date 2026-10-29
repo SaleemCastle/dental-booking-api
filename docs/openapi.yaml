@@ -32,7 +32,113 @@ tags:
   - name: Treatment Plans
   - name: Patient Documents
   - name: Reporting
+  - name: Communications
 paths:
+  /api/patients/{patient}/contacts:
+    parameters:
+      - { $ref: "#/components/parameters/TenantHeader" }
+      - { name: patient, in: path, required: true, schema: { type: integer } }
+    get:
+      tags: [Communications]
+      summary: List the patient's communication contacts
+      description: Requires patient view permission. Returns contacts including addresses, verification and revocation metadata. See docs/communications.md.
+      responses:
+        "200": { description: Standard ApiEnvelope with data.contacts array. }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+    post:
+      tags: [Communications]
+      summary: Register an unverified patient or authorized billing-copy contact
+      description: Requires patient update permission. Verification and ownership fields cannot be supplied. A billing_copy must be authorized for this patient's named events; emergency contacts are never implicit recipients.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required: [channel, address, role, authorized_events]
+              properties:
+                channel: { type: string, enum: [email, sms] }
+                address: { type: string, maxLength: 254, example: patient@example.test, description: Email or E.164 number matching the channel. }
+                role: { type: string, enum: [patient, billing_copy] }
+                authorized_events:
+                  type: array
+                  minItems: 1
+                  maxItems: 4
+                  uniqueItems: true
+                  items: { type: string, enum: [payment.recorded, payment_link.created, payment_link.failed, payment_link.expired] }
+      responses:
+        "201": { description: Standard ApiEnvelope with data.contact; verified_at is null. }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "422": { $ref: "#/components/responses/ValidationError" }
+  /api/patients/{patient}/contacts/{contact}/verify:
+    parameters:
+      - { $ref: "#/components/parameters/TenantHeader" }
+      - { name: patient, in: path, required: true, schema: { type: integer } }
+      - { name: contact, in: path, required: true, schema: { type: integer } }
+    post:
+      tags: [Communications]
+      summary: Attest verified contact control and patient billing disclosure authorization
+      description: Requires patient update permission. Staff must verify the address and recipient relationship in person or by verified callback. This records staff attestation, not an automated verification challenge. Revoked contacts cannot be reverified.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [verification_method]
+              properties:
+                verification_method: { type: string, enum: [in_person, verified_callback] }
+      responses:
+        "200": { description: Standard ApiEnvelope with data.contact verification metadata. }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "422": { $ref: "#/components/responses/ValidationError" }
+  /api/patients/{patient}/contacts/{contact}:
+    parameters:
+      - { $ref: "#/components/parameters/TenantHeader" }
+      - { name: patient, in: path, required: true, schema: { type: integer } }
+      - { name: contact, in: path, required: true, schema: { type: integer } }
+    delete:
+      tags: [Communications]
+      summary: Revoke communication authorization and preserve contact history
+      description: Requires patient update permission. Stops unsent deliveries using this contact. Does not erase history or resend prior events.
+      responses:
+        "200": { description: Standard ApiEnvelope with data.contact and revoked_at. }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+  /api/invoices/{invoice}/communications:
+    parameters:
+      - { $ref: "#/components/parameters/TenantHeader" }
+      - { name: invoice, in: path, required: true, schema: { type: integer } }
+      - { name: per_page, in: query, schema: { type: integer, minimum: 1, maximum: 100, default: 15 } }
+      - { name: page, in: query, schema: { type: integer, minimum: 1, default: 1 } }
+    get:
+      tags: [Communications]
+      summary: Inspect invoice communication and delivery history
+      description: Requires invoice view permission. Tenant-scoped and private/no-store. Excludes addresses, recipient hashes, operation keys, message bodies, variables, credentials and checkout URLs. Configuration is managed by a trusted operator command. See docs/communications.md for worker and retry semantics.
+      responses:
+        "200":
+          description: Standard ApiEnvelope with data array and pagination in meta.
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - { $ref: "#/components/schemas/ApiEnvelope" }
+                  - properties:
+                      data:
+                        type: array
+                        items: { $ref: "#/components/schemas/ClinicNotification" }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "422": { $ref: "#/components/responses/ValidationError" }
   /api/reports/appointments:
     parameters:
       - { $ref: "#/components/parameters/TenantHeader" }
@@ -3569,6 +3675,35 @@ components:
       type: string
       enum: [scheduled, checked_in, in_progress, completed, cancelled, no_show]
       example: scheduled
+    ClinicNotification:
+      type: object
+      properties:
+        id: { type: integer }
+        tenant_id: { type: integer }
+        invoice_id: { type: integer }
+        payment_id: { type: integer, nullable: true }
+        payment_link_id: { type: integer, nullable: true }
+        event: { type: string, enum: [payment.recorded, payment_link.created, payment_link.failed, payment_link.expired] }
+        event_key: { type: string }
+        actor_id: { type: integer, nullable: true }
+        user_triggered: { type: boolean }
+        trigger: { type: string, enum: [staff, payment_provider] }
+        selection_status: { type: string, enum: [queued, no_eligible_recipients] }
+        deliveries:
+          type: array
+          items:
+            type: object
+            properties:
+              id: { type: integer }
+              channel: { type: string, enum: [email, sms] }
+              recipient_kind: { type: string, enum: [patient, billing_copy, internal_copy] }
+              status: { type: string, enum: [pending, processing, retry, accepted, delivered, failed, suppressed, unknown] }
+              attempts: { type: integer }
+              failure_reason: { type: string, nullable: true }
+              provider_reference: { type: string, nullable: true }
+              available_at: { type: string, format: date-time }
+              attempted_at: { type: string, format: date-time, nullable: true }
+              accepted_at: { type: string, format: date-time, nullable: true }
     PaymentStatus:
       type: string
       description: Appointment projection uses unpaid when no invoice exists; otherwise the invoice lifecycle status.
