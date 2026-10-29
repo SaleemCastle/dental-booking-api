@@ -39,6 +39,10 @@ class TenantMigrationTest extends TestCase
     public function test_phase_one_records_ids_links_and_history_survive_migration(): void
     {
         // Exercise the Phase 1 schema before the later billing foundation exists.
+        $communications = require database_path('migrations/2026_10_28_000003_create_clinic_communications.php');
+        $communications->down();
+        $reconciliation = require database_path('migrations/2026_10_28_000002_add_payment_reconciliation.php');
+        $reconciliation->down();
         $paymentLinks = require database_path('migrations/2026_10_28_000001_create_payment_links.php');
         $paymentLinks->down();
         $reporting = require database_path('migrations/2026_10_28_000001_add_reporting_indexes.php');
@@ -108,6 +112,9 @@ class TenantMigrationTest extends TestCase
         }
         $this->assertSame(DB::table('users')->count(), DB::table('tenant_user')->where('tenant_id', $tenantId)->count());
         $this->assertNotNull(DB::table('clinical_notes')->where('id', $note->id)->value('deleted_at'));
+        // Verify preserved Phase 1 columns before applying newer additive settlement/communication fields.
+        $reconciliation->up();
+        $communications->up();
     }
 
     public function test_rollback_refuses_to_remove_a_multi_clinic_boundary(): void

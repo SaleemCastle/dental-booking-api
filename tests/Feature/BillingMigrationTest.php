@@ -97,6 +97,7 @@ class BillingMigrationTest extends TestCase
     private function migration(): object
     {
         // Roll back dependent settlement schema before exercising the older billing migration.
+        (require database_path('migrations/2026_10_28_000003_create_clinic_communications.php'))->down();
         (require database_path('migrations/2026_10_28_000002_add_payment_reconciliation.php'))->down();
 
         return require database_path('migrations/2026_10_27_000001_build_billing_foundation.php');

@@ -79,6 +79,10 @@ Route::middleware(['auth:sanctum', 'tenant'])->group(function () {
 
     Route::get('dental-chart/metadata', [DentalChartController::class, 'metadata']);
     Route::get('patients/{patient}/documents', [PatientDocumentController::class, 'index']);
+    Route::get('patients/{patient}/contacts', [\App\Http\Controllers\Api\PatientContactController::class, 'index']);
+    Route::post('patients/{patient}/contacts', [\App\Http\Controllers\Api\PatientContactController::class, 'store']);
+    Route::post('patients/{patient}/contacts/{contact}/verify', [\App\Http\Controllers\Api\PatientContactController::class, 'verify'])->whereNumber('contact');
+    Route::delete('patients/{patient}/contacts/{contact}', [\App\Http\Controllers\Api\PatientContactController::class, 'destroy'])->whereNumber('contact');
     Route::post('patients/{patient}/documents', [PatientDocumentController::class, 'store']);
     Route::get('patients/{patient}/documents/{document}', [PatientDocumentController::class, 'show']);
     Route::get('patients/{patient}/documents/{document}/download', [PatientDocumentController::class, 'download']);
@@ -115,6 +119,7 @@ Route::middleware(['auth:sanctum', 'tenant'])->group(function () {
     Route::apiResource('invoices', InvoiceController::class)->except('destroy');
     Route::apiResource('payments', PaymentController::class)->only(['index', 'store', 'show']);
     Route::get('invoices/{invoice}/payment-links', [PaymentLinkController::class, 'index']);
+    Route::get('invoices/{invoice}/communications', [\App\Http\Controllers\Api\CommunicationController::class, 'index']);
     Route::post('invoices/{invoice}/payment-links', [PaymentLinkController::class, 'store']);
     Route::get('payment-links/{payment_link}', [PaymentLinkController::class, 'show']);
     Route::post('payment-links/{payment_link}/cancel', [PaymentLinkController::class, 'cancel']);

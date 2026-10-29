@@ -188,6 +188,8 @@ class BillingWorkflow
             $this->auditLogs->record('recorded', 'payments', $payment->id, $actor->id);
             $this->auditLogs->record($invoice->status, 'invoices', $invoice->id, $actor->id);
 
+            app(ClinicNotificationService::class)->paymentRecorded($payment->id, $actor->id);
+
             return $payment->refresh();
         }, 3);
     }

@@ -3,8 +3,13 @@
 namespace Tests\Feature\Api;
 
 use App\Billing\Providers\HandyPayProvider;
+use App\Communications\SafeTemplate;
+use App\Communications\SmtpProvider;
+use App\Communications\TwilioProvider;
 use App\Models\AuditLog;
+use App\Models\ClinicNotification;
 use App\Models\Invoice;
+use App\Models\PatientContact;
 use App\Models\Payment;
 use App\Models\PaymentLink;
 use App\Models\PaymentProviderConfiguration;
@@ -13,6 +18,7 @@ use App\Models\Tenant;
 use App\Models\User;
 use App\Services\AuditLogService;
 use App\Services\BillingWorkflow;
+use App\Services\CommunicationConfigurationService;
 use App\Services\PaymentWebhookWorkflow;
 use App\Tenancy\TenantContext;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -21,6 +27,7 @@ use Illuminate\Support\Facades\Log;
 use Laravel\Sanctum\Sanctum;
 use Mockery;
 use PHPUnit\Framework\Attributes\DataProvider;
+use Tests\Fakes\FakeNotificationProvider;
 use Tests\TestCase;
 
 /** Sandbox contract E2E: real adapter, API, HMAC, persistence and invoice ledger; HTTP boundary is stubbed. */
@@ -71,6 +78,110 @@ class HandyPayReconciliationTest extends TestCase
         $this->assertDatabaseCount('payment_provider_events', 2);
         $this->assertSame($audits, AuditLog::count());
         Http::assertSentCount(1); // Callbacks do not wait on external HTTP under a database lock.
+    }
+
+    public function test_communications_wait_for_verified_payment_and_duplicate_webhooks_send_one_receipt_per_recipient(): void
+    {
+        $actor = $this->actor();
+        $configuration = $this->configuration();
+        $invoice = Invoice::factory()->issued()->create();
+        $provider = $this->communications($invoice, $actor);
+        $link = $this->checkout($invoice);
+        $this->assertSame(0, ClinicNotification::where('event', 'payment.recorded')->count());
+        $this->postJson('/api/payment-links/'.$link->id.'/refresh', ['success' => true])->assertUnprocessable();
+        $event = $this->event($link);
+        $this->raw($configuration, json_encode($event), 'sha256='.str_repeat('0', 64))->assertUnauthorized();
+        $pending = $event;
+        $pending['id'] = 'evt_unpaid';
+        $pending['data']['payment_status'] = 'unpaid';
+        $this->deliver($configuration, $pending)->assertOk();
+        $mismatch = $event;
+        $mismatch['id'] = 'evt_wrong_amount';
+        $mismatch['data']['amount_total'] = 1;
+        $this->deliver($configuration, $mismatch)->assertOk();
+        $this->assertSame(0, ClinicNotification::where('event', 'payment.recorded')->count());
+        $this->assertCount(0, $provider->messages);
+
+        $this->deliver($configuration, $event)->assertOk();
+        $this->deliver($configuration, $event)->assertOk();
+        $this->deliver($configuration, [...$event, 'id' => 'evt_another_paid_event', 'type' => 'checkout.session.async_payment_succeeded'])->assertOk();
+        $this->assertSame(1, ClinicNotification::where('event', 'payment.recorded')->count());
+        $receipt = ClinicNotification::where('event', 'payment.recorded')->firstOrFail();
+        $this->assertSame($link->id, $receipt->payment_link_id);
+        $this->assertSame(Payment::firstOrFail()->id, $receipt->payment_id);
+        $this->assertSame('payment_provider', $receipt->trigger);
+        $this->assertCount(3, $receipt->deliveries);
+        $this->artisan('communications:work')->assertSuccessful();
+        $this->artisan('communications:work')->assertSuccessful();
+        $this->assertCount(3, $provider->messages); // Patient email/SMS plus tenant-configured billing copy.
+        $this->assertSame(3, $receipt->deliveries()->where('status', 'accepted')->count());
+        $this->assertDatabaseHas('audit_logs', ['resource_type' => 'clinic_notifications', 'resource_id' => $receipt->id, 'action' => 'queued']);
+        foreach ($receipt->deliveries as $delivery) {
+            $this->assertDatabaseHas('audit_logs', ['resource_type' => 'notification_deliveries', 'resource_id' => $delivery->id, 'action' => 'accepted']);
+        }
+        $this->getJson('/api/invoices/'.$invoice->id.'/communications')->assertOk()
+            ->assertJsonFragment(['payment_id' => $receipt->payment_id, 'payment_link_id' => $link->id]);
+    }
+
+    public static function terminalCommunications(): array
+    {
+        return [
+            ['failed', 'checkout.session.async_payment_failed', true],
+            ['expired', 'checkout.session.expired', true],
+            ['failed', 'checkout.session.async_payment_failed', false],
+            ['expired', 'checkout.session.expired', false],
+        ];
+    }
+
+    #[DataProvider('terminalCommunications')]
+    public function test_terminal_link_webhooks_notify_only_when_configured_and_never_send_receipts(string $status, string $type, bool $enabled): void
+    {
+        $actor = $this->actor();
+        $configuration = $this->configuration();
+        $invoice = Invoice::factory()->issued()->create();
+        $provider = $this->communications($invoice, $actor, $enabled);
+        $link = $this->checkout($invoice);
+        $event = [...$this->event($link), 'type' => $type];
+        $this->deliver($configuration, $event)->assertOk();
+        $this->deliver($configuration, $event)->assertOk();
+        $this->deliver($configuration, [...$event, 'id' => 'evt_terminal_repeat'])->assertOk();
+        $this->assertSame($status, $link->refresh()->status);
+        $this->assertSame(0, ClinicNotification::where('event', 'payment.recorded')->count());
+        $this->assertSame($enabled ? 1 : 0, ClinicNotification::where('event', 'payment_link.'.$status)->count());
+        $this->assertDatabaseCount('payments', 0);
+        $this->artisan('communications:work')->assertSuccessful();
+        $this->artisan('communications:work')->assertSuccessful();
+        $this->assertCount($enabled ? 3 : 0, $provider->messages);
+        foreach ($provider->messages as $sent) {
+            $this->assertStringContainsString('USD 100.00', $sent['message']->body);
+            $this->assertStringContainsString($status, $sent['message']->body);
+            $this->assertStringNotContainsString($link->checkout_url, $sent['message']->body);
+        }
+    }
+
+    private function communications(Invoice $invoice, User $copy, bool $terminalEvents = true): FakeNotificationProvider
+    {
+        $provider = new FakeNotificationProvider;
+        $this->app->instance(SmtpProvider::class, $provider);
+        $this->app->instance(TwilioProvider::class, $provider);
+        app(TenantContext::class)->run($invoice->tenant, function () use ($invoice, $copy, $terminalEvents) {
+            $events = array_fill_keys(array_keys(SafeTemplate::DEFAULTS), ['channels' => ['email', 'sms'], 'copy_user_ids' => [$copy->id]]);
+            if (! $terminalEvents) {
+                unset($events['payment_link.failed'], $events['payment_link.expired']);
+            }
+            app(CommunicationConfigurationService::class)->configure(['channels' => [
+                'email' => ['provider' => 'smtp', 'sender' => 'billing@example.test', 'host' => 'smtp.example.test', 'port' => 465, 'username' => 'clinic', 'password' => 'secret'],
+                'sms' => ['provider' => 'twilio', 'sender' => '+15555550100', 'account_sid' => 'AC'.str_repeat('a', 32), 'auth_token' => 'secret'],
+            ], 'events' => $events], true);
+            foreach (['email' => 'patient@example.test', 'sms' => '+15555550101'] as $channel => $address) {
+                // Verified contact fixtures; API verification and authorization are tested separately.
+                (new PatientContact)->forceFill(['patient_id' => $invoice->patient_id, 'channel' => $channel, 'address' => $address,
+                    'role' => 'patient', 'authorized_events' => array_keys(SafeTemplate::DEFAULTS), 'verified_at' => now(),
+                    'verified_by' => $copy->id, 'verification_method' => 'in_person'])->save();
+            }
+        });
+
+        return $provider;
     }
 
     public static function invalidSignatures(): array

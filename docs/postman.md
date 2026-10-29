@@ -8,7 +8,7 @@
 4. Send **Authentication - Bearer > POST Create a Sanctum bearer token**. The response script saves `data.access_token` into the active environment; other requests inherit bearer authentication.
 5. Send **Users > GET Get authenticated user** to inspect current roles and permissions. This also sets `current_user_id` and, if empty, `assignee_id` for task examples.
 
-The collection contains all 110 documented method/path operations from OpenAPI 2.0.0, grouped into 21 folders, including clinic memberships, patient documents, dental charts, treatment plans, billing and audit logs. JSON body examples use minimal create payloads and partial updates; consult [OpenAPI](openapi.yaml) for optional fields and business rules.
+The collection contains all documented method/path operations from OpenAPI 2.0.0, including clinic memberships, patient documents, dental charts, treatment plans, billing, transactional communications and audit logs. JSON body examples use minimal create payloads and partial updates; consult [OpenAPI](openapi.yaml) for optional fields and business rules. Contact verification records a staff attestation; use it only after checking address control and patient disclosure authorization as described in [communications](communications.md).
 
 Leave `tenant_id` blank for the default clinic. **Tenants > GET List current user's active clinic memberships** returns clinics available to the authenticated user. Set `tenant_id` to a returned ID to send `X-Tenant-Id`, then refetch `/api/user` and clear previously captured resource IDs before using another clinic. This header does not grant membership; foreign clinic/resource access is rejected. See [the tenancy contract](multi-tenancy.md).
 

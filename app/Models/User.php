@@ -51,6 +51,16 @@ class User extends Authenticatable
         'password' => 'hashed',
     ];
 
+    protected static function booted(): void
+    {
+        static::updating(function (User $user): void {
+            // Verification belongs to an address, not just an identity used for billing copies.
+            if ($user->isDirty('email')) {
+                $user->email_verified_at = null;
+            }
+        });
+    }
+
     public function tenants()
     {
         return $this->belongsToMany(Tenant::class)->withTimestamps();
