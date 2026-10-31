@@ -46,6 +46,8 @@ class TenantDataIntegrityTest extends TestCase
 
         foreach (['update', 'insert'] as $operation) {
             try {
+                // Savepoints let PostgreSQL continue after an expected constraint violation.
+                DB::beginTransaction();
                 if ($operation === 'update') {
                     DB::table($record->getTable())->where('id', $record->id)->update([$column => $parent->id]);
                 } else {
@@ -56,6 +58,7 @@ class TenantDataIntegrityTest extends TestCase
                 }
                 $this->fail('Cross-clinic '.$operation.' succeeded.');
             } catch (QueryException $exception) {
+                DB::rollBack();
                 $this->assertMatchesRegularExpression('/Tenant integrity violation|Billing integrity violation/', $exception->getMessage());
             }
         }
@@ -93,9 +96,11 @@ class TenantDataIntegrityTest extends TestCase
         foreach ([Patient::factory()->create(), Treatment::factory()->create(), Role::create(['slug' => 'local', 'name' => 'Local']),
             app(AuditLogService::class)->record('created', 'patients', 1, null)] as $record) {
             try {
+                DB::beginTransaction();
                 DB::table($record->getTable())->where('id', $record->id)->update(['tenant_id' => $tenant->id]);
                 $this->fail('Ownership transfer succeeded.');
             } catch (QueryException $exception) {
+                DB::rollBack();
                 $this->assertStringContainsString('Tenant integrity violation', $exception->getMessage());
             }
         }
@@ -116,10 +121,12 @@ class TenantDataIntegrityTest extends TestCase
         $parentId = $record->getAttribute($column);
         foreach (['delete', 'replace'] as $operation) {
             try {
+                DB::beginTransaction();
                 $query = DB::table($parent)->where('id', $parentId);
                 $operation === 'delete' ? $query->delete() : $query->update(['id' => 999999]);
                 $this->fail('A referenced parent was removed.');
             } catch (QueryException) {
+                DB::rollBack();
                 $this->assertDatabaseHas($parent, ['id' => $parentId]);
                 $this->assertDatabaseHas($child, ['id' => $record->id, $column => $parentId]);
             }
@@ -140,10 +147,12 @@ class TenantDataIntegrityTest extends TestCase
         $patient = app(TenantContext::class)->run($tenant, fn () => Patient::factory()->create());
         foreach (['delete', 'replace'] as $operation) {
             try {
+                DB::beginTransaction();
                 $query = DB::table('tenants')->where('id', $tenant->id);
                 $operation === 'delete' ? $query->delete() : $query->update(['id' => 999999]);
                 $this->fail('A clinic with clinical data was removed.');
             } catch (QueryException) {
+                DB::rollBack();
                 $this->assertDatabaseHas('tenants', ['id' => $tenant->id]);
                 $this->assertDatabaseHas('patient', ['id' => $patient->id, 'tenant_id' => $tenant->id]);
             }
@@ -162,9 +171,11 @@ class TenantDataIntegrityTest extends TestCase
         $this->assertSame(1, $member->roles()->count());
         $this->assertSame(0, AuditLog::count());
         try {
+            DB::beginTransaction();
             $member->tenants()->detach(app(TenantContext::class)->id());
             $this->fail('Assigned membership was removed.');
         } catch (QueryException) {
+            DB::rollBack();
             $this->assertTrue($member->isMemberOfCurrentTenant());
         }
         $task->update(['assignee_id' => $admin->id]);
@@ -193,6 +204,7 @@ class TenantDataIntegrityTest extends TestCase
         $outsider = User::factory()->forTenant($tenant)->create();
         foreach (['insert', 'update'] as $operation) {
             try {
+                DB::beginTransaction();
                 if ($operation === 'update') {
                     DB::table($record->getTable())->where('id', $record->id)->update([$column => $outsider->id]);
                 } else {
@@ -203,6 +215,7 @@ class TenantDataIntegrityTest extends TestCase
                 }
                 $this->fail('Foreign clinic attribution succeeded.');
             } catch (QueryException $exception) {
+                DB::rollBack();
                 $this->assertStringContainsString('Tenant integrity violation', $exception->getMessage());
             }
         }

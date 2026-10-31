@@ -29,6 +29,7 @@ yarn-error.log
 !/docs/patient-engagement.md
 !/docs/provider-availability.md
 !/docs/reporting.md
+!/docs/postgresql.md
 !/docs/postman.md
 !/docs/postman/
 /docs/postman/*

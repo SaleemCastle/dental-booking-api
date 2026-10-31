@@ -222,9 +222,11 @@ class BillingApiTest extends TestCase
             fn () => DB::table('invoices')->where('id', $invoice->id)->update(['status' => 'draft']),
         ] as $attempt) {
             try {
+                DB::beginTransaction();
                 $attempt();
                 $this->fail('Expected financial history guard.');
             } catch (QueryException $e) {
+                DB::rollBack();
                 $this->assertStringContainsString('Billing integrity violation', $e->getMessage());
             }
         }

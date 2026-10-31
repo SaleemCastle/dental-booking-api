@@ -330,9 +330,11 @@ class TreatmentPlanApiTest extends TestCase
         $foreign = app(TenantContext::class)->run($tenant, fn () => Dentist::factory()->create());
         foreach ([['catalog_price' => 1], ['treatment_name' => 'Changed'], ['tenant_id' => $tenant->id], ['dentist_id' => $foreign->id]] as $data) {
             try {
+                DB::beginTransaction();
                 DB::table('treatment_plan_items')->where('id', $item->id)->update($data);
                 $this->fail('Expected database integrity guard.');
             } catch (QueryException $e) {
+                DB::rollBack();
                 $this->assertStringContainsString('Invalid treatment plan ownership or snapshot', $e->getMessage());
             }
         }

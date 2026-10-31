@@ -5,7 +5,9 @@ namespace Tests\Feature;
 use App\Models\PaymentProviderConfiguration;
 use App\Models\PaymentProviderEvent;
 use App\Tenancy\TenantContext;
+use Illuminate\Contracts\Console\Kernel;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Foundation\Testing\RefreshDatabaseState;
 use Illuminate\Support\Facades\Crypt;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
@@ -15,6 +17,16 @@ use Tests\TestCase;
 class PaymentReconciliationMigrationTest extends TestCase
 {
     use RefreshDatabase;
+
+    protected function refreshTestDatabase()
+    {
+        // MySQL schema changes commit implicitly; isolate each migration round trip.
+        $this->artisan('migrate:fresh', $this->migrateFreshUsing());
+        $this->app[Kernel::class]->setArtisan(null);
+        $this->beforeApplicationDestroyed(function (): void {
+            RefreshDatabaseState::$migrated = false;
+        });
+    }
 
     public function test_upgrade_preserves_existing_encrypted_configuration_and_assigns_an_endpoint(): void
     {

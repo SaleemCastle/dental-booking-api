@@ -165,7 +165,7 @@ class HandyPayReconciliationTest extends TestCase
         $this->app->instance(SmtpProvider::class, $provider);
         $this->app->instance(TwilioProvider::class, $provider);
         app(TenantContext::class)->run($invoice->tenant, function () use ($invoice, $copy, $terminalEvents) {
-            $events = array_fill_keys(array_keys(SafeTemplate::DEFAULTS), ['channels' => ['email', 'sms'], 'copy_user_ids' => [$copy->id]]);
+            $events = array_fill_keys(['payment.recorded', 'payment_link.created', 'payment_link.failed', 'payment_link.expired'], ['channels' => ['email', 'sms'], 'copy_user_ids' => [$copy->id]]);
             if (! $terminalEvents) {
                 unset($events['payment_link.failed'], $events['payment_link.expired']);
             }

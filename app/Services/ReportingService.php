@@ -103,7 +103,11 @@ class ReportingService
         }
 
         // Cast each rounded minor amount before SUM: no floating-point money arithmetic in PHP.
-        $cast = $invoices->getConnection()->getDriverName() === 'sqlite' ? 'INTEGER' : 'SIGNED';
+        $cast = match ($invoices->getConnection()->getDriverName()) {
+            'mysql' => 'SIGNED',
+            'pgsql' => 'BIGINT',
+            default => 'INTEGER',
+        };
         $totals = $invoices->selectRaw("currency, COUNT(*) AS invoice_count, SUM(CAST(ROUND(amount_due * 100) AS $cast)) AS invoiced_minor, SUM(CAST(ROUND(amount_paid * 100) AS $cast)) AS paid_minor")
             ->groupBy('currency')->get()->keyBy('currency');
         $collections = $payments->selectRaw("currency, COUNT(*) AS payment_count, SUM(CAST(ROUND(amount * 100) AS $cast)) AS collected_minor")
