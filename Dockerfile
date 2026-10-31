@@ -55,4 +55,8 @@ RUN mkdir -p \
 EXPOSE 10000
 
 # Render provides PORT dynamically.
-CMD ["sh", "-c", "php artisan serve --host=0.0.0.0 --port=${PORT:-10000}"]
+COPY docker/start.sh /usr/local/bin/start-laravel
+
+RUN chmod +x /usr/local/bin/start-laravel
+
+CMD ["/usr/local/bin/start-laravel"]
