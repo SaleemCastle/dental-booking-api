@@ -19,6 +19,7 @@ yarn-error.log
 /.vscode
 /docs/*
 !/docs/multi-tenancy.md
+!/docs/tenant-operations.md
 !/docs/dental-charting.md
 !/docs/treatment-planning.md
 !/docs/patient-documents.md
