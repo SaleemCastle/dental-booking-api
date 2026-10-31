@@ -73,6 +73,9 @@ class AppointmentController extends Controller
                 ]);
             }
 
+            if (\App\Models\ClinicNotification::where('appointment_id', $current->id)->exists()) {
+                throw ValidationException::withMessages(['appointment_id' => ['Appointments with communication history must be cancelled instead of deleted.']]);
+            }
             $current->delete();
         }, 3);
 

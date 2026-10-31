@@ -693,6 +693,86 @@
                     "response": []
                 },
                 {
+                    "name": "GET Inspect patient engagement communication history",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/api/patients/{{patient_id}}/communications?per_page=15&page=1",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "patients",
+                                "{{patient_id}}",
+                                "communications"
+                            ],
+                            "query": [
+                                {
+                                    "key": "per_page",
+                                    "value": "15",
+                                    "disabled": false,
+                                    "description": "Optional filter; enable its checkbox to send it."
+                                },
+                                {
+                                    "key": "page",
+                                    "value": "1",
+                                    "disabled": false,
+                                    "description": "Optional filter; enable its checkbox to send it."
+                                }
+                            ]
+                        },
+                        "description": "Requires patients.view. Tenant-scoped appointment and task notifications only; billing history requires invoice view access at the invoice endpoint. Excludes addresses, variables, bodies, recipient hashes and operation keys. See docs/patient-engagement.md.\n\nGET /api/patients/{patient}/communications\nDomain writes require allow_writes=true. Missing required variables skip requests rather than selecting real records automatically."
+                    },
+                    "response": []
+                },
+                {
+                    "name": "GET Inspect appointment engagement communication history",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/api/appointments/{{appointment_id}}/communications?per_page=15&page=1",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "appointments",
+                                "{{appointment_id}}",
+                                "communications"
+                            ],
+                            "query": [
+                                {
+                                    "key": "per_page",
+                                    "value": "15",
+                                    "disabled": false,
+                                    "description": "Optional filter; enable its checkbox to send it."
+                                },
+                                {
+                                    "key": "page",
+                                    "value": "1",
+                                    "disabled": false,
+                                    "description": "Optional filter; enable its checkbox to send it."
+                                }
+                            ]
+                        },
+                        "description": "Requires appointments.view. Tenant-scoped appointment and task notifications only; billing history requires invoice view access at the invoice endpoint. Excludes addresses, variables, bodies, recipient hashes and operation keys. See docs/patient-engagement.md.\n\nGET /api/appointments/{appointment}/communications\nDomain writes require allow_writes=true. Missing required variables skip requests rather than selecting real records automatically."
+                    },
+                    "response": []
+                },
+                {
                     "name": "GET Inspect invoice communication and delivery history",
                     "request": {
                         "method": "GET",
@@ -5055,17 +5135,17 @@
             "type": "string"
         },
         {
+            "key": "appointment_id",
+            "value": "",
+            "type": "string"
+        },
+        {
             "key": "invoice_id",
             "value": "",
             "type": "string"
         },
         {
             "key": "dentist_id",
-            "value": "",
-            "type": "string"
-        },
-        {
-            "key": "appointment_id",
             "value": "",
             "type": "string"
         },

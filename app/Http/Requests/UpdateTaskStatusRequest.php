@@ -23,6 +23,7 @@ class UpdateTaskStatusRequest extends FormRequest
             'due_date' => ['missing'],
             'priority' => ['missing'],
             'description' => ['missing'],
+            'patient_reminder_at' => ['missing'],
             'completed_at' => ['missing'],
             'created_at' => ['missing'],
             'updated_at' => ['missing'],

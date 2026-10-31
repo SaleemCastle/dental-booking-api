@@ -24,6 +24,7 @@ class StoreTaskRequest extends FormRequest
             'priority' => ['sometimes', 'required', Rule::in(Task::PRIORITIES)],
             'status' => ['sometimes', 'required', Rule::in(Task::STATUSES)],
             'description' => ['required', 'string', 'max:16000'],
+            'patient_reminder_at' => ['sometimes', 'nullable', 'date', 'after:now'],
             'completed_at' => ['missing'],
             'created_at' => ['missing'],
             'updated_at' => ['missing'],

@@ -126,6 +126,8 @@ Route::middleware(['auth:sanctum', 'tenant'])->group(function () {
     Route::apiResource('invoices', InvoiceController::class)->except('destroy');
     Route::apiResource('payments', PaymentController::class)->only(['index', 'store', 'show']);
     Route::get('invoices/{invoice}/payment-links', [PaymentLinkController::class, 'index']);
+    Route::get('patients/{patient}/communications', [\App\Http\Controllers\Api\CommunicationController::class, 'patient']);
+    Route::get('appointments/{appointment}/communications', [\App\Http\Controllers\Api\CommunicationController::class, 'appointment']);
     Route::get('invoices/{invoice}/communications', [\App\Http\Controllers\Api\CommunicationController::class, 'index']);
     Route::post('invoices/{invoice}/payment-links', [PaymentLinkController::class, 'store']);
     Route::get('payment-links/{payment_link}', [PaymentLinkController::class, 'show']);

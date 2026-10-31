@@ -441,6 +441,18 @@ class TenantIsolationTest extends TestCase
                 continue;
             }
             $this->assertContains('auth:sanctum', $route->gatherMiddleware(), $route->uri());
+            // Platform provisioning uses an explicit operator boundary across clinics.
+            $platformRoutes = [
+                'api/platform/tenants' => ['GET', 'HEAD', 'POST'],
+                'api/platform/tenants/{tenant}' => ['GET', 'HEAD'],
+                'api/platform/tenants/{tenant}/status' => ['PATCH'],
+            ];
+            if (isset($platformRoutes[$route->uri()])) {
+                $this->assertEmpty(array_diff($route->methods(), $platformRoutes[$route->uri()]));
+                $this->assertContains(\App\Http\Middleware\RequirePlatformOperator::class, $route->gatherMiddleware(), $route->uri());
+
+                continue;
+            }
             $this->assertContains('tenant', $route->gatherMiddleware(), $route->uri());
         }
     }

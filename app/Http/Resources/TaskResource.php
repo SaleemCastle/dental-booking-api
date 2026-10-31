@@ -19,6 +19,7 @@ class TaskResource extends JsonResource
             'priority' => $this->priority,
             'status' => $this->status,
             'description' => $this->description,
+            'patient_reminder_at' => $this->patient_reminder_at?->toISOString(),
             'completed_at' => $this->completed_at,
             'patientName' => $this->whenLoaded('patient', fn () => $this->patient !== null
                 ? trim($this->patient->firstName.' '.$this->patient->lastName) : null),

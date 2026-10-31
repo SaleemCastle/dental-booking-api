@@ -6,24 +6,25 @@ use App\Models\Appointment;
 use App\Models\Patient;
 use App\Models\Task;
 use App\Models\User;
+use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 
 class TaskWorkflow
 {
-    public function create(array $data): Task
+    public function create(array $data, ?User $actor = null): Task
     {
-        return DB::transaction(fn () => $this->save(new Task, $data), 3);
+        return DB::transaction(fn () => $this->save(new Task, $data, $actor), 3);
     }
 
-    public function update(Task $task, array $data): Task
+    public function update(Task $task, array $data, ?User $actor = null): Task
     {
-        return DB::transaction(function () use ($task, $data) {
-            return $this->save(Task::query()->lockForUpdate()->findOrFail($task->id), $data);
+        return DB::transaction(function () use ($task, $data, $actor) {
+            return $this->save(Task::query()->lockForUpdate()->findOrFail($task->id), $data, $actor);
         }, 3);
     }
 
-    private function save(Task $task, array $data): Task
+    private function save(Task $task, array $data, ?User $actor): Task
     {
         $previousStatus = $task->status;
         $appointmentId = array_key_exists('appointment_id', $data) ? $data['appointment_id'] : $task->appointment_id;
@@ -39,6 +40,9 @@ class TaskWorkflow
             $data['status'] ??= 'pending';
         }
 
+        if (isset($data['patient_reminder_at'])) {
+            $data['patient_reminder_at'] = Carbon::parse($data['patient_reminder_at'])->setTimezone(config('app.timezone'))->format('Y-m-d H:i:s');
+        }
         $task->fill($data);
 
         if ($appointment !== null && $task->patient_id !== $appointment->patient_id) {
@@ -61,7 +65,20 @@ class TaskWorkflow
             $task->completed_at = null;
         }
 
+        if ($task->patient_reminder_at !== null && $task->patient_id === null) {
+            throw ValidationException::withMessages(['patient_reminder_at' => ['Patient reminders require a linked patient.']]);
+        }
+        if ($task->patient_reminder_at !== null && $actor === null) {
+            throw ValidationException::withMessages(['patient_reminder_at' => ['Patient reminders require an authorized staff actor.']]);
+        }
+        $engagementChanged = ! $task->exists || $task->isDirty(['patient_id', 'appointment_id', 'patient_reminder_at', 'status']);
+        if ($engagementChanged) {
+            $task->communication_revision++;
+        }
         $task->save();
+        if ($engagementChanged && $actor !== null) {
+            app(PatientEngagementService::class)->taskChanged($task, $actor->id);
+        }
 
         return $task->refresh();
     }

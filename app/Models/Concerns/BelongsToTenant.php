@@ -61,7 +61,7 @@ trait BelongsToTenant
     {
         return [
             'patient_contacts' => ['patient_id' => 'patient'],
-            'clinic_notifications' => ['invoice_id' => 'invoices', 'payment_id' => 'payments', 'payment_link_id' => 'payment_links', 'configuration_id' => 'communication_configurations'],
+            'clinic_notifications' => ['patient_id' => 'patient', 'appointment_id' => 'appointment', 'task_id' => 'tasks', 'invoice_id' => 'invoices', 'payment_id' => 'payments', 'payment_link_id' => 'payment_links', 'configuration_id' => 'communication_configurations'],
             'notification_deliveries' => ['notification_id' => 'clinic_notifications', 'patient_contact_id' => 'patient_contacts'],
             'provider_availabilities' => ['dentist_id' => 'dentist'],
             'appointment' => ['patient_id' => 'patient', 'dentist_id' => 'dentist', 'treatment_id' => 'treatments', 'room_id' => 'rooms', 'chair_id' => 'chairs'],

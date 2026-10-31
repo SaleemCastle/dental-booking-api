@@ -172,8 +172,21 @@ class AppointmentWorkflow
 
         if ($creating || $appointment->isDirty()) {
             $action = $creating ? 'created' : ($appointment->isDirty('status') ? 'status_changed' : 'updated');
+            $engagementChanged = $creating || $appointment->isDirty([...self::SCHEDULE_FIELDS, 'status']);
+            $rescheduled = ! $creating && $appointment->isDirty(self::SCHEDULE_FIELDS);
+            if ($engagementChanged) {
+                $appointment->communication_revision++;
+            }
             $appointment->save();
             $this->auditLogs->record($action, 'appointments', $appointment->id, $actor->id);
+            if ($engagementChanged) {
+                $event = $appointment->status === 'cancelled' ? 'appointment.cancelled'
+                    : ($creating ? 'appointment.confirmed' : ($rescheduled ? 'appointment.rescheduled' : null));
+                if (in_array($appointment->status, ['cancelled', 'no_show'], true)) {
+                    app(PatientEngagementService::class)->suppress('appointment_id', $appointment->id, $actor->id);
+                }
+                app(PatientEngagementService::class)->appointmentChanged($appointment, $event, $actor->id);
+            }
         }
 
         return $appointment->refresh();
