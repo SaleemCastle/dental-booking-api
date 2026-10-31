@@ -15,15 +15,27 @@ return [
     |
     */
 
-    'paths' => ['*'],
+    'paths' => [
+        'api/*',
+        'sanctum/csrf-cookie',
+        'login',
+        'logout',
+        'register',
+        'forgot-password',
+        'reset-password',
+        'email/verification-notification',
+    ],
 
     'allowed_methods' => ['*'],
 
-    'allowed_origins' => array_filter([
-        env('FRONTEND_URL', 'http://localhost:3000'),
-        env('SWAGGER_URL', 'http://localhost:8080'),
-        'http://127.0.0.1:8080',
-    ]),
+    'allowed_origins' => array_values(
+        array_filter(
+            array_map(
+                'trim',
+                explode(',', env('FRONTEND_URLS', 'http://localhost:3000'))
+            )
+        )
+    ),
 
     'allowed_origins_patterns' => [],
 
