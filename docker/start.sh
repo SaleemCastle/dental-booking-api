@@ -9,15 +9,6 @@ php artisan config:clear
 php artisan route:clear
 php artisan view:clear
 
-echo "Checking database configuration..."
-echo "Database connection: ${DB_CONNECTION:-NOT_SET}"
-
-if [ -n "${DATABASE_URL:-}" ]; then
-    echo "DATABASE_URL is configured."
-else
-    echo "DATABASE_URL is NOT configured."
-fi
-
 echo "Running database migrations..."
 php artisan migrate --force
 

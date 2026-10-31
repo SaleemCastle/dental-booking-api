@@ -21,7 +21,12 @@ class ProviderAvailabilityService
             $availability = ProviderAvailability::query()->where('dentist_id', $dentist->id)->lockForUpdate()->first()
                 ?? new ProviderAvailability(['dentist_id' => $dentist->id]);
             $creating = ! $availability->exists;
-            $availability->fill(collect($data)->only(['weekly_hours', 'breaks', 'exceptions'])->all());
+            foreach (collect($data)->only(['weekly_hours', 'breaks', 'exceptions']) as $column => $value) {
+                // MySQL reorders JSON object keys; resubmitting the same schedule is a no-op.
+                if ($creating || $availability->getAttribute($column) != $value) {
+                    $availability->setAttribute($column, $value);
+                }
+            }
             if ($creating || $availability->isDirty()) {
                 $availability->save();
                 $this->auditLogs->record($creating ? 'created' : 'updated', 'provider_availabilities', $availability->id, $actor->id);

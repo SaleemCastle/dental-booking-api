@@ -94,7 +94,7 @@ class DentalChartApiTest extends TestCase
         $this->postJson($this->url($patient, '/revisions'), $payload)->assertCreated()->assertJsonPath('data.chart.version', 2);
         $this->getJson($this->url($patient))->assertOk()->assertJsonPath('data.chart.teeth.0.status', 'extracted')
             ->assertJsonPath('data.chart.dentist_id', $nextProvider->id)->assertJsonPath('data.chart.version', 2);
-        $this->assertSame($first, $this->getJson($this->url($patient, '/revisions/1').'?numbering_system=fdi')->assertOk()->json('data.chart'));
+        $this->assertEquals($first, $this->getJson($this->url($patient, '/revisions/1').'?numbering_system=fdi')->assertOk()->json('data.chart'));
         $this->getJson($this->url($patient, '/history').'?per_page=1')->assertOk()->assertJsonPath('meta.pagination.total', 2)
             ->assertJsonPath('data.revisions.0.version', 2)->assertJsonMissingPath('data.revisions.0.teeth');
         $this->getJson($this->url($patient, '/history').'?per_page=1&page=2')->assertOk()->assertJsonPath('data.revisions.0.version', 1);
@@ -314,9 +314,11 @@ class DentalChartApiTest extends TestCase
             $attributes['version'] = 2;
             $attributes[$column] = $id;
             try {
+                DB::beginTransaction();
                 DB::table('dental_chart_revisions')->insert($attributes);
                 $this->fail('Cross-clinic chart relationship was stored.');
             } catch (QueryException) {
+                DB::rollBack();
                 $this->assertDatabaseCount('dental_chart_revisions', 1);
             }
         }
@@ -404,8 +406,9 @@ class DentalChartApiTest extends TestCase
         $actor = $this->actor();
         $patient = Patient::factory()->create();
         $revision = app(DentalChartWorkflow::class)->append($patient, $this->payload(Dentist::factory()->create()), $actor);
-        $before = $revision->getAttributes();
+        $before = $revision->fresh()->getAttributes();
         try {
+            DB::beginTransaction();
             match ($operation) {
                 'model.update' => $revision->update(['reason' => 'Rewritten']),
                 'model.quiet' => $revision->forceFill(['reason' => 'Rewritten'])->saveQuietly(),
@@ -419,6 +422,7 @@ class DentalChartApiTest extends TestCase
             };
             $this->fail('Historical state was changed.');
         } catch (LogicException|QueryException) {
+            DB::rollBack();
             $this->assertEquals($before, $revision->fresh()->getAttributes());
         }
     }
@@ -478,8 +482,12 @@ class DentalChartApiTest extends TestCase
     private function replaceRevision(array $attributes): void
     {
         $attributes['reason'] = 'Rewritten';
-        $columns = implode(', ', array_map(fn ($column) => '`'.$column.'`', array_keys($attributes)));
+        $grammar = DB::connection()->getQueryGrammar();
+        $columns = implode(', ', array_map(fn ($column) => $grammar->wrap($column), array_keys($attributes)));
         $parameters = implode(', ', array_fill(0, count($attributes), '?'));
-        DB::statement('REPLACE INTO dental_chart_revisions ('.$columns.') VALUES ('.$parameters.')', array_values($attributes));
+        $sql = DB::getDriverName() === 'pgsql'
+            ? 'INSERT INTO dental_chart_revisions ('.$columns.') VALUES ('.$parameters.') ON CONFLICT (id) DO UPDATE SET reason = EXCLUDED.reason'
+            : 'REPLACE INTO dental_chart_revisions ('.$columns.') VALUES ('.$parameters.')';
+        DB::statement($sql, array_values($attributes));
     }
 }

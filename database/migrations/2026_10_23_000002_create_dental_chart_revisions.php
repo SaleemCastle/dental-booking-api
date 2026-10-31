@@ -1,5 +1,6 @@
 <?php
 
+use App\Support\MigrationGuard;
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\DB;
@@ -9,8 +10,8 @@ return new class extends Migration
 {
     public function up(): void
     {
-        if (! in_array(DB::getDriverName(), ['mysql', 'sqlite'], true)) {
-            throw new RuntimeException('Dental chart history supports MySQL and SQLite.');
+        if (! in_array(DB::getDriverName(), ['mysql', 'pgsql', 'sqlite'], true)) {
+            throw new RuntimeException('Dental chart history supports MySQL, PostgreSQL and SQLite.');
         }
 
         Schema::create('dental_chart_revisions', function (Blueprint $table): void {
@@ -37,16 +38,9 @@ return new class extends Migration
             OR NEW.dentition NOT IN ('adult', 'primary') OR NEW.version < 1
             OR EXISTS (SELECT 1 FROM dental_chart_revisions WHERE id = NEW.id)
             OR EXISTS (SELECT 1 FROM dental_chart_revisions WHERE tenant_id = NEW.tenant_id AND patient_id = NEW.patient_id AND dentition = NEW.dentition AND version = NEW.version)";
-        if (DB::getDriverName() === 'sqlite') {
-            DB::unprepared("CREATE TRIGGER dental_chart_insert_guard BEFORE INSERT ON dental_chart_revisions FOR EACH ROW WHEN $invalid BEGIN SELECT RAISE(ABORT, 'Invalid dental chart relationship'); END");
-            foreach (['UPDATE', 'DELETE'] as $event) {
-                DB::unprepared("CREATE TRIGGER dental_chart_{$event}_guard BEFORE $event ON dental_chart_revisions FOR EACH ROW BEGIN SELECT RAISE(ABORT, 'Dental chart history is append-only'); END");
-            }
-        } else {
-            DB::unprepared("CREATE TRIGGER dental_chart_insert_guard BEFORE INSERT ON dental_chart_revisions FOR EACH ROW BEGIN IF $invalid THEN SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'Invalid dental chart relationship'; END IF; END");
-            foreach (['UPDATE', 'DELETE'] as $event) {
-                DB::unprepared("CREATE TRIGGER dental_chart_{$event}_guard BEFORE $event ON dental_chart_revisions FOR EACH ROW SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'Dental chart history is append-only'");
-            }
+        MigrationGuard::create('dental_chart_insert_guard', 'dental_chart_revisions', 'insert', $invalid, 'Invalid dental chart relationship');
+        foreach (['UPDATE', 'DELETE'] as $event) {
+            MigrationGuard::create("dental_chart_{$event}_guard", 'dental_chart_revisions', $event, '1 = 1', 'Dental chart history is append-only');
         }
     }
 
@@ -56,7 +50,7 @@ return new class extends Migration
             throw new RuntimeException('Export and back up dental chart history before rolling back this migration.');
         }
         foreach (['insert', 'UPDATE', 'DELETE'] as $event) {
-            DB::unprepared("DROP TRIGGER IF EXISTS dental_chart_{$event}_guard");
+            MigrationGuard::drop("dental_chart_{$event}_guard", 'dental_chart_revisions');
         }
         Schema::drop('dental_chart_revisions');
     }

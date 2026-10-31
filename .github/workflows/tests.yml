@@ -20,11 +20,23 @@ jobs:
       fail-fast: true
       matrix:
         php: [8.2]
-        database: [sqlite, mysql]
+        database: [sqlite, mysql, pgsql]
 
     name: PHP ${{ matrix.php }} / ${{ matrix.database }}
 
     services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_PASSWORD: testing
+          POSTGRES_DB: dental_booking_test
+        ports:
+          - 5432/tcp
+        options: >-
+          --health-cmd="pg_isready -U postgres -d dental_booking_test"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=10
       mysql:
         image: mysql:8.0
         env:
@@ -42,8 +54,8 @@ jobs:
       DB_CONNECTION: ${{ matrix.database }}
       DB_DATABASE: ${{ matrix.database == 'sqlite' && ':memory:' || 'dental_booking_test' }}
       DB_HOST: 127.0.0.1
-      DB_PORT: ${{ job.services.mysql.ports[3306] }}
-      DB_USERNAME: root
+      DB_PORT: ${{ matrix.database == 'pgsql' && job.services.postgres.ports[5432] || job.services.mysql.ports[3306] }}
+      DB_USERNAME: ${{ matrix.database == 'pgsql' && 'postgres' || 'root' }}
       DB_PASSWORD: testing
 
     steps:
@@ -54,7 +66,7 @@ jobs:
         uses: shivammathur/setup-php@v2
         with:
           php-version: ${{ matrix.php }}
-          extensions: dom, curl, libxml, mbstring, zip, pcntl, pdo, pdo_mysql, sqlite, pdo_sqlite
+          extensions: dom, curl, libxml, mbstring, zip, pcntl, pdo, pdo_mysql, pdo_pgsql, sqlite, pdo_sqlite
           coverage: none
 
       - name: Install Composer dependencies

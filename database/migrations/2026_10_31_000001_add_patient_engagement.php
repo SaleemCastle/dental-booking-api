@@ -1,5 +1,6 @@
 <?php
 
+use App\Support\MigrationGuard;
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\DB;
@@ -36,6 +37,8 @@ return new class extends Migration
             } finally {
                 Schema::enableForeignKeyConstraints();
             }
+        } elseif (DB::getDriverName() === 'pgsql') {
+            DB::statement('ALTER TABLE clinic_notifications ALTER COLUMN invoice_id DROP NOT NULL');
         } else {
             DB::statement('ALTER TABLE clinic_notifications MODIFY invoice_id BIGINT UNSIGNED NULL');
         }
@@ -63,9 +66,7 @@ return new class extends Migration
             $checks[] = '(NEW.task_id IS NOT NULL AND NOT EXISTS (SELECT 1 FROM tasks WHERE id = NEW.task_id AND patient_id = NEW.patient_id AND (appointment_id = NEW.appointment_id OR (appointment_id IS NULL AND NEW.appointment_id IS NULL))))';
             $checks[] = '(NEW.invoice_id IS NOT NULL AND NEW.patient_id IS NOT NULL AND NOT EXISTS (SELECT 1 FROM invoices WHERE id = NEW.invoice_id AND patient_id = NEW.patient_id))';
             $condition = implode(' OR ', $checks);
-            DB::unprepared(DB::getDriverName() === 'mysql'
-                ? "CREATE TRIGGER notifications_engagement_$event BEFORE $event ON clinic_notifications FOR EACH ROW BEGIN IF $condition THEN SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'Communication source mismatch'; END IF; END"
-                : "CREATE TRIGGER notifications_engagement_$event BEFORE $event ON clinic_notifications FOR EACH ROW WHEN $condition BEGIN SELECT RAISE(ABORT, 'Communication source mismatch'); END");
+            MigrationGuard::create("notifications_engagement_$event", 'clinic_notifications', $event, $condition, 'Communication source mismatch');
         }
     }
 

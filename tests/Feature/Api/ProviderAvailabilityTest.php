@@ -51,6 +51,10 @@ class ProviderAvailabilityTest extends TestCase
             ->assertJsonPath('data.availability.weekly_hours', $schedule['weekly_hours']);
         $this->getJson($this->url())->assertOk()->assertJsonPath('data.availability.exceptions', []);
         $this->putJson($this->url(), $schedule)->assertOk();
+        $reordered = $schedule;
+        $reordered['weekly_hours'][0] = array_reverse($schedule['weekly_hours'][0], true);
+        $reordered['breaks'][0] = array_reverse($schedule['breaks'][0], true);
+        $this->putJson($this->url(), $reordered)->assertOk();
         $schedule['exceptions'] = [['date' => '2026-11-03', 'working_hours' => [], 'breaks' => []]];
         $this->putJson($this->url(), $schedule)->assertOk();
         $logs = AuditLog::where('resource_type', 'provider_availabilities')->orderBy('id')->get();
@@ -321,7 +325,7 @@ class ProviderAvailabilityTest extends TestCase
             $mock->shouldReceive('record')->once()->andThrow(new \RuntimeException('Audit unavailable'));
         });
         $this->putJson($this->url(), ['weekly_hours' => [], 'breaks' => [], 'exceptions' => []])->assertStatus(500);
-        $this->assertSame($this->schedule()['weekly_hours'], ProviderAvailability::sole()->weekly_hours);
+        $this->assertEquals($this->schedule()['weekly_hours'], ProviderAvailability::sole()->weekly_hours);
         $this->assertDatabaseCount('audit_logs', 1);
     }
 

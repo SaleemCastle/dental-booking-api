@@ -1,5 +1,6 @@
 <?php
 
+use App\Support\MigrationGuard;
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\DB;
@@ -9,8 +10,8 @@ return new class extends Migration
 {
     public function up(): void
     {
-        if (! in_array(DB::getDriverName(), ['sqlite', 'mysql'], true)) {
-            throw new RuntimeException('Patient documents support MySQL and SQLite.');
+        if (! in_array(DB::getDriverName(), ['sqlite', 'mysql', 'pgsql'], true)) {
+            throw new RuntimeException('Patient documents support MySQL, PostgreSQL and SQLite.');
         }
 
         Schema::create('patient_documents', function (Blueprint $table): void {
@@ -66,11 +67,7 @@ return new class extends Migration
             }
             $condition = implode(' OR ', $checks);
             $trigger = 'patient_documents_guard_'.$event;
-            if (DB::getDriverName() === 'sqlite') {
-                DB::unprepared("CREATE TRIGGER $trigger BEFORE $event ON patient_documents WHEN $condition BEGIN SELECT RAISE(ABORT, 'Invalid patient document ownership or metadata'); END");
-            } else {
-                DB::unprepared("CREATE TRIGGER $trigger BEFORE $event ON patient_documents FOR EACH ROW BEGIN IF $condition THEN SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'Invalid patient document ownership or metadata'; END IF; END");
-            }
+            MigrationGuard::create($trigger, 'patient_documents', $event, $condition, 'Invalid patient document ownership or metadata');
         }
 
         foreach ([
@@ -78,11 +75,7 @@ return new class extends Migration
             'clinical_notes' => 'EXISTS (SELECT 1 FROM patient_documents WHERE clinical_note_id = OLD.id AND (patient_id <> NEW.patient_id OR (appointment_id IS NOT NULL AND NEW.appointment_id IS NOT NULL AND appointment_id <> NEW.appointment_id)))',
         ] as $table => $condition) {
             $trigger = $table.'_document_links_guard';
-            if (DB::getDriverName() === 'sqlite') {
-                DB::unprepared("CREATE TRIGGER $trigger BEFORE UPDATE ON $table WHEN $condition BEGIN SELECT RAISE(ABORT, 'Patient document links must be preserved'); END");
-            } else {
-                DB::unprepared("CREATE TRIGGER $trigger BEFORE UPDATE ON $table FOR EACH ROW BEGIN IF $condition THEN SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'Patient document links must be preserved'; END IF; END");
-            }
+            MigrationGuard::create($trigger, $table, 'update', $condition, 'Patient document links must be preserved');
         }
     }
 
@@ -92,7 +85,10 @@ return new class extends Migration
             throw new RuntimeException('Back up and explicitly recover document metadata and objects before removing their schema.');
         }
         foreach (['appointment', 'clinical_notes'] as $table) {
-            DB::unprepared('DROP TRIGGER IF EXISTS '.$table.'_document_links_guard');
+            MigrationGuard::drop($table.'_document_links_guard', $table);
+        }
+        foreach (['insert', 'update'] as $event) {
+            MigrationGuard::drop('patient_documents_guard_'.$event, 'patient_documents');
         }
         Schema::dropIfExists('patient_documents');
     }
