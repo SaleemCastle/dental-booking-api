@@ -205,18 +205,20 @@ class TenantFoundationTest extends TestCase
     {
         $this->seed(RoleSeeder::class);
         $this->seed(AppointmentLocationSeeder::class);
+        $this->seed(PermissionSeeder::class);
+        $permissionCount = Permission::count();
         $tenant = Tenant::factory()->create();
-        $this->within($tenant, function (): void {
+        $this->within($tenant, function () use ($permissionCount): void {
             $this->seed(RoleSeeder::class);
             $this->seed(PermissionSeeder::class);
             $this->seed(AppointmentLocationSeeder::class);
             $this->assertSame(6, Role::count());
             $this->assertSame(2, Chair::count());
-            $this->assertSame(60, Role::where('slug', Role::ADMIN)->sole()->permissions()->count());
+            $this->assertSame($permissionCount, Role::where('slug', Role::ADMIN)->sole()->permissions()->count());
         });
         $this->assertSame(6, Role::count());
         $this->assertSame(2, Chair::count());
-        $this->assertSame(60, Permission::count());
+        $this->assertSame($permissionCount, Permission::count());
     }
 
     public function test_stale_models_cannot_be_written_in_another_clinic(): void

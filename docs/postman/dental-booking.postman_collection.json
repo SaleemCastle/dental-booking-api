@@ -408,6 +408,151 @@
             ]
         },
         {
+            "name": "Platform Tenants",
+            "item": [
+                {
+                    "name": "GET List clinic profiles including suspended tenants",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/api/platform/tenants?page=",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "platform",
+                                "tenants"
+                            ],
+                            "query": [
+                                {
+                                    "key": "page",
+                                    "value": "",
+                                    "disabled": false,
+                                    "description": "Optional filter; enable its checkbox to send it."
+                                }
+                            ]
+                        },
+                        "description": "Requires a current platform operator grant. No clinic membership or X-Tenant-Id is required. The grant does not authorize clinical data access.\n\nGET /api/platform/tenants\nDomain writes require allow_writes=true. Missing required variables skip requests rather than selecting real records automatically."
+                    },
+                    "response": []
+                },
+                {
+                    "name": "POST Provision a single-clinic tenant and initial admin atomically",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            },
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/api/platform/tenants",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "platform",
+                                "tenants"
+                            ],
+                            "query": []
+                        },
+                        "description": "Requires a current platform operator grant. A globally unique idempotency_key replays an identical validated payload without changing credentials or status. Reuse with changed input returns 409. Admin email must be unused. Clinic creation, membership, default roles and provisioning audit commit together. See docs/tenant-operations.md.\n\nPOST /api/platform/tenants\nDomain writes require allow_writes=true. Missing required variables skip requests rather than selecting real records automatically.",
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"idempotency_key\": \"{{provisioning_key}}\",\n    \"name\": \"Independent Dental Clinic\",\n    \"slug\": \"{{clinic_slug}}\",\n    \"contact_email\": \"{{clinic_contact_email}}\",\n    \"timezone\": \"America/Bogota\",\n    \"currency\": \"COP\",\n    \"admin\": {\n        \"name\": \"Initial Clinic Admin\",\n        \"email\": \"{{clinic_admin_email}}\",\n        \"password\": {{new_user_password_json}}\n    }\n}\n",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        }
+                    },
+                    "response": []
+                },
+                {
+                    "name": "GET Retrieve a clinic profile",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/api/platform/tenants/{{tenant_id}}",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "platform",
+                                "tenants",
+                                "{{tenant_id}}"
+                            ],
+                            "query": []
+                        },
+                        "description": "Requires a current platform operator grant; includes suspended tenants.\n\nGET /api/platform/tenants/{tenant}\nDomain writes require allow_writes=true. Missing required variables skip requests rather than selecting real records automatically."
+                    },
+                    "response": []
+                },
+                {
+                    "name": "PATCH Activate or suspend a tenant",
+                    "request": {
+                        "method": "PATCH",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            },
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/api/platform/tenants/{{tenant_id}}/status",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "platform",
+                                "tenants",
+                                "{{tenant_id}}",
+                                "status"
+                            ],
+                            "query": []
+                        },
+                        "description": "Requires a current platform operator grant. Suspension blocks subsequent protected clinic requests with existing tokens. Each transition records an audit atomically; repeated identical status emits no additional audit.\n\nPATCH /api/platform/tenants/{tenant}/status\nDomain writes require allow_writes=true. Missing required variables skip requests rather than selecting real records automatically.",
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"status\": \"in_progress\"\n}\n",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        }
+                    },
+                    "response": []
+                }
+            ]
+        },
+        {
             "name": "Communications",
             "item": [
                 {
@@ -4876,6 +5021,26 @@
         },
         {
             "key": "permission_id",
+            "value": "",
+            "type": "string"
+        },
+        {
+            "key": "provisioning_key",
+            "value": "",
+            "type": "string"
+        },
+        {
+            "key": "clinic_slug",
+            "value": "",
+            "type": "string"
+        },
+        {
+            "key": "clinic_contact_email",
+            "value": "",
+            "type": "string"
+        },
+        {
+            "key": "clinic_admin_email",
             "value": "",
             "type": "string"
         },

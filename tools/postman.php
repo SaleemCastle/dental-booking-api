@@ -159,6 +159,21 @@ class PostmanExport
         if (! in_array($method, ['post', 'put', 'patch'], true)) {
             return null;
         }
+        if ($path === '/api/platform/tenants' && $method === 'post') {
+            return [
+                'idempotency_key' => '{{'.$this->variable('provisioning_key').'}}',
+                'name' => 'Independent Dental Clinic',
+                'slug' => '{{'.$this->variable('clinic_slug').'}}',
+                'contact_email' => '{{'.$this->variable('clinic_contact_email').'}}',
+                'timezone' => 'America/Bogota',
+                'currency' => 'COP',
+                'admin' => [
+                    'name' => 'Initial Clinic Admin',
+                    'email' => '{{'.$this->variable('clinic_admin_email').'}}',
+                    'password' => '{{new_user_password}}',
+                ],
+            ];
+        }
         if ($path === '/api/auth/token' || $path === '/login') {
             return ['email' => '{{email}}', 'password' => '{{password}}', ...($path === '/api/auth/token' ? ['token_name' => 'postman'] : [])];
         }

@@ -78,6 +78,7 @@ class Kernel extends HttpKernel
         \Illuminate\Routing\Middleware\ThrottleRequestsWithRedis::class,
         \Illuminate\Contracts\Session\Middleware\AuthenticatesSessions::class,
         \App\Http\Middleware\ResolveTenant::class,
+        \App\Http\Middleware\RequirePlatformOperator::class,
         \Illuminate\Routing\Middleware\SubstituteBindings::class,
         \Illuminate\Auth\Middleware\Authorize::class,
     ];

@@ -11,11 +11,18 @@ class Tenant extends Model
 
     public const DEFAULT_SLUG = 'default-clinic';
 
-    protected $fillable = ['name', 'slug', 'active'];
+    protected $fillable = ['name', 'slug', 'active', 'contact_email', 'contact_phone', 'address', 'timezone', 'currency', 'branding'];
 
-    protected $hidden = ['pivot'];
+    protected $hidden = ['pivot', 'provisioning_key', 'provisioning_fingerprint', 'initial_admin_id'];
 
-    protected $casts = ['active' => 'boolean'];
+    protected $casts = ['active' => 'boolean', 'branding' => 'array'];
+
+    protected $appends = ['status'];
+
+    public function getStatusAttribute(): string
+    {
+        return $this->active ? 'active' : 'suspended';
+    }
 
     public function users()
     {

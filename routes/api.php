@@ -49,6 +49,13 @@ Route::get('health', function (Request $request) {
 
 Route::post('auth/token', [TokenController::class, 'store']);
 
+Route::prefix('platform')->middleware(['auth:sanctum', \App\Http\Middleware\RequirePlatformOperator::class])->group(function () {
+    Route::get('tenants', [\App\Http\Controllers\Api\PlatformTenantController::class, 'index']);
+    Route::post('tenants', [\App\Http\Controllers\Api\PlatformTenantController::class, 'store']);
+    Route::get('tenants/{tenant}', [\App\Http\Controllers\Api\PlatformTenantController::class, 'show'])->whereNumber('tenant');
+    Route::patch('tenants/{tenant}/status', [\App\Http\Controllers\Api\PlatformTenantController::class, 'status'])->whereNumber('tenant');
+});
+
 Route::middleware('auth:sanctum')->get('tenants', function (Request $request) {
     return ApiResponse::success(['tenants' => $request->user()->tenants()->where('active', true)->orderBy('tenants.id')->get()], 'Clinic memberships retrieved.');
 });
