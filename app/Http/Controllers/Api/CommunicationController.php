@@ -10,6 +10,27 @@ use Illuminate\Http\Request;
 
 class CommunicationController extends Controller
 {
+    public function patient(Request $request, \App\Models\Patient $patient)
+    {
+        $this->authorize('view', $patient);
+
+        return $this->history($request, 'patient_id', $patient->id);
+    }
+
+    public function appointment(Request $request, \App\Models\Appointment $appointment)
+    {
+        $this->authorize('view', $appointment);
+
+        return $this->history($request, 'appointment_id', $appointment->id);
+    }
+
+    private function history(Request $request, string $column, int $id)
+    {
+        $data = $request->validate(['per_page' => 'sometimes|integer|min:1|max:100', 'page' => 'sometimes|integer|min:1']);
+
+        return ApiResponse::success(ClinicNotification::where($column, $id)->whereNull('invoice_id')->with('deliveries')->orderByDesc('id')->paginate($data['per_page'] ?? 15));
+    }
+
     public function index(Request $request, Invoice $invoice)
     {
         $this->authorize('view', $invoice);

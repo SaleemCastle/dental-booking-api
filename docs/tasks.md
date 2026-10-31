@@ -73,3 +73,7 @@ Patient archival retains tasks. An appointment linked to tasks cannot be reassig
 ## Verification
 
 Feature tests cover CRUD, authorization, independent and combined filters, pagination, midnight boundaries, validation, relationship consistency, status changes/reopening, completion timestamp retries, and parent lifecycle behavior. Run tests against a dedicated test database; `RefreshDatabase` resets its schema.
+
+## Patient reminders
+
+`patient_reminder_at` is an optional nullable timestamp on creation and general updates. A supplied timestamp must be in the future. Set it explicitly to schedule a patient follow-up; a due date alone never sends a notification. A linked patient, an enabled tenant `task.reminder` event and a verified patient contact authorized for that event are required for delivery. Null clears the reminder. Status-only updates cannot set this field. Completion, cancellation, deletion, reassignment and reminder timing changes suppress the prior pending/retry messages. See [patient engagement](patient-engagement.md) for configuration and history.

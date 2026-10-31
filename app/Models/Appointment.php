@@ -33,7 +33,7 @@ class Appointment extends Model
         'cancellation_reason',
     ];
 
-    protected $casts = [
+    protected $casts = ['communication_revision' => 'integer',
         'patient_id' => 'integer',
         'dentist_id' => 'integer',
         'treatment_id' => 'integer',

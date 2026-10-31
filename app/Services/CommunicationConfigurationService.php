@@ -60,14 +60,21 @@ final class CommunicationConfigurationService
                 'copy_user_ids' => 'sometimes|array|max:50',
                 'copy_user_ids.*' => 'required|integer|distinct|min:1',
                 'template' => 'sometimes|string|max:2000',
+                'minutes_before' => ($event === 'appointment.reminder' ? 'required' : 'prohibited').'|array|min:1|max:10',
+                'minutes_before.*' => 'required|integer|distinct|min:1|max:43200',
             ])->validate();
-            if (array_diff(array_keys($rule), ['channels', 'copy_user_ids', 'template'])) {
+            if (array_diff(array_keys($rule), ['channels', 'copy_user_ids', 'template', 'minutes_before'])) {
                 throw ValidationException::withMessages(['events' => ['Unsupported event setting.']]);
             }
             try {
                 app(SafeTemplate::class)->validate($rule['template'] ?? SafeTemplate::DEFAULTS[$event]);
             } catch (InvalidArgumentException $error) {
                 throw ValidationException::withMessages(['template' => [$error->getMessage()]]);
+            }
+            if (str_starts_with($event, 'appointment.') || $event === 'task.reminder') {
+                if (! empty($rule['copy_user_ids'])) {
+                    throw ValidationException::withMessages(['copy_user_ids' => ['Patient engagement events support patient contacts only.']]);
+                }
             }
             foreach ($rule['copy_user_ids'] ?? [] as $id) {
                 if (! $this->eligibleCopyUser(User::find($id))) {

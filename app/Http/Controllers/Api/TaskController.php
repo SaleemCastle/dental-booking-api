@@ -58,7 +58,7 @@ class TaskController extends Controller
 
     public function store(StoreTaskRequest $request, TaskWorkflow $workflow)
     {
-        $task = $workflow->create($request->validated());
+        $task = $workflow->create($request->validated(), $request->user());
 
         return ApiResponse::success([
             'task' => new TaskResource($task->load(self::RELATIONS)),
@@ -74,18 +74,22 @@ class TaskController extends Controller
 
     public function update(UpdateTaskRequest $request, Task $task, TaskWorkflow $workflow)
     {
-        return $this->taskResponse($workflow->update($task, $request->validated()));
+        return $this->taskResponse($workflow->update($task, $request->validated(), $request->user()));
     }
 
     public function updateStatus(UpdateTaskStatusRequest $request, Task $task, TaskWorkflow $workflow)
     {
-        return $this->taskResponse($workflow->update($task, $request->validated()));
+        return $this->taskResponse($workflow->update($task, $request->validated(), $request->user()));
     }
 
     public function destroy(Task $task)
     {
         $this->authorize('delete', $task);
-        $task->delete();
+        \Illuminate\Support\Facades\DB::transaction(function () use ($task) {
+            $current = Task::lockForUpdate()->findOrFail($task->id);
+            app(\App\Services\PatientEngagementService::class)->suppress('task_id', $current->id, auth()->id());
+            $current->delete();
+        });
 
         return ApiResponse::success(message: 'Task successfully deleted.');
     }

@@ -128,9 +128,9 @@ paths:
                 authorized_events:
                   type: array
                   minItems: 1
-                  maxItems: 4
+                  maxItems: 9
                   uniqueItems: true
-                  items: { type: string, enum: [payment.recorded, payment_link.created, payment_link.failed, payment_link.expired] }
+                  items: { type: string, enum: [payment.recorded, payment_link.created, payment_link.failed, payment_link.expired, appointment.confirmed, appointment.reminder, appointment.cancelled, appointment.rescheduled, task.reminder] }
       responses:
         "201": { description: Standard ApiEnvelope with data.contact; verified_at is null. }
         "401": { $ref: "#/components/responses/Unauthenticated" }
@@ -175,6 +175,58 @@ paths:
         "401": { $ref: "#/components/responses/Unauthenticated" }
         "403": { $ref: "#/components/responses/Forbidden" }
         "404": { $ref: "#/components/responses/NotFound" }
+  /api/patients/{patient}/communications:
+    parameters:
+      - { $ref: "#/components/parameters/TenantHeader" }
+      - { name: patient, in: path, required: true, schema: { type: integer } }
+      - { name: per_page, in: query, schema: { type: integer, minimum: 1, maximum: 100, default: 15 } }
+      - { name: page, in: query, schema: { type: integer, minimum: 1, default: 1 } }
+    get:
+      tags: [Communications]
+      summary: Inspect patient engagement communication history
+      description: Requires patients.view. Tenant-scoped appointment and task notifications only; billing history requires invoice view access at the invoice endpoint. Excludes addresses, variables, bodies, recipient hashes and operation keys. See docs/patient-engagement.md.
+      responses:
+        "200":
+          description: Standard ApiEnvelope with data array and pagination in meta.
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - { $ref: "#/components/schemas/ApiEnvelope" }
+                  - properties:
+                      data:
+                        type: array
+                        items: { $ref: "#/components/schemas/ClinicNotification" }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "422": { $ref: "#/components/responses/ValidationError" }
+  /api/appointments/{appointment}/communications:
+    parameters:
+      - { $ref: "#/components/parameters/TenantHeader" }
+      - { name: appointment, in: path, required: true, schema: { type: integer } }
+      - { name: per_page, in: query, schema: { type: integer, minimum: 1, maximum: 100, default: 15 } }
+      - { name: page, in: query, schema: { type: integer, minimum: 1, default: 1 } }
+    get:
+      tags: [Communications]
+      summary: Inspect appointment engagement communication history
+      description: Requires appointments.view. Tenant-scoped appointment and task notifications only; billing history requires invoice view access at the invoice endpoint. Excludes addresses, variables, bodies, recipient hashes and operation keys. See docs/patient-engagement.md.
+      responses:
+        "200":
+          description: Standard ApiEnvelope with data array and pagination in meta.
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - { $ref: "#/components/schemas/ApiEnvelope" }
+                  - properties:
+                      data:
+                        type: array
+                        items: { $ref: "#/components/schemas/ClinicNotification" }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "422": { $ref: "#/components/responses/ValidationError" }
   /api/invoices/{invoice}/communications:
     parameters:
       - { $ref: "#/components/parameters/TenantHeader" }
@@ -3582,6 +3634,7 @@ components:
         patient_id: { type: integer, nullable: true }
         appointment_id: { type: integer, nullable: true }
         assignee_id: { type: integer }
+        patient_reminder_at: { type: string, format: date-time, nullable: true, description: Explicit patient reminder time. Supplied nonnull values must be future times; requires a patient and an enabled tenant task.reminder rule. Null clears the reminder. }
         due_date: { type: string, format: date, example: "2026-10-20", description: Exact YYYY-MM-DD calendar date. Past dates are allowed. }
         priority: { $ref: "#/components/schemas/TaskPriority" }
         status: { $ref: "#/components/schemas/TaskStatus" }
@@ -3599,6 +3652,7 @@ components:
         patient_id: { type: integer, nullable: true }
         appointment_id: { type: integer, nullable: true }
         assignee_id: { type: integer }
+        patient_reminder_at: { type: string, format: date-time, nullable: true, description: Explicit patient reminder time. Supplied nonnull values must be future times; requires a patient and an enabled tenant task.reminder rule. Null clears the reminder. }
         due_date: { type: string, format: date, example: "2026-10-20" }
         priority: { $ref: "#/components/schemas/TaskPriority" }
         status: { $ref: "#/components/schemas/TaskStatus" }
@@ -3777,14 +3831,18 @@ components:
       properties:
         id: { type: integer }
         tenant_id: { type: integer }
-        invoice_id: { type: integer }
+        invoice_id: { type: integer, nullable: true }
+        patient_id: { type: integer, nullable: true }
+        appointment_id: { type: integer, nullable: true }
+        task_id: { type: integer, nullable: true }
+        source_revision: { type: integer, nullable: true }
         payment_id: { type: integer, nullable: true }
         payment_link_id: { type: integer, nullable: true }
-        event: { type: string, enum: [payment.recorded, payment_link.created, payment_link.failed, payment_link.expired] }
+        event: { type: string, enum: [payment.recorded, payment_link.created, payment_link.failed, payment_link.expired, appointment.confirmed, appointment.reminder, appointment.cancelled, appointment.rescheduled, task.reminder] }
         event_key: { type: string }
         actor_id: { type: integer, nullable: true }
         user_triggered: { type: boolean }
-        trigger: { type: string, enum: [staff, payment_provider] }
+        trigger: { type: string, enum: [staff, payment_provider, staff_create, staff_update] }
         selection_status: { type: string, enum: [queued, no_eligible_recipients] }
         deliveries:
           type: array

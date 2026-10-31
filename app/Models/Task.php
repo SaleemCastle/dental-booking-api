@@ -25,14 +25,16 @@ class Task extends Model
         'priority',
         'status',
         'description',
+        'patient_reminder_at',
     ];
 
-    protected $casts = [
+    protected $casts = ['communication_revision' => 'integer',
         'patient_id' => 'integer',
         'appointment_id' => 'integer',
         'assignee_id' => 'integer',
         'due_date' => 'date',
         'completed_at' => 'datetime',
+        'patient_reminder_at' => 'datetime',
     ];
 
     protected function dueDate(): Attribute

@@ -72,6 +72,7 @@ final class ClinicNotificationService
             $notification = ClinicNotification::create([
                 'configuration_id' => $configuration->id, 'configuration_revision' => $configuration->revision,
                 'event' => $event, 'event_key' => $key, 'invoice_id' => $invoice->id,
+                'patient_id' => $invoice->patient_id, 'appointment_id' => $invoice->appointment_id,
                 'payment_id' => $event === 'payment.recorded' ? $sourceId : null,
                 'payment_link_id' => $event === 'payment.recorded' ? $source->payment_link_id : $sourceId,
                 'actor_id' => $actorId, 'user_triggered' => $actorId !== null,

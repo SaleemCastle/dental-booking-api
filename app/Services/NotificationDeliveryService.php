@@ -114,7 +114,7 @@ final class NotificationDeliveryService
                 } else {
                     $template = $rule['template'] ?? SafeTemplate::DEFAULTS[$notification->event];
                 }
-                $message = new DeliveryMessage($delivery->address, 'Clinic payment update',
+                $message = new DeliveryMessage($delivery->address, $notification->invoice_id === null ? 'Clinic appointment and follow-up update' : 'Clinic payment update',
                     app(SafeTemplate::class)->render($template, $variables), $delivery->operation_key);
                 $channel = $settings['channels'][$delivery->channel];
                 $reference = app(ProviderRegistry::class)->resolve($channel['provider'])->send($message, $channel);
@@ -161,30 +161,38 @@ final class NotificationDeliveryService
         if (! $configuration?->enabled || $configuration->revision !== $notification->configuration_revision) {
             throw new DeliveryException('configuration_changed');
         }
-        $invoice = Invoice::find($notification->invoice_id);
-        if (! $invoice) {
-            throw new DeliveryException('source_unavailable');
-        }
-        try {
-            app(ClinicNotificationService::class)->authorizeTrigger($notification->event, $invoice, $notification->actor_id, $notification->payment_link_id);
-        } catch (AuthorizationException|ModelNotFoundException) {
-            throw new DeliveryException('trigger_no_longer_authorized');
-        }
-        if ($notification->event === 'payment_link.created') {
-            $link = PaymentLink::find($notification->payment_link_id);
-            if (! $link || $link->invoice_id !== $invoice->id || $link->status !== 'active'
-                || ($link->expires_at !== null && $link->expires_at->isPast())
-                || ! in_array($invoice->status, ['issued', 'partially_paid'], true)
-                || $link->checkout_url !== $notification->variables['payment_link']) {
-                throw new DeliveryException('payment_link_no_longer_active');
+        if ($notification->invoice_id === null) {
+            try {
+                app(PatientEngagementService::class)->validateSource($notification);
+            } catch (AuthorizationException|ModelNotFoundException) {
+                throw new DeliveryException('trigger_no_longer_authorized');
             }
-        }
-        if (in_array($notification->event, ['payment_link.failed', 'payment_link.expired'], true)) {
-            $link = PaymentLink::find($notification->payment_link_id);
-            if (! $link || $link->invoice_id !== $invoice->id || $notification->event !== 'payment_link.'.$link->status
-                || ! in_array($invoice->status, ['issued', 'partially_paid'], true)
-                || $invoice->paymentLinks()->where('id', '>', $link->id)->exists()) {
-                throw new DeliveryException('payment_link_outcome_superseded');
+        } else {
+            $invoice = Invoice::find($notification->invoice_id);
+            if (! $invoice) {
+                throw new DeliveryException('source_unavailable');
+            }
+            try {
+                app(ClinicNotificationService::class)->authorizeTrigger($notification->event, $invoice, $notification->actor_id, $notification->payment_link_id);
+            } catch (AuthorizationException|ModelNotFoundException) {
+                throw new DeliveryException('trigger_no_longer_authorized');
+            }
+            if ($notification->event === 'payment_link.created') {
+                $link = PaymentLink::find($notification->payment_link_id);
+                if (! $link || $link->invoice_id !== $invoice->id || $link->status !== 'active'
+                    || ($link->expires_at !== null && $link->expires_at->isPast())
+                    || ! in_array($invoice->status, ['issued', 'partially_paid'], true)
+                    || $link->checkout_url !== $notification->variables['payment_link']) {
+                    throw new DeliveryException('payment_link_no_longer_active');
+                }
+            }
+            if (in_array($notification->event, ['payment_link.failed', 'payment_link.expired'], true)) {
+                $link = PaymentLink::find($notification->payment_link_id);
+                if (! $link || $link->invoice_id !== $invoice->id || $notification->event !== 'payment_link.'.$link->status
+                    || ! in_array($invoice->status, ['issued', 'partially_paid'], true)
+                    || $invoice->paymentLinks()->where('id', '>', $link->id)->exists()) {
+                    throw new DeliveryException('payment_link_outcome_superseded');
+                }
             }
         }
         $recipients = app(NotificationRecipients::class)->select($notification, $configuration->settings);

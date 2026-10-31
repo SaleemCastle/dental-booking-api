@@ -13,7 +13,7 @@ class ClinicNotification extends Model
 
     protected $hidden = ['variables'];
 
-    protected $casts = ['variables' => 'encrypted:array', 'user_triggered' => 'boolean'];
+    protected $casts = ['source_revision' => 'integer', 'patient_id' => 'integer', 'appointment_id' => 'integer', 'task_id' => 'integer', 'variables' => 'encrypted:array', 'user_triggered' => 'boolean'];
 
     public function deliveries()
     {
