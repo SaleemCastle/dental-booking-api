@@ -13,6 +13,8 @@ Import the [Postman collection](docs/postman/dental-booking.postman_collection.j
 
 Tenant resolution, service/policy usage, and queue propagation conventions are documented in the [multi-tenant architecture contract](docs/multi-tenancy.md).
 
+Controlled onboarding, operator access, clinic profiles, idempotent provisioning and activation/suspension are documented in [SaaS tenant operations](docs/tenant-operations.md).
+
 The [dental charting contract](docs/dental-charting.md) defines adult/primary numbering, surface findings, immutable revisions, concurrency, authorization, and audit behavior.
 
 Private patient document uploads, S3 configuration, authorization, retrieval, archive/delete semantics and operational recovery are documented in [patient documents and imaging](docs/patient-documents.md).

@@ -2,9 +2,9 @@
 
 ## Decision and boundary
 
-Use one shared database/schema, with **one tenant representing one clinic**. Clinical records and roles have a non-null `tenant_id`. Users are global identities with globally unique email addresses and many-to-many clinic memberships in `tenant_user`. The permission catalog is a global vocabulary; a permission grant belongs to a clinic-local role, not to the user globally. No tenant creation, signup, invitations, billing, provisioning, or platform-administration API is introduced.
+Use one shared database/schema, with **one tenant representing one clinic**. Clinical records and roles have a non-null `tenant_id`. Users are global identities with globally unique email addresses and many-to-many clinic memberships in `tenant_user`. The permission catalog is a global vocabulary; a permission grant belongs to a clinic-local role, not to the user globally. Phase 3 adds controlled platform provisioning and activation/suspension; see [tenant operations](tenant-operations.md). Subscription billing and self-service tenant signup remain outside this contract.
 
-The `admin` system-role slug remains backward compatible and means **Clinic Admin**. `Role::CLINIC_ADMIN` aliases that stable slug. It is not Platform Super Admin and confers no cross-clinic or platform authority. Future platform privileges must use a separate authorization boundary, not an `admin` role, display name, or wildcard permission on a clinic role.
+The `admin` system-role slug remains backward compatible and means **Clinic Admin**. `Role::CLINIC_ADMIN` aliases that stable slug. It confers no cross-clinic or platform authority. Platform operations require the separate, non-mass-assignable `is_platform_operator` grant, checked from the database on each request, independent of clinic membership, role names and wildcard permissions.
 
 ## Schema and migration
 

@@ -2,7 +2,7 @@ openapi: 3.0.3
 info:
   title: Dental Booking Backend API
   version: 2.0.0
-  description: Laravel Sanctum API for dental clinics. Each tenant is one clinic. Authenticated clinic requests optionally select X-Tenant-Id; omission selects the migrated default clinic, never another membership. Current membership and an active clinic are required. Clinical data, roles, permission grants, selectors, aggregates and audit history are clinic-scoped. Users and permission definitions are global; role assignments are clinic-local. Clinic Admin (admin) is not a Platform Super Admin. No SaaS onboarding is exposed. See docs/multi-tenancy.md. All JSON endpoints return the standard ApiEnvelope shape with success, statusCode, message, code, data, errors, meta, and requestId.
+  description: Laravel Sanctum API for dental clinics. Each tenant is one clinic. Authenticated clinic requests optionally select X-Tenant-Id; omission selects the migrated default clinic, never another membership. Current membership and an active clinic are required. Clinical data, roles, permission grants, selectors, aggregates and audit history are clinic-scoped. Users and permission definitions are global; role assignments are clinic-local. Controlled onboarding and tenant status changes require a separate platform operator grant; Clinic Admin permissions confer no platform authority. See docs/multi-tenancy.md and docs/tenant-operations.md. All JSON endpoints return the standard ApiEnvelope shape with success, statusCode, message, code, data, errors, meta, and requestId.
 servers:
   - url: http://localhost:8000
     description: Local Laravel server
@@ -28,12 +28,74 @@ tags:
   - name: Roles
   - name: Audit Logs
   - name: Tenants
+  - name: Platform Tenants
   - name: Dental Charts
   - name: Treatment Plans
   - name: Patient Documents
   - name: Reporting
   - name: Communications
 paths:
+  /api/platform/tenants:
+    get:
+      tags: [Platform Tenants]
+      summary: List clinic profiles including suspended tenants
+      description: Requires a current platform operator grant. No clinic membership or X-Tenant-Id is required. The grant does not authorize clinical data access.
+      parameters:
+        - { name: page, in: query, schema: { type: integer, minimum: 1 } }
+      responses:
+        "200": { description: Standard ApiEnvelope with data array of Tenant profiles and pagination metadata; 25 per page. }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+    post:
+      tags: [Platform Tenants]
+      summary: Provision a single-clinic tenant and initial admin atomically
+      description: Requires a current platform operator grant. A globally unique idempotency_key replays an identical validated payload without changing credentials or status. Reuse with changed input returns 409. Admin email must be unused. Clinic creation, membership, default roles and provisioning audit commit together. See docs/tenant-operations.md.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/ProvisionTenantRequest" }
+      responses:
+        "201": { description: Standard ApiEnvelope with data.tenant and data.initial_admin_id. }
+        "200": { description: 'Identical retry; same tenant and initial admin ID, with current tenant status.' }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "409": { description: Idempotency key reused with different input or concurrent identity/slug conflict. }
+        "422": { $ref: "#/components/responses/ValidationError" }
+  /api/platform/tenants/{tenant}:
+    parameters:
+      - { name: tenant, in: path, required: true, schema: { type: integer, minimum: 1 } }
+    get:
+      tags: [Platform Tenants]
+      summary: Retrieve a clinic profile
+      description: Requires a current platform operator grant; includes suspended tenants.
+      responses:
+        "200": { description: Standard ApiEnvelope with data.tenant. }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+  /api/platform/tenants/{tenant}/status:
+    parameters:
+      - { name: tenant, in: path, required: true, schema: { type: integer, minimum: 1 } }
+    patch:
+      tags: [Platform Tenants]
+      summary: Activate or suspend a tenant
+      description: Requires a current platform operator grant. Suspension blocks subsequent protected clinic requests with existing tokens. Each transition records an audit atomically; repeated identical status emits no additional audit.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [status]
+              properties:
+                status: { type: string, enum: [active, suspended] }
+      responses:
+        "200": { description: Standard ApiEnvelope with data.tenant. }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "422": { $ref: "#/components/responses/ValidationError" }
   /api/patients/{patient}/contacts:
     parameters:
       - { $ref: "#/components/parameters/TenantHeader" }
@@ -3661,6 +3723,34 @@ components:
           example: [patients.view, appointments.create]
         created_at: { type: string, format: date-time, nullable: true }
         updated_at: { type: string, format: date-time, nullable: true }
+    ProvisionTenantRequest:
+      type: object
+      required: [idempotency_key, name, slug, contact_email, timezone, currency, admin]
+      properties:
+        idempotency_key: { type: string, maxLength: 100, pattern: '^[A-Za-z0-9._:-]+$' }
+        name: { type: string, maxLength: 255 }
+        slug: { type: string, maxLength: 100, pattern: '^[a-z0-9]+(?:-[a-z0-9]+)*$' }
+        contact_email: { type: string, format: email, maxLength: 255 }
+        contact_phone: { type: string, maxLength: 50, nullable: true }
+        address: { type: string, maxLength: 1000, nullable: true }
+        timezone: { type: string, example: America/Bogota }
+        currency: { type: string, pattern: '^[A-Z]{3}$', example: COP }
+        branding: { $ref: "#/components/schemas/TenantBranding" }
+        admin:
+          type: object
+          additionalProperties: false
+          required: [name, email, password]
+          properties:
+            name: { type: string, maxLength: 255 }
+            email: { type: string, format: email, maxLength: 255 }
+            password: { type: string, format: password, writeOnly: true, minLength: 12, maxLength: 72 }
+    TenantBranding:
+      type: object
+      additionalProperties: false
+      properties:
+        display_name: { type: string, maxLength: 255, nullable: true }
+        logo_url: { type: string, format: uri, maxLength: 2048, nullable: true, description: HTTPS URL; backend never fetches it. }
+        primary_color: { type: string, pattern: '^#[0-9A-Fa-f]{6}$', nullable: true }
     Tenant:
       type: object
       required: [id, name, slug, active]
@@ -3669,6 +3759,13 @@ components:
         name: { type: string, example: Default Clinic }
         slug: { type: string, example: default-clinic }
         active: { type: boolean, example: true }
+        status: { type: string, enum: [active, suspended], readOnly: true }
+        contact_email: { type: string, format: email, nullable: true }
+        contact_phone: { type: string, nullable: true }
+        address: { type: string, nullable: true }
+        timezone: { type: string, example: America/Bogota }
+        currency: { type: string, example: COP }
+        branding: { $ref: "#/components/schemas/TenantBranding" }
         created_at: { type: string, format: date-time, nullable: true }
         updated_at: { type: string, format: date-time, nullable: true }
     AppointmentStatus:

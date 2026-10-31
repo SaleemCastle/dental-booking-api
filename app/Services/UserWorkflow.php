@@ -29,6 +29,9 @@ class UserWorkflow
     {
         return DB::transaction(function () use ($user, $data, $actor) {
             $current = User::forCurrentTenant()->lockForUpdate()->findOrFail($user->id);
+            if ($current->is_platform_operator && $current->id !== $actor->id) {
+                throw new AuthorizationException('Platform operator identities may only be edited by their owner.');
+            }
             if ($current->id !== $actor->id && $current->tenants()->where('tenants.id', '!=', app(TenantContext::class)->id())->exists()) {
                 throw new AuthorizationException('Shared user identities may only be edited by their owner.');
             }
@@ -47,6 +50,9 @@ class UserWorkflow
     {
         DB::transaction(function () use ($user, $actor) {
             $current = User::forCurrentTenant()->lockForUpdate()->findOrFail($user->id);
+            if ($current->is_platform_operator) {
+                throw new AuthorizationException('Platform operators cannot be deleted through clinic administration.');
+            }
             if ($current->assignedTasks()->exists()) {
                 throw ValidationException::withMessages([
                     'user' => ['Reassign this clinic member\'s tasks before removing their membership.'],

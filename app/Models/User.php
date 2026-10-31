@@ -35,6 +35,7 @@ class User extends Authenticatable
         'remember_token',
         'pivot',
         'tenants',
+        'is_platform_operator',
     ];
 
     protected $appends = [
@@ -49,6 +50,7 @@ class User extends Authenticatable
     protected $casts = [
         'email_verified_at' => 'datetime',
         'password' => 'hashed',
+        'is_platform_operator' => 'boolean',
     ];
 
     protected static function booted(): void
