@@ -1,5 +1,6 @@
 <?php
 
+use App\Support\MigrationGuard;
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\DB;
@@ -9,8 +10,8 @@ return new class extends Migration
 {
     public function up(): void
     {
-        if (! in_array(DB::getDriverName(), ['sqlite', 'mysql'], true)) {
-            throw new RuntimeException('Billing supports MySQL and SQLite.');
+        if (! in_array(DB::getDriverName(), ['sqlite', 'mysql', 'pgsql'], true)) {
+            throw new RuntimeException('Billing supports MySQL, PostgreSQL and SQLite.');
         }
         $legacyCurrency = config('billing.legacy_currency');
         if (DB::table('invoices')->exists() && (! is_string($legacyCurrency) || ! preg_match('/\A[A-Z]{3}\z/', $legacyCurrency))) {
@@ -106,9 +107,9 @@ return new class extends Migration
             "OLD.status = 'issued' AND NEW.status NOT IN ('issued', 'partially_paid', 'paid', 'void')",
             "OLD.status = 'partially_paid' AND NEW.status NOT IN ('partially_paid', 'paid')",
             "OLD.status IN ('paid', 'void') AND NEW.status <> OLD.status",
-            "OLD.status <> 'draft' AND (NEW.invoice_number <> OLD.invoice_number OR COALESCE(NEW.due_date, '') <> COALESCE(OLD.due_date, ''))",
-            "OLD.status <> 'draft' AND COALESCE(NEW.issued_at, '') <> COALESCE(OLD.issued_at, '')",
-            "OLD.status = 'void' AND (COALESCE(NEW.void_reason, '') <> COALESCE(OLD.void_reason, '') OR COALESCE(NEW.voided_at, '') <> COALESCE(OLD.voided_at, ''))",
+            "OLD.status <> 'draft' AND (NEW.invoice_number <> OLD.invoice_number OR ".$this->nullableChanged('due_date').')',
+            "OLD.status <> 'draft' AND (".$this->nullableChanged('issued_at').')',
+            "OLD.status = 'void' AND (COALESCE(NEW.void_reason, '') <> COALESCE(OLD.void_reason, '') OR ".$this->nullableChanged('voided_at').')',
             "NEW.status <> 'void' AND (NEW.voided_at IS NOT NULL OR NEW.void_reason IS NOT NULL)",
             "NEW.status = 'draft' AND (NEW.amount_paid <> 0 OR NEW.issued_at IS NOT NULL)",
             'ROUND(NEW.amount_paid * 100) <> COALESCE((SELECT SUM(ROUND(amount * 100)) FROM payments WHERE invoice_id = NEW.id), 0)',
@@ -128,7 +129,7 @@ return new class extends Migration
         }
         foreach (['patient' => ['delete'], 'invoices' => ['insert', 'update', 'delete'], 'payments' => ['insert', 'update', 'delete'], 'invoice_items' => ['insert', 'update', 'delete']] as $table => $events) {
             foreach ($events as $event) {
-                DB::unprepared("DROP TRIGGER IF EXISTS billing_{$table}_{$event}");
+                MigrationGuard::drop("billing_{$table}_{$event}", $table);
             }
         }
         Schema::dropIfExists('invoice_items');
@@ -152,11 +153,16 @@ return new class extends Migration
     private function guard(string $table, string $event, string $condition): void
     {
         $name = 'billing_'.$table.'_'.$event;
-        if (DB::getDriverName() === 'sqlite') {
-            DB::unprepared("CREATE TRIGGER $name BEFORE $event ON $table WHEN $condition BEGIN SELECT RAISE(ABORT, 'Billing integrity violation: immutable financial history'); END");
-        } else {
-            DB::unprepared("CREATE TRIGGER $name BEFORE $event ON $table FOR EACH ROW BEGIN IF $condition THEN SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'Billing integrity violation: immutable financial history'; END IF; END");
+        MigrationGuard::create($name, $table, $event, $condition, 'Billing integrity violation: immutable financial history');
+    }
+
+    private function nullableChanged(string $column): string
+    {
+        if (DB::getDriverName() === 'pgsql') {
+            return "NEW.$column IS DISTINCT FROM OLD.$column";
         }
+
+        return "COALESCE(NEW.$column, '') <> COALESCE(OLD.$column, '')";
     }
 
     private function minor(mixed $amount): int

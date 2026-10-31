@@ -1,5 +1,6 @@
 <?php
 
+use App\Support\MigrationGuard;
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\DB;
@@ -9,8 +10,8 @@ return new class extends Migration
 {
     public function up(): void
     {
-        if (! in_array(DB::getDriverName(), ['sqlite', 'mysql'], true)) {
-            throw new RuntimeException('Provider availability supports MySQL and SQLite.');
+        if (! in_array(DB::getDriverName(), ['sqlite', 'mysql', 'pgsql'], true)) {
+            throw new RuntimeException('Provider availability supports MySQL, PostgreSQL and SQLite.');
         }
 
         Schema::create('provider_availabilities', function (Blueprint $table): void {
@@ -30,16 +31,15 @@ return new class extends Migration
                 $condition .= ' OR NEW.tenant_id <> OLD.tenant_id OR NEW.dentist_id <> OLD.dentist_id';
             }
             $trigger = 'provider_availabilities_guard_'.$event;
-            if (DB::getDriverName() === 'sqlite') {
-                DB::unprepared("CREATE TRIGGER $trigger BEFORE $event ON provider_availabilities WHEN $condition BEGIN SELECT RAISE(ABORT, 'Invalid availability ownership'); END");
-            } else {
-                DB::unprepared("CREATE TRIGGER $trigger BEFORE $event ON provider_availabilities FOR EACH ROW BEGIN IF $condition THEN SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'Invalid availability ownership'; END IF; END");
-            }
+            MigrationGuard::create($trigger, 'provider_availabilities', $event, $condition, 'Invalid availability ownership');
         }
     }
 
     public function down(): void
     {
+        foreach (['insert', 'update'] as $event) {
+            MigrationGuard::drop('provider_availabilities_guard_'.$event, 'provider_availabilities');
+        }
         Schema::dropIfExists('provider_availabilities');
     }
 };

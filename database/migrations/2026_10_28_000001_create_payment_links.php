@@ -1,5 +1,6 @@
 <?php
 
+use App\Support\MigrationGuard;
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\DB;
@@ -47,10 +48,7 @@ return new class extends Migration
         // Invoice IDs are globally unique; enforce ownership for raw SQL too.
         foreach (['insert', 'update'] as $event) {
             $condition = 'NOT EXISTS (SELECT 1 FROM invoices WHERE id = NEW.invoice_id AND tenant_id = NEW.tenant_id)';
-            $sql = DB::getDriverName() === 'mysql'
-                ? "CREATE TRIGGER payment_links_tenant_{$event} BEFORE {$event} ON payment_links FOR EACH ROW BEGIN IF {$condition} THEN SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'Payment link tenant mismatch'; END IF; END"
-                : "CREATE TRIGGER payment_links_tenant_{$event} BEFORE {$event} ON payment_links FOR EACH ROW WHEN {$condition} BEGIN SELECT RAISE(ABORT, 'Payment link tenant mismatch'); END";
-            DB::unprepared($sql);
+            MigrationGuard::create("payment_links_tenant_{$event}", 'payment_links', $event, $condition, 'Payment link tenant mismatch');
         }
     }
 
@@ -60,7 +58,7 @@ return new class extends Migration
             throw new RuntimeException('Reconcile and back up payment links before removing their schema.');
         }
         foreach (['insert', 'update'] as $event) {
-            DB::unprepared("DROP TRIGGER IF EXISTS payment_links_tenant_{$event}");
+            MigrationGuard::drop("payment_links_tenant_{$event}", 'payment_links');
         }
         Schema::dropIfExists('payment_links');
         Schema::dropIfExists('payment_provider_configurations');

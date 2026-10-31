@@ -278,9 +278,11 @@ class PatientDocumentApiTest extends TestCase
         $this->patchJson('/api/clinical-notes/'.$note->id, ['appointment_id' => $second->id])->assertUnprocessable();
         foreach (['appointment' => $appointment->id, 'clinical_notes' => $note->id] as $table => $parentId) {
             try {
+                DB::beginTransaction();
                 DB::table($table)->where('id', $parentId)->update(['patient_id' => $other->id]);
                 $this->fail('Expected retained document relationship guard.');
             } catch (QueryException $error) {
+                DB::rollBack();
                 $this->assertStringContainsString('Patient document links must be preserved', $error->getMessage());
             }
         }
@@ -387,9 +389,11 @@ class PatientDocumentApiTest extends TestCase
         $other = Patient::factory()->create();
         foreach ([['patient_id' => $other->id], ['storage_key' => 'other-key'], ['original_filename' => 'changed.pdf'], ['size_bytes' => 1]] as $values) {
             try {
+                DB::beginTransaction();
                 DB::table('patient_documents')->where('id', $id)->update($values);
                 $this->fail('Expected document integrity guard.');
             } catch (QueryException $error) {
+                DB::rollBack();
                 $this->assertStringContainsString('Invalid patient document ownership or metadata', $error->getMessage());
             }
         }

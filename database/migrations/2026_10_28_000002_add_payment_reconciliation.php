@@ -1,5 +1,6 @@
 <?php
 
+use App\Support\MigrationGuard;
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\DB;
@@ -58,9 +59,7 @@ return new class extends Migration
 
     private function guard(string $name, string $table, string $condition, string $event = 'insert'): void
     {
-        DB::unprepared(DB::getDriverName() === 'mysql'
-            ? "CREATE TRIGGER {$name} BEFORE {$event} ON {$table} FOR EACH ROW BEGIN IF {$condition} THEN SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'Provider relationship mismatch'; END IF; END"
-            : "CREATE TRIGGER {$name} BEFORE {$event} ON {$table} FOR EACH ROW WHEN {$condition} BEGIN SELECT RAISE(ABORT, 'Provider relationship mismatch'); END");
+        MigrationGuard::create($name, $table, $event, $condition, 'Provider relationship mismatch');
     }
 
     public function down(): void
@@ -70,15 +69,15 @@ return new class extends Migration
             throw new RuntimeException('Back up and reconcile provider history before removing settlement schema.');
         }
         foreach (['payments_provider_insert', 'payment_events_provider_insert', 'payment_events_provider_update'] as $trigger) {
-            DB::unprepared("DROP TRIGGER IF EXISTS {$trigger}");
+            MigrationGuard::drop($trigger, $trigger === 'payments_provider_insert' ? 'payments' : 'payment_provider_events');
         }
         Schema::dropIfExists('payment_provider_events');
         Schema::table('payments', function (Blueprint $table): void {
-            $table->dropUnique('payments_provider_transaction_unique');
             if (DB::getDriverName() === 'mysql') {
                 $table->dropForeign(['payment_link_id']);
                 $table->dropForeign(['payment_provider_configuration_id']);
             }
+            $table->dropUnique('payments_provider_transaction_unique');
             $table->dropUnique(['payment_link_id']);
             $table->dropColumn(['payment_link_id', 'payment_provider_configuration_id', 'provider_transaction_reference']);
         });

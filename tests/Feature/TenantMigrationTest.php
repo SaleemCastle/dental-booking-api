@@ -114,7 +114,9 @@ class TenantMigrationTest extends TestCase
         }
         $this->assertSame(DB::table('users')->count(), DB::table('tenant_user')->where('tenant_id', $tenantId)->count());
         $this->assertNotNull(DB::table('clinical_notes')->where('id', $note->id)->value('deleted_at'));
-        // Verify preserved Phase 1 columns before applying newer additive settlement/communication fields.
+        // Verify preserved Phase 1 columns before restoring dependent billing/settlement schemas.
+        config(['billing.legacy_currency' => 'USD']);
+        $billing->up();
         $reconciliation->up();
         $communications->up();
         $operations->up();

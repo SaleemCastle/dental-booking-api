@@ -1,5 +1,6 @@
 <?php
 
+use App\Support\MigrationGuard;
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\DB;
@@ -93,9 +94,7 @@ return new class extends Migration
                     continue;
                 }
                 $condition = implode(' OR ', $checks);
-                DB::unprepared(DB::getDriverName() === 'mysql'
-                    ? "CREATE TRIGGER {$table}_clinic_{$event} BEFORE {$event} ON $table FOR EACH ROW BEGIN IF $condition THEN SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'Communication tenant mismatch'; END IF; END"
-                    : "CREATE TRIGGER {$table}_clinic_{$event} BEFORE {$event} ON $table FOR EACH ROW WHEN $condition BEGIN SELECT RAISE(ABORT, 'Communication tenant mismatch'); END");
+                MigrationGuard::create("{$table}_clinic_{$event}", $table, $event, $condition, 'Communication tenant mismatch');
             }
         }
     }
@@ -107,7 +106,7 @@ return new class extends Migration
         }
         foreach (array_reverse(array_keys($this->relationships)) as $table) {
             foreach (['insert', 'update'] as $event) {
-                DB::unprepared("DROP TRIGGER IF EXISTS {$table}_clinic_{$event}");
+                MigrationGuard::drop("{$table}_clinic_{$event}", $table);
             }
             Schema::dropIfExists($table);
         }
