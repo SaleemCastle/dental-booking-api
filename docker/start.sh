@@ -12,6 +12,14 @@ php artisan view:clear
 echo "Running database migrations..."
 php artisan migrate --force
 
+if [ "${RUN_STAGING_SEEDER:-false}" = "true" ]; then
+    echo "Running staging bootstrap seeder..."
+
+    php artisan db:seed \
+        --class=StagingSeeder \
+        --force
+fi
+
 echo "Caching Laravel configuration..."
 php artisan config:cache
 
