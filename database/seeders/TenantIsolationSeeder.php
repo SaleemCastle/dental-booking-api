@@ -49,11 +49,6 @@ class TenantIsolationSeeder extends Seeder
                     $password
                 );
 
-                $user = $this->createIsolationAdministrator(
-                    $email,
-                    $password
-                );
-
                 if (! Hash::check($password, $user->password)) {
                     throw new RuntimeException(
                         'Isolation administrator password verification failed after creation.'
