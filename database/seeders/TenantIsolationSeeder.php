@@ -117,20 +117,26 @@ class TenantIsolationSeeder extends Seeder
 
     private function createIsolationPatient(): Patient
     {
-        $existingPatient = Patient::query()
-            ->where('firstName', 'ISOLATION')
-            ->where('lastName', 'TENANT-ONLY')
-            ->first();
-
-        if ($existingPatient) {
-            return $existingPatient;
-        }
-
-        return Patient::factory()->create([
-            'firstName' => 'ISOLATION',
-            'lastName' => 'TENANT-ONLY',
-            'notes' => 'Cross-tenant isolation test fixture.',
-        ]);
+        return Patient::query()->firstOrCreate(
+            [
+                'firstName' => 'ISOLATION',
+                'lastName' => 'TENANT-ONLY',
+            ],
+            [
+                'appointments' => 'Isolation Test',
+                'sex' => 'Other',
+                'streetAddress' => '1 Isolation Test Street',
+                'town' => 'Isolation Test Town',
+                'city' => 'Isolation Test City',
+                'notes' => 'Cross-tenant isolation test fixture.',
+                'emergency_contact_name' => 'Isolation Test Contact',
+                'emergency_contact_phone' => '000-000-0000',
+                'emergency_contact_relationship' => 'Other',
+                'allergies' => [],
+                'medications' => [],
+                'medical_alerts' => [],
+            ]
+        );
     }
 
     private function ensureSeederCanRun(): void
