@@ -30,6 +30,7 @@ yarn-error.log
 !/docs/provider-availability.md
 !/docs/reporting.md
 !/docs/postgresql.md
+!/docs/vercel-render-auth.md
 !/docs/postman.md
 !/docs/postman/
 /docs/postman/*
