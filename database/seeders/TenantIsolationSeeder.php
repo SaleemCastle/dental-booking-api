@@ -9,6 +9,7 @@ use App\Models\User;
 use App\Tenancy\TenantContext;
 use Illuminate\Database\Seeder;
 use RuntimeException;
+use Illuminate\Support\Facades\Hash;
 
 class TenantIsolationSeeder extends Seeder
 {
@@ -46,6 +47,21 @@ class TenantIsolationSeeder extends Seeder
                 $user = $this->createIsolationAdministrator(
                     $email,
                     $password
+                );
+
+                $user = $this->createIsolationAdministrator(
+                    $email,
+                    $password
+                );
+
+                if (! Hash::check($password, $user->password)) {
+                    throw new RuntimeException(
+                        'Isolation administrator password verification failed after creation.'
+                    );
+                }
+
+                $this->command?->info(
+                    'Isolation administrator password verified successfully.'
                 );
 
                 $user->tenants()->syncWithoutDetaching([
