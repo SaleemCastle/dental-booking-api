@@ -20,6 +20,14 @@ if [ "${RUN_STAGING_SEEDER:-false}" = "true" ]; then
         --force
 fi
 
+if [ "${RUN_ISOLATION_SEEDER:-false}" = "true" ]; then
+    echo "Running tenant isolation test seeder..."
+
+    php artisan db:seed \
+        --class=TenantIsolationSeeder \
+        --force
+fi
+
 echo "Caching Laravel configuration..."
 php artisan config:cache
 
