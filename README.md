@@ -11,6 +11,8 @@
 
 See [PostgreSQL deployment](docs/postgresql.md) for Render configuration and database test setup.
 
+See [Vercel and Render authentication](docs/vercel-render-auth.md) for browser login configuration and CSRF troubleshooting.
+
 Import the [Postman collection](docs/postman/dental-booking.postman_collection.json) and [local environment](docs/postman/local.postman_environment.json). See the [Postman setup guide](docs/postman.md) for authentication, variables, write-safety defaults, and audit requests. The API contract is in [OpenAPI](docs/openapi.yaml).
 
 Tenant resolution, service/policy usage, and queue propagation conventions are documented in the [multi-tenant architecture contract](docs/multi-tenancy.md).
