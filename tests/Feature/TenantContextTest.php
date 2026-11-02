@@ -111,14 +111,48 @@ class TenantContextTest extends TestCase
         $this->getJson('/api/user', ['X-Tenant-Id' => (string) $tenant->id])->assertForbidden();
     }
 
-    public function test_missing_default_clinic_does_not_select_another_membership(): void
+    public function test_single_membership_is_selected_even_when_the_default_clinic_is_missing(): void
     {
         $tenant = Tenant::factory()->create();
         $user = User::factory()->forTenant($tenant)->create();
         Tenant::where('slug', Tenant::DEFAULT_SLUG)->update(['slug' => 'former-default']);
         Sanctum::actingAs($user);
-        $this->getJson('/api/user')->assertForbidden();
+        $this->getJson('/api/user')->assertOk()->assertHeader('X-Tenant-Id', (string) $tenant->id)
+            ->assertJsonPath('data.current_tenant_id', $tenant->id);
         $this->getJson('/api/user', ['X-Tenant-Id' => (string) $tenant->id])->assertOk();
+    }
+
+    public function test_multiple_active_memberships_require_an_explicit_clinic_selection(): void
+    {
+        $user = User::factory()->create();
+        $other = Tenant::factory()->create();
+        $user->tenants()->attach($other);
+        Sanctum::actingAs($user);
+
+        $this->getJson('/api/user')->assertUnprocessable()
+            ->assertHeaderMissing('X-Tenant-Id')->assertJsonValidationErrors('tenant_id')
+            ->assertJsonPath('errors.tenant_id.0', 'A clinic must be selected for this account.');
+        $this->getJson('/api/user', ['X-Tenant-Id' => (string) $other->id])->assertOk()
+            ->assertHeader('X-Tenant-Id', (string) $other->id)
+            ->assertJsonPath('data.current_tenant_id', $other->id);
+
+        $this->expectException(LogicException::class);
+        app(TenantContext::class)->requireId();
+    }
+
+    public function test_automatic_selection_ignores_inactive_memberships_and_rechecks_loaded_memberships(): void
+    {
+        $user = User::factory()->create();
+        $inactive = Tenant::factory()->create(['active' => false]);
+        $user->tenants()->attach($inactive);
+        $user->load('tenants');
+        $default = Tenant::where('slug', Tenant::DEFAULT_SLUG)->sole();
+        Sanctum::actingAs($user);
+
+        $this->getJson('/api/user')->assertOk()
+            ->assertJsonPath('data.current_tenant_id', $default->id);
+        $default->update(['active' => false]);
+        $this->getJson('/api/user')->assertForbidden()->assertHeaderMissing('X-Tenant-Id');
     }
 
     public function test_ownership_fields_in_query_and_body_cannot_override_context(): void
@@ -154,7 +188,7 @@ class TenantContextTest extends TestCase
 
         $this->getJson('/api/user', ['X-Tenant-Id' => (string) $other->id])->assertOk()
             ->assertJsonPath('data.roles.0.slug', 'private-role')->assertJsonMissingPath('data.tenants');
-        $this->getJson('/api/user')->assertOk()->assertHeader('X-Tenant-Id', (string) $default->id)
+        $this->getJson('/api/user', ['X-Tenant-Id' => (string) $default->id])->assertOk()->assertHeader('X-Tenant-Id', (string) $default->id)
             ->assertJsonPath('data.current_tenant_id', $default->id)->assertJsonPath('data.roles', [])
             ->assertJsonMissingPath('data.tenants')->assertDontSee('private-clinic')->assertDontSee('private-role');
         $this->assertFalse($user->relationLoaded('roles'));

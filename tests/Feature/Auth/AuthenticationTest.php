@@ -2,6 +2,7 @@
 
 namespace Tests\Feature\Auth;
 
+use App\Models\Tenant;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
@@ -82,6 +83,24 @@ class AuthenticationTest extends TestCase
             ->assertJsonPath('statusCode', 200)
             ->assertJsonPath('data.id', $user->id)
             ->assertJsonPath('data.email', $user->email);
+    }
+
+    public function test_browser_session_automatically_selects_the_users_only_non_default_clinic(): void
+    {
+        $tenant = Tenant::factory()->create();
+        $user = User::factory()->forTenant($tenant)->create();
+
+        $this->initializeCsrfCookie();
+        $this->withHeaders($this->browserHeaders())->postJson('/login', [
+            'email' => $user->email,
+            'password' => 'password',
+        ])->assertOk()->assertJsonPath('data.user.id', $user->id);
+        $this->assertAuthenticatedAs($user);
+
+        $this->withHeaders($this->browserHeaders())->getJson('/api/user')
+            ->assertOk()->assertHeader('X-Tenant-Id', (string) $tenant->id)
+            ->assertJsonPath('data.id', $user->id)
+            ->assertJsonPath('data.current_tenant_id', $tenant->id);
     }
 
     public function test_new_users_can_register_and_fetch_api_user_from_browser_session(): void

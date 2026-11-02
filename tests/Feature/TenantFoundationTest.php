@@ -60,7 +60,8 @@ class TenantFoundationTest extends TestCase
         Sanctum::actingAs($user);
         $this->getJson('/api/tenants')->assertOk()->assertJsonCount(1, 'data.tenants')
             ->assertJsonPath('data.tenants.0.id', $tenant->id)->assertJsonMissingPath('data.tenants.0.pivot');
-        $this->getJson('/api/user')->assertForbidden();
+        $this->getJson('/api/user')->assertOk()->assertHeader('X-Tenant-Id', (string) $tenant->id)
+            ->assertJsonPath('data.current_tenant_id', $tenant->id);
         $this->withHeader('X-Tenant-Id', (string) $tenant->id)->getJson('/api/user')->assertOk();
     }
 
@@ -105,7 +106,8 @@ class TenantFoundationTest extends TestCase
             $user->roles()->attach($role);
         });
         Sanctum::actingAs($user);
-        $this->putJson('/api/users/'.$user->id.'/roles', ['role_ids' => []])->assertOk();
+        $this->withHeader('X-Tenant-Id', (string) $default->id)
+            ->putJson('/api/users/'.$user->id.'/roles', ['role_ids' => []])->assertOk();
         $this->assertFalse($user->hasRole(Role::CLINIC_ADMIN));
         $this->within($foreign, fn () => $this->assertTrue($user->hasRole(Role::DENTIST)));
         $this->assertSame(1, AuditLog::where('action', 'roles_changed')->count());
