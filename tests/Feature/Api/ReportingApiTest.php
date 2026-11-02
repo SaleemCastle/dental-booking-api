@@ -255,6 +255,7 @@ class ReportingApiTest extends TestCase
     {
         $actor = $this->actor();
         $ownProvider = Dentist::factory()->create();
+        $this->withHeader('X-Tenant-Id', (string) $ownProvider->tenant_id);
         $this->appointment($ownProvider, 'completed');
         $this->invoice('12.00');
         $tenant = Tenant::factory()->create();

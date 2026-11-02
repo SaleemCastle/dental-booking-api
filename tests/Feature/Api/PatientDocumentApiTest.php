@@ -242,6 +242,7 @@ class PatientDocumentApiTest extends TestCase
         $actor = $this->actor(Role::ADMIN, '*');
         $local = Patient::factory()->create();
         $localId = $this->upload($local)->assertCreated()->json('data.document.id');
+        $this->withHeader('X-Tenant-Id', (string) $local->tenant_id);
         $tenant = Tenant::factory()->create();
         $actor->tenants()->attach($tenant);
         [$foreign, $role] = app(TenantContext::class)->run($tenant, fn () => [
