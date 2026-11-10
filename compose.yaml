@@ -1,0 +1,40 @@
+services:
+  postgres:
+    image: postgres:16
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: dental_booking_local
+      POSTGRES_USER: dental_user
+      POSTGRES_PASSWORD: password
+    ports:
+      - "5433:5432"
+    volumes:
+      - dental_postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U dental_user -d dental_booking_local"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  api:
+    build:
+      context: .
+    ports:
+      - "10000:10000"
+    env_file:
+      - .env
+    environment:
+      DB_CONNECTION: pgsql
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_DATABASE: dental_booking_local
+      DB_USERNAME: dental_user
+      DB_PASSWORD: password
+      HANDYPAY_PROVISION_ENABLED: "false"
+      PORT: 10000
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+volumes:
+  dental_postgres_data:

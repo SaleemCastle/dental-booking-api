@@ -12,6 +12,14 @@ php artisan view:clear
 echo "Running database migrations..."
 php artisan migrate --force
 
+if [ "${HANDYPAY_PROVISION_ENABLED:-false}" = "true" ]; then
+    echo "Running one-time HandyPay sandbox provisioning..."
+
+    php artisan billing:provision-staging
+
+    echo "HandyPay sandbox provisioning completed."
+fi
+
 if [ "${RUN_STAGING_SEEDER:-false}" = "true" ]; then
     echo "Running staging bootstrap seeder..."
 
