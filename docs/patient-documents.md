@@ -74,6 +74,21 @@ Before production use, enable S3 server access logging to an encrypted dedicated
 
 ### Deployment checklist
 
+For Render or another host using static S3 credentials, set all four variables on the **backend service** (not the frontend):
+
+```dotenv
+PATIENT_DOCUMENT_S3_KEY=<access-key-id>
+PATIENT_DOCUMENT_S3_SECRET=<secret-access-key>
+PATIENT_DOCUMENT_S3_BUCKET=dental-app-booking
+PATIENT_DOCUMENT_S3_REGION=us-east-2
+```
+
+The dedicated document disk does not use `AWS_BUCKET` or `FILESYSTEM_DISK`. Standard `AWS_ACCESS_KEY_ID` / `AWS_SECRET_ACCESS_KEY` credentials can still be resolved by the SDK's default credential chain when the dedicated key/secret are unset. Creating credentials alone does not grant bucket access; the deployment identity also needs the object permissions described below. Keep credentials in the host's private environment and public bucket access blocked.
+
+Redeploy after changing environment variables. The Docker startup script clears and rebuilds Laravel's configuration cache. The Docker image loads `docker/uploads.ini` to allow 20 MiB files and 24 MiB multipart requests; changing local PHP settings does not change the deployed container.
+
+If uploads still fail, run `php tools/check-document-storage.php` in the **deployed backend shell** to exercise its actual credentials and bucket configuration. It writes and deletes only a disposable nonclinical test object. Treat its output as operationally sensitive and redact credentials, signed URLs and patient details before sharing it. An API 413 or file validation error can occur before S3 is contacted; an S3 `AccessDenied` indicates a permissions/policy issue, while credential errors indicate missing, invalid or expired credentials.
+
 1. Run `composer install` and `php artisan migrate` using the normal deployment process. The current lock file/CI uses PHP 8.2. Enable Fileinfo and the existing database extensions. This migration requires MySQL trigger privileges, like the tenant integrity migrations. Rollback refuses a populated document table; recover/export metadata and objects explicitly before removing the schema.
 2. Set `PATIENT_DOCUMENT_S3_BUCKET`, `PATIENT_DOCUMENT_S3_REGION`, and either `PATIENT_DOCUMENT_S3_KEY`/`PATIENT_DOCUMENT_S3_SECRET` or the SDK's workload-role credentials. For another S3-compatible provider, also set the HTTPS `PATIENT_DOCUMENT_S3_ENDPOINT` and `PATIENT_DOCUMENT_S3_PATH_STYLE` as required. Empty credentials permit the AWS default provider chain. Never commit credentials. Keep the disk name stable for retained rows.
 3. Provision a dedicated bucket with public access blocked, website hosting disabled, no public/CDN policy, TLS required and encryption at rest. The adapter requests `AES256` server-side encryption by default (`PATIENT_DOCUMENT_S3_ENCRYPTION`); verify provider support. Workload IAM should permit only the required object read/write/delete actions under `tenants/*`, including multipart upload/abort permissions for files crossing the SDK's multipart threshold. Configure a lifecycle rule to abort incomplete multipart uploads. The app never lists the bucket during requests. Use separate privileged credentials for inventory reconciliation and bucket administration.

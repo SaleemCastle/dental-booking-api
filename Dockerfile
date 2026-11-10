@@ -22,6 +22,9 @@ COPY --from=composer:2 /usr/bin/composer /usr/bin/composer
 
 WORKDIR /var/www/html
 
+# Match the application's 20 MiB document limit and allow multipart overhead.
+COPY docker/uploads.ini /usr/local/etc/php/conf.d/uploads.ini
+
 # Copy Composer files first so dependency installation can be cached.
 COPY composer.json composer.lock ./
 

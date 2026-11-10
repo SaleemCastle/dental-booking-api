@@ -15,9 +15,12 @@ use Illuminate\Validation\ValidationException;
 
 class ConfigurePaymentProvider extends Command
 {
-    protected $signature = 'billing:configure-provider {tenant : Clinic ID} {provider=handypay}
-        {--success-url= : HTTPS return URL after checkout}
-        {--cancel-url= : HTTPS return URL after the buyer leaves checkout}';
+    protected $signature = 'billing:configure-provider
+    {tenant : Clinic ID}
+    {provider=handypay}
+    {--success-url= : HTTPS return URL after checkout}
+    {--cancel-url= : HTTPS return URL after the buyer leaves checkout}
+    {--webhook-endpoint= : Previously registered webhook endpoint UUID}';
 
     protected $description = 'Provision encrypted tenant payment credentials using a hidden prompt (never a command-line secret)';
 
@@ -37,16 +40,35 @@ class ConfigurePaymentProvider extends Command
         ])->validate();
         $key = $this->secret('Merchant API key', false);
         Validator::make(['api_key' => $key], ['api_key' => ['required', 'string', 'max:500', 'regex:/\Ahp_(test|live)_[A-Za-z0-9_-]+\z/']])->validate();
-        $endpoint = (string) Str::uuid();
-        $this->info('Register the HandyPay webhook endpoint: '.url('/api/webhooks/handypay/'.$endpoint));
+        $providedEndpoint = $this->option('webhook-endpoint');
+
+        Validator::make(
+            ['webhook_endpoint' => $providedEndpoint],
+            ['webhook_endpoint' => ['nullable', 'uuid']]
+        )->validate();
+
+        $endpoint = $providedEndpoint ?: (string) Str::uuid();
+        if (PaymentProviderConfiguration::where(
+            'webhook_endpoint',
+            $endpoint
+        )->exists()) {
+            throw ValidationException::withMessages([
+                'webhook_endpoint' => [
+                    'This webhook endpoint is already registered.',
+                ],
+            ]);
+        }
+        $this->info('Register the HandyPay webhook endpoint: ' . url('/api/webhooks/handypay/' . $endpoint));
         $webhookSecret = $this->secret('Webhook signing secret', false);
         Validator::make(['webhook_secret' => $webhookSecret], ['webhook_secret' => ['required', 'string', 'min:16', 'max:500']])->validate();
-        $context->run($tenant, fn () => DB::transaction(function () use ($data, $key, $webhookSecret, $endpoint) {
+        $context->run($tenant, fn() => DB::transaction(function () use ($data, $key, $webhookSecret, $endpoint) {
             // Lock even when there is no configuration yet, serializing provisioning.
             Tenant::whereKey(app(TenantContext::class)->id())->lockForUpdate()->firstOrFail();
             $configuration = PaymentProviderConfiguration::where('enabled', true)->lockForUpdate()->first();
-            if ($configuration && PaymentLink::where('payment_provider_configuration_id', $configuration->id)
-                ->whereIn('status', PaymentLink::OUTSTANDING)->exists()) {
+            if (
+                $configuration && PaymentLink::where('payment_provider_configuration_id', $configuration->id)
+                ->whereIn('status', PaymentLink::OUTSTANDING)->exists()
+            ) {
                 throw ValidationException::withMessages(['provider' => ['Resolve outstanding checkouts before changing merchant configuration.']]);
             }
             $verified = PaymentProviderConfiguration::where('provider', $data['provider'])->whereNotNull('sandbox_verified_at')->exists();
@@ -57,7 +79,9 @@ class ConfigurePaymentProvider extends Command
             $configuration?->update(['enabled' => false]);
 
             $next = new PaymentProviderConfiguration([
-                ...$data, 'credentials' => ['api_key' => $key, 'webhook_secret' => $webhookSecret], 'enabled' => true,
+                ...$data,
+                'credentials' => ['api_key' => $key, 'webhook_secret' => $webhookSecret],
+                'enabled' => true,
             ]);
             $next->webhook_endpoint = $endpoint;
             $next->save();
