@@ -4649,10 +4649,234 @@
                             ],
                             "query": []
                         },
-                        "description": "Same staff authorization as GET. Missing consent defaults to denial. Verified email/SMS contacts do not imply in-app consent. The future portal can use the same preference records.\n\nPUT /api/patients/{patient}/messaging-preferences\nDomain writes require allow_writes=true. Missing required variables skip requests rather than selecting real records automatically.",
+                        "description": "Compatibility adapter to append-only communication consent. Same staff authorization as GET. Allowed true appends granted; false appends withdrawn. Requires source and acknowledged policy text/version. Use communication-consents for all states and channels. Missing consent defaults to denial.\n\nPUT /api/patients/{patient}/messaging-preferences\nDomain writes require allow_writes=true. Missing required variables skip requests rather than selecting real records automatically.",
                         "body": {
                             "mode": "raw",
-                            "raw": "{\n    \"channel\": \"in_app\",\n    \"use_case\": \"care\",\n    \"allowed\": false,\n    \"evidence\": \"Patient withdrew in-app care messaging consent.\"\n}\n",
+                            "raw": "{\n    \"channel\": \"in_app\",\n    \"use_case\": \"care\",\n    \"allowed\": false,\n    \"evidence\": \"Patient withdrew in-app care messaging consent.\",\n    \"source\": \"in_person\",\n    \"text_version\": \"care-v1\",\n    \"acknowledged_text\": \"I withdraw consent to in-app care messages.\"\n}\n",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        }
+                    },
+                    "response": []
+                }
+            ]
+        },
+        {
+            "name": "Communication Consent",
+            "item": [
+                {
+                    "name": "GET Review append-only patient communication consent history",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/api/patients/{{patient_id}}/communication-consents?page=&per_page=25",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "patients",
+                                "{{patient_id}}",
+                                "communication-consents"
+                            ],
+                            "query": [
+                                {
+                                    "key": "purpose",
+                                    "value": "transactional",
+                                    "disabled": true,
+                                    "description": "Optional filter; enable its checkbox to send it."
+                                },
+                                {
+                                    "key": "channel",
+                                    "value": "in_app",
+                                    "disabled": true,
+                                    "description": "Optional filter; enable its checkbox to send it."
+                                },
+                                {
+                                    "key": "page",
+                                    "value": "",
+                                    "disabled": false,
+                                    "description": "Optional filter; enable its checkbox to send it."
+                                },
+                                {
+                                    "key": "per_page",
+                                    "value": "25",
+                                    "disabled": false,
+                                    "description": "Optional filter; enable its checkbox to send it."
+                                }
+                            ]
+                        },
+                        "description": "Staff with exact messaging.preferences.manage only. Admin and patient roles prohibited on staff endpoints. Returns original evidence and acknowledged wording; tenant-scoped and private/no-store. See docs/communication-consent.md.\n\nGET /api/patients/{patient}/communication-consents\nDomain writes require allow_writes=true. Missing required variables skip requests rather than selecting real records automatically."
+                    },
+                    "response": []
+                },
+                {
+                    "name": "POST Append a patient consent grant or refusal",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            },
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/api/patients/{{patient_id}}/communication-consents",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "patients",
+                                "{{patient_id}}",
+                                "communication-consents"
+                            ],
+                            "query": []
+                        },
+                        "description": "Explicitly permitted staff only. Creates the next immutable version per patient/purpose/scope/channel under a tenant lock. Captured_by and captured_at are server-derived; callers cannot override them or version. Staff attest the patient's actual choice independently of the sender's send confirmation. Never overwrites earlier evidence.\n\nPOST /api/patients/{patient}/communication-consents\nDomain writes require allow_writes=true. Missing required variables skip requests rather than selecting real records automatically.",
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"purpose\": \"clinical\",\n    \"scope\": \"follow_up\",\n    \"channel\": \"in_app\",\n    \"status\": \"declined\",\n    \"source\": \"written_form\",\n    \"text_version\": \"care-policy-v2\",\n    \"acknowledged_text\": \"I decline in-app clinical follow-up messages.\",\n    \"evidence\": \"Signed patient form REF-23.\"\n}\n",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        }
+                    },
+                    "response": []
+                },
+                {
+                    "name": "GET Resolve current effective patient consent",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/api/patients/{{patient_id}}/communication-consents/current?purpose=clinical&scope=follow_up&channel=in_app",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "patients",
+                                "{{patient_id}}",
+                                "communication-consents",
+                                "current"
+                            ],
+                            "query": [
+                                {
+                                    "key": "purpose",
+                                    "value": "clinical",
+                                    "disabled": false,
+                                    "description": "Optional filter; enable its checkbox to send it."
+                                },
+                                {
+                                    "key": "scope",
+                                    "value": "follow_up",
+                                    "disabled": false,
+                                    "description": "Optional filter; enable its checkbox to send it."
+                                },
+                                {
+                                    "key": "channel",
+                                    "value": "in_app",
+                                    "disabled": false,
+                                    "description": "Optional filter; enable its checkbox to send it."
+                                }
+                            ]
+                        },
+                        "description": "Same staff authorization as history. Exact scope and channel only; no fallback. Missing consent denies. Resolution does not send. Actual sends resolve again and capture the consent ID/version used. In-app blocked sends return 403 COMMUNICATION_CONSENT_BLOCKED with errors.consent.reason and the decision; provider workers suppress with the same reason as failure_reason.\n\nGET /api/patients/{patient}/communication-consents/current\nDomain writes require allow_writes=true. Missing required variables skip requests rather than selecting real records automatically."
+                    },
+                    "response": []
+                },
+                {
+                    "name": "GET Review separate emergency and legal operational-basis evidence",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/api/patients/{{patient_id}}/operational-notice-bases?page=&per_page=25",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "patients",
+                                "{{patient_id}}",
+                                "operational-notice-bases"
+                            ],
+                            "query": [
+                                {
+                                    "key": "page",
+                                    "value": "",
+                                    "disabled": false,
+                                    "description": "Optional filter; enable its checkbox to send it."
+                                },
+                                {
+                                    "key": "per_page",
+                                    "value": "25",
+                                    "disabled": false,
+                                    "description": "Optional filter; enable its checkbox to send it."
+                                }
+                            ]
+                        },
+                        "description": "Same exact staff permission as consent history. Basis records never grant patient consent or bypass sending policy.\n\nGET /api/patients/{patient}/operational-notice-bases\nDomain writes require allow_writes=true. Missing required variables skip requests rather than selecting real records automatically."
+                    },
+                    "response": []
+                },
+                {
+                    "name": "POST Record operational notice basis without authorizing dispatch",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            },
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/api/patients/{{patient_id}}/operational-notice-bases",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "patients",
+                                "{{patient_id}}",
+                                "operational-notice-bases"
+                            ],
+                            "query": []
+                        },
+                        "description": "Same exact staff permission as consent capture. Server stamps actor and time. This separate immutable record does not override patient consent. Actual exceptional dispatch remains a separately authorized future workflow.\n\nPOST /api/patients/{patient}/operational-notice-bases\nDomain writes require allow_writes=true. Missing required variables skip requests rather than selecting real records automatically.",
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"channel\": \"in_app\",\n    \"basis\": \"emergency\",\n    \"reason\": \"Specific operational notice justification.\",\n    \"authority_reference\": \"Reviewed authority REF-1.\"\n}\n",
                             "options": {
                                 "raw": {
                                     "language": "json"

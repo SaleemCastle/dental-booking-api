@@ -7,7 +7,6 @@ use App\Models\ConversationThread;
 use App\Models\MessageConfirmation;
 use App\Models\MessagingUserPermission;
 use App\Models\Patient;
-use App\Models\PatientMessagingPreference;
 use App\Models\Role;
 use App\Models\Tenant;
 use App\Models\User;
@@ -104,7 +103,7 @@ final class MessagingService
 
             return ['confirmation_token' => $token, 'expires_at' => $confirmation->expires_at,
                 'channel' => 'in_app', 'use_case' => $thread->use_case, 'patient_id' => $thread->patient_id,
-                'preference_id' => $preference->id, 'body' => $data['body'] ?? null,
+                'consent' => $preference, 'body' => $data['body'] ?? null,
                 'kind' => $data['kind'] ?? 'message', 'supersedes_id' => $data['supersedes_id'] ?? null,
                 'reason' => $data['reason'] ?? null,
                 'acknowledgement_required' => true];
@@ -138,9 +137,10 @@ final class MessagingService
                     throw ValidationException::withMessages(['confirmation_token' => 'Prepare a new confirmation for this exact message.']);
                 }
                 $confirmation->update(['consumed_at' => now()]);
+                $decision = app(CommunicationConsentService::class)->capture($preference, 'conversation_threads', $thread->id, $actor->id);
                 $metadata += ['confirmation_id' => $confirmation->id, 'confirmed_at' => now()->toISOString(),
-                    'consent_acknowledged' => true, 'preference_id' => $preference->id,
-                    'preference_updated_at' => $preference->updated_at->toISOString(), 'use_case' => $thread->use_case];
+                    'consent_acknowledged' => true, 'consent_decision_id' => $decision->id,
+                    'patient_consent' => $decision->snapshot, 'use_case' => $thread->use_case];
             }
             abort_if(ConversationMessage::where('actor_id', $actor->id)->where('created_at', '>=', now()->subMinute())->count() >= 20, 429);
             if ($thread->patient_id !== null) {
@@ -182,7 +182,7 @@ final class MessagingService
         Tenant::where('active', true)->lockForUpdate()->findOrFail(app(TenantContext::class)->requireId());
     }
 
-    private function authorizeSend(User $actor, ConversationThread $thread): ?PatientMessagingPreference
+    private function authorizeSend(User $actor, ConversationThread $thread): ?array
     {
         $patient = $thread->patient_id !== null;
         abort_unless($this->permitted($actor, $patient ? 'patient_send' : 'internal_send'), 403);
@@ -201,13 +201,12 @@ final class MessagingService
         return $patient ? $this->consent($thread->patient_id, $thread->use_case) : null;
     }
 
-    private function consent(int $patientId, string $useCase): PatientMessagingPreference
+    private function consent(int $patientId, string $useCase): array
     {
         abort_unless(Patient::active()->whereKey($patientId)->exists(), 403);
-        $preference = PatientMessagingPreference::where('patient_id', $patientId)->where('channel', 'in_app')->where('use_case', $useCase)->first();
-        abort_unless($preference?->allowed, 403, 'Patient consent does not permit this channel and use case.');
+        $service = app(CommunicationConsentService::class);
 
-        return $preference;
+        return $service->requireAllowed($service->forUseCase($patientId, $useCase));
     }
 
     private function target(User $actor, ConversationThread $thread, array $data): void

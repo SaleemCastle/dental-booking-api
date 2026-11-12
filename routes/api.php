@@ -131,6 +131,11 @@ Route::middleware(['auth:sanctum', 'tenant'])->group(function () {
     Route::put('users/{user}/messaging-permissions', [\App\Http\Controllers\Api\ConversationController::class, 'permissions']);
     Route::get('patients/{patient}/messaging-preferences', [\App\Http\Controllers\Api\ConversationController::class, 'preferences']);
     Route::put('patients/{patient}/messaging-preferences', [\App\Http\Controllers\Api\ConversationController::class, 'savePreference']);
+    Route::get('patients/{patient}/communication-consents/current', [\App\Http\Controllers\Api\CommunicationConsentController::class, 'current']);
+    Route::get('patients/{patient}/communication-consents', [\App\Http\Controllers\Api\CommunicationConsentController::class, 'index']);
+    Route::post('patients/{patient}/communication-consents', [\App\Http\Controllers\Api\CommunicationConsentController::class, 'store']);
+    Route::get('patients/{patient}/operational-notice-bases', [\App\Http\Controllers\Api\CommunicationConsentController::class, 'notices']);
+    Route::post('patients/{patient}/operational-notice-bases', [\App\Http\Controllers\Api\CommunicationConsentController::class, 'storeNotice']);
     Route::apiResource('referrals', ReferralController::class);
     Route::apiResource('users', UserController::class);
     Route::apiResource('treatments', TreatmentController::class);

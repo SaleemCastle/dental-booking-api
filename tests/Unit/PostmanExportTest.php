@@ -169,6 +169,20 @@ class PostmanExportTest extends TestCase
             $this->bodyFor('PUT', '/api/users/{{user_id}}/messaging-permissions'));
     }
 
+    public function test_consent_examples_keep_patient_evidence_separate_from_send_confirmation(): void
+    {
+        $consent = $this->bodyFor('POST', '/api/patients/{{patient_id}}/communication-consents');
+        $this->assertSame('declined', $consent['status']);
+        $this->assertSame('clinical', $consent['purpose']);
+        $this->assertSame('follow_up', $consent['scope']);
+        $this->assertArrayHasKey('text_version', $consent);
+        $this->assertArrayHasKey('acknowledged_text', $consent);
+        foreach (['send_confirmed', 'consent_acknowledged', 'captured_by', 'captured_at', 'version'] as $field) {
+            $this->assertArrayNotHasKey($field, $consent);
+        }
+        $this->assertArrayHasKey('authority_reference', $this->bodyFor('POST', '/api/patients/{{patient_id}}/operational-notice-bases'));
+    }
+
     private function requests(): array
     {
         $requests = [];

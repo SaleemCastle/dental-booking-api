@@ -26,6 +26,8 @@ yarn-error.log
 !/docs/billing.md
 !/docs/payment-links.md
 !/docs/communications.md
+!/docs/platform-messaging.md
+!/docs/communication-consent.md
 !/docs/patient-engagement.md
 !/docs/provider-availability.md
 !/docs/reporting.md

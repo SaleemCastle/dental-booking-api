@@ -3,12 +3,13 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Models\CommunicationConsent;
 use App\Models\MessagingUserPermission;
 use App\Models\Patient;
-use App\Models\PatientMessagingPreference;
 use App\Models\Role;
 use App\Models\User;
 use App\Services\AuditLogService;
+use App\Services\CommunicationConsentService;
 use App\Services\MessagingService;
 use App\Support\ApiResponse;
 use Illuminate\Http\Request;
@@ -34,7 +35,7 @@ class ConversationController extends Controller
     {
         $data = $request->validate([
             'subject' => ['required', 'string', 'max:200'], 'patient_id' => ['nullable', 'integer'],
-            'use_case' => ['required_with:patient_id', Rule::in(['care', 'billing'])],
+            'use_case' => ['required_with:patient_id', Rule::in(['care', 'billing', 'appointments', 'general'])],
             'user_ids' => ['sometimes', 'array', 'max:20'], 'user_ids.*' => ['integer', 'distinct'],
             'attachments' => ['prohibited'], 'sender_id' => ['prohibited'],
         ]);
@@ -91,34 +92,41 @@ class ConversationController extends Controller
     {
         $this->authorizePreferences($request);
 
-        return ApiResponse::success(['preferences' => PatientMessagingPreference::where('patient_id', $patient->id)->get()], 'Messaging preferences retrieved.');
+        return ApiResponse::success(['preferences' => CommunicationConsent::where('patient_id', $patient->id)->where('channel', 'in_app')
+            ->whereIn('id', CommunicationConsent::selectRaw('MAX(id)')->where('patient_id', $patient->id)->where('channel', 'in_app')->groupBy('purpose', 'scope'))
+            ->get()->map(fn ($consent) => $this->preferenceRepresentation($consent))], 'Current in-app consent retrieved.');
     }
 
-    public function savePreference(Request $request, Patient $patient, MessagingService $service)
+    public function savePreference(Request $request, Patient $patient, CommunicationConsentService $service)
     {
         $this->authorizePreferences($request);
         $data = $request->validate([
             'channel' => ['required', Rule::in(['in_app'])], 'use_case' => ['required', Rule::in(['care', 'billing'])],
             'allowed' => ['required', 'boolean'], 'evidence' => ['required', 'string', 'max:2000'],
+            'source' => ['required', 'string'], 'text_version' => ['required', 'string'], 'acknowledged_text' => ['required', 'string'],
         ]);
-        $preference = DB::transaction(function () use ($request, $patient, $service, $data) {
-            $service->lockTenant();
-            $preference = PatientMessagingPreference::updateOrCreate(
-                ['patient_id' => $patient->id, 'channel' => $data['channel'], 'use_case' => $data['use_case']],
-                ['allowed' => $data['allowed'], 'evidence' => $data['evidence'], 'recorded_by' => $request->user()->id],
-            );
-            app(AuditLogService::class)->record($data['allowed'] ? 'consent_granted' : 'consent_revoked', 'patient_messaging_preferences', $preference->id, $request->user()->id);
+        $preference = $service->record($patient->id, [
+            'channel' => 'in_app', 'purpose' => $data['use_case'] === 'care' ? 'clinical' : 'transactional',
+            'scope' => $data['use_case'] === 'care' ? 'follow_up' : 'billing',
+            'status' => $data['allowed'] ? 'granted' : 'withdrawn',
+            'source' => $data['source'], 'text_version' => $data['text_version'],
+            'acknowledged_text' => $data['acknowledged_text'], 'evidence' => $data['evidence'],
+        ], $request->user());
 
-            return $preference;
-        });
+        return ApiResponse::success(['preference' => $this->preferenceRepresentation($preference)], 'Messaging preference saved.');
+    }
 
-        return ApiResponse::success(['preference' => $preference], 'Messaging preference saved.');
+    private function preferenceRepresentation(CommunicationConsent $consent): array
+    {
+        return [...$consent->toArray(), 'allowed' => $consent->status === 'granted',
+            'use_case' => match ($consent->scope) {
+                'follow_up' => 'care', 'non_essential' => 'general', default => $consent->scope,
+            }];
     }
 
     private function authorizePreferences(Request $request): void
     {
-        abort_if($request->user()->hasRole(Role::ADMIN) || $request->user()->hasRole('patient'), 403);
-        abort_unless($request->user()->hasPermission('messaging.preferences.manage'), 403);
+        app(CommunicationConsentService::class)->authorize($request->user());
     }
 
     private function messageData(Request $request): array

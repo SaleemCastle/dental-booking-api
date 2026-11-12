@@ -1,0 +1,19 @@
+<?php
+
+namespace App\Models;
+
+use App\Models\Concerns\BelongsToTenant;
+use Illuminate\Database\Eloquent\Model;
+
+class OperationalNoticeBasis extends Model
+{
+    use BelongsToTenant;
+
+    public $timestamps = false;
+
+    protected $table = 'operational_notice_bases';
+
+    protected $guarded = ['id', 'tenant_id'];
+
+    protected $casts = ['captured_at' => 'immutable_datetime'];
+}

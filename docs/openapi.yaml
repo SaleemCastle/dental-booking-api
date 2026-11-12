@@ -34,6 +34,7 @@ tags:
   - name: Patient Documents
   - name: Reporting
   - name: Communications
+  - name: Communication Consent
 paths:
   /api/platform/tenants:
     get:
@@ -2107,7 +2108,7 @@ paths:
                 subject: { type: string, maxLength: 200, example: Care coordination }
                 user_ids: { type: array, maxItems: 20, items: { type: integer }, example: [] }
                 patient_id: { type: integer, description: Optional patient; requires care or billing use_case. }
-                use_case: { type: string, enum: [care, billing] }
+                use_case: { type: string, enum: [care, billing, appointments, general] }
       responses:
         "201": { description: ApiEnvelope with data.thread and its participants. }
         "403": { $ref: "#/components/responses/Forbidden" }
@@ -2168,7 +2169,7 @@ paths:
           application/json:
             schema: { $ref: "#/components/schemas/ConversationSendRequest" }
       responses:
-        "201": { description: 'ApiEnvelope data contains confirmation_token, expires_at, body, kind, supersedes_id, reason, channel, use_case, patient_id, preference_id and acknowledgement_required.' }
+        "201": { description: 'ApiEnvelope data contains confirmation_token, expires_at, body, kind, supersedes_id, reason, channel, use_case, patient_id, current patient consent decision and acknowledgement_required. Staff confirmation is separate from patient consent.' }
         "403": { $ref: "#/components/responses/Forbidden" }
         "404": { $ref: "#/components/responses/NotFound" }
         "422": { $ref: "#/components/responses/ValidationError" }
@@ -2211,21 +2212,108 @@ paths:
     put:
       tags: [Messages]
       summary: Record patient consent or withdrawal with evidence
-      description: Same staff authorization as GET. Missing consent defaults to denial. Verified email/SMS contacts do not imply in-app consent. The future portal can use the same preference records.
+      description: Compatibility adapter to append-only communication consent. Same staff authorization as GET. Allowed true appends granted; false appends withdrawn. Requires source and acknowledged policy text/version. Use communication-consents for all states and channels. Missing consent defaults to denial.
       requestBody:
         required: true
         content:
           application/json:
             schema:
               type: object
-              required: [channel, use_case, allowed, evidence]
+              required: [channel, use_case, allowed, evidence, source, text_version, acknowledged_text]
               properties:
                 channel: { type: string, enum: [in_app] }
                 use_case: { type: string, enum: [care, billing] }
                 allowed: { type: boolean, example: false }
                 evidence: { type: string, maxLength: 2000, example: Patient withdrew in-app care messaging consent. }
+                source: { type: string, enum: [in_person, written_form, phone, patient_request] }
+                text_version: { type: string, maxLength: 100, example: care-v1 }
+                acknowledged_text: { type: string, maxLength: 10000, example: I withdraw consent to in-app care messages. }
       responses:
         "200": { description: ApiEnvelope with data.preference. }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "422": { $ref: "#/components/responses/ValidationError" }
+  /api/patients/{patient}/communication-consents:
+    parameters:
+      - $ref: "#/components/parameters/TenantHeader"
+      - $ref: "#/components/parameters/PatientId"
+    get:
+      tags: [Communication Consent]
+      summary: Review append-only patient communication consent history
+      description: Staff with exact messaging.preferences.manage only. Admin and patient roles prohibited on staff endpoints. Returns original evidence and acknowledged wording; tenant-scoped and private/no-store. See docs/communication-consent.md.
+      parameters:
+        - { name: purpose, in: query, schema: { type: string, enum: [transactional, clinical, general] } }
+        - { name: channel, in: query, schema: { type: string, enum: [in_app, email, sms] } }
+        - { name: page, in: query, schema: { type: integer, minimum: 1 } }
+        - { name: per_page, in: query, schema: { type: integer, minimum: 1, maximum: 100, default: 25 } }
+      responses:
+        "200": { description: ApiEnvelope data is newest-first consent history array with meta.pagination. }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+    post:
+      tags: [Communication Consent]
+      summary: Append a patient consent grant or refusal
+      description: Explicitly permitted staff only. Creates the next immutable version per patient/purpose/scope/channel under a tenant lock. Captured_by and captured_at are server-derived; callers cannot override them or version. Staff attest the patient's actual choice independently of the sender's send confirmation. Never overwrites earlier evidence.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/CommunicationConsentRequest" }
+      responses:
+        "201": { description: ApiEnvelope with data.consent including source and capture attribution/time plus acknowledged policy text/version. }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "422": { $ref: "#/components/responses/ValidationError" }
+  /api/patients/{patient}/communication-consents/current:
+    parameters:
+      - $ref: "#/components/parameters/TenantHeader"
+      - $ref: "#/components/parameters/PatientId"
+    get:
+      tags: [Communication Consent]
+      summary: Resolve current effective patient consent
+      description: Same staff authorization as history. Exact scope and channel only; no fallback. Missing consent denies. Resolution does not send. Actual sends resolve again and capture the consent ID/version used. In-app blocked sends return 403 COMMUNICATION_CONSENT_BLOCKED with errors.consent.reason and the decision; provider workers suppress with the same reason as failure_reason.
+      parameters:
+        - { name: purpose, in: query, required: true, schema: { type: string, enum: [transactional, clinical, general], example: clinical } }
+        - { name: scope, in: query, required: true, schema: { type: string, enum: [appointments, billing, payment_receipts, follow_up, non_essential], example: follow_up } }
+        - { name: channel, in: query, required: true, schema: { type: string, enum: [in_app, email, sms], example: in_app } }
+      responses:
+        "200": { description: 'ApiEnvelope data.consent contains allowed, reason, patient_id, purpose, scope, channel, consent_id, version, status, text_version, source, capture_actor_type, captured_by, captured_by_patient_id and captured_at. Reasons are consent_granted, consent_missing, consent_declined, consent_withdrawn and consent_revoked.' }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "422": { $ref: "#/components/responses/ValidationError" }
+  /api/patients/{patient}/operational-notice-bases:
+    parameters:
+      - $ref: "#/components/parameters/TenantHeader"
+      - $ref: "#/components/parameters/PatientId"
+    get:
+      tags: [Communication Consent]
+      summary: Review separate emergency and legal operational-basis evidence
+      description: Same exact staff permission as consent history. Basis records never grant patient consent or bypass sending policy.
+      parameters:
+        - { name: page, in: query, schema: { type: integer, minimum: 1 } }
+        - { name: per_page, in: query, schema: { type: integer, minimum: 1, maximum: 100, default: 25 } }
+      responses:
+        "200": { description: ApiEnvelope data is newest-first operational-basis history with meta.pagination. }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+    post:
+      tags: [Communication Consent]
+      summary: Record operational notice basis without authorizing dispatch
+      description: Same exact staff permission as consent capture. Server stamps actor and time. This separate immutable record does not override patient consent. Actual exceptional dispatch remains a separately authorized future workflow.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [channel, basis, reason, authority_reference]
+              properties:
+                channel: { type: string, enum: [in_app, email, sms] }
+                basis: { type: string, enum: [emergency, legal_obligation] }
+                reason: { type: string, maxLength: 2000, example: Specific operational notice justification. }
+                authority_reference: { type: string, maxLength: 2000, example: Reviewed authority REF-1. }
+      responses:
+        "201": { description: ApiEnvelope with data.notice_basis and data.dispatch_authorized=false. }
         "403": { $ref: "#/components/responses/Forbidden" }
         "404": { $ref: "#/components/responses/NotFound" }
         "422": { $ref: "#/components/responses/ValidationError" }
@@ -3023,6 +3111,19 @@ components:
                     properties:
                       clinicalNote: { $ref: "#/components/schemas/ClinicalNote" }
   schemas:
+    CommunicationConsentRequest:
+      type: object
+      required: [purpose, scope, channel, status, source, text_version, acknowledged_text, evidence]
+      description: 'Valid purpose/scope pairs: transactional with appointments/billing/payment_receipts; clinical with follow_up; general with non_essential. Captured_by, captured_at and version are server-controlled. Record actual patient consent independently of staff send confirmation.'
+      properties:
+        purpose: { type: string, enum: [transactional, clinical, general], example: clinical }
+        scope: { type: string, enum: [appointments, billing, payment_receipts, follow_up, non_essential], example: follow_up }
+        channel: { type: string, enum: [in_app, email, sms], example: in_app }
+        status: { type: string, enum: [granted, declined, withdrawn, revoked], example: declined }
+        source: { type: string, enum: [in_person, written_form, phone, patient_request], example: written_form }
+        text_version: { type: string, maxLength: 100, example: care-policy-v2 }
+        acknowledged_text: { type: string, maxLength: 10000, example: I decline in-app clinical follow-up messages. }
+        evidence: { type: string, maxLength: 2000, example: Signed patient form REF-23. }
     ConversationSendRequest:
       type: object
       required: [idempotency_key]

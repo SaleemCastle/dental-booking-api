@@ -2,10 +2,10 @@
 
 namespace Tests\Feature\Api;
 
+use App\Models\CommunicationConsent;
 use App\Models\ConversationThread;
 use App\Models\MessagingUserPermission;
 use App\Models\Patient;
-use App\Models\PatientMessagingPreference;
 use App\Models\Permission;
 use App\Models\Role;
 use App\Models\Tenant;
@@ -55,8 +55,12 @@ class MessagingApiTest extends TestCase
 
     private function preference(bool $allowed = true, string $useCase = 'care'): void
     {
-        PatientMessagingPreference::updateOrCreate(['patient_id' => $this->patient->id, 'channel' => 'in_app', 'use_case' => $useCase],
-            ['allowed' => $allowed, 'recorded_by' => $this->staff->id, 'evidence' => 'Patient signed communication consent.']);
+        $scope = ['patient_id' => $this->patient->id, 'channel' => 'in_app',
+            'purpose' => $useCase === 'care' ? 'clinical' : 'transactional', 'scope' => $useCase === 'care' ? 'follow_up' : 'billing'];
+        CommunicationConsent::create([...$scope, 'version' => (CommunicationConsent::where($scope)->max('version') ?? 0) + 1,
+            'status' => $allowed ? 'granted' : 'withdrawn', 'source' => 'written_form', 'captured_by' => $this->staff->id,
+            'captured_at' => now(), 'text_version' => 'v1', 'acknowledged_text' => 'Consent to care messaging.',
+            'evidence' => 'Patient signed communication consent.']);
     }
 
     private function thread(bool $patient = false): int
@@ -264,9 +268,11 @@ class MessagingApiTest extends TestCase
         $preferences = "/api/patients/{$this->patient->id}/messaging-preferences";
         $this->getJson($preferences)->assertForbidden();
         Sanctum::actingAs($this->staff);
-        $this->getJson($preferences)->assertOk();
-        $this->putJson($preferences, ['channel' => 'in_app', 'use_case' => 'care', 'allowed' => false, 'evidence' => 'Patient withdrew consent'])->assertOk();
-        $this->assertDatabaseHas('audit_logs', ['action' => 'consent_revoked']);
+        $this->getJson($preferences)->assertOk()->assertJsonPath('data.preferences.0.allowed', true)->assertJsonPath('data.preferences.0.use_case', 'care');
+        $this->putJson($preferences, ['channel' => 'in_app', 'use_case' => 'care', 'allowed' => false, 'evidence' => 'Patient withdrew consent',
+            'source' => 'in_person', 'text_version' => 'v1', 'acknowledged_text' => 'I withdraw care messaging consent.'])->assertOk()
+            ->assertJsonPath('data.preference.allowed', false)->assertJsonPath('data.preference.status', 'withdrawn')->assertJsonPath('data.preference.version', 2);
+        $this->assertDatabaseHas('audit_logs', ['action' => 'consent_withdrawn']);
     }
 
     public function test_durable_send_limit_does_not_prevent_idempotent_replays(): void

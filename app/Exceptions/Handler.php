@@ -40,6 +40,7 @@ class Handler extends ExceptionHandler
     public function register(): void
     {
         $this->dontReport[] = ProviderException::class;
+        $this->dontReport[] = ConsentBlocked::class;
         $this->reportable(function (Throwable $e) {
             //
         });
@@ -49,6 +50,13 @@ class Handler extends ExceptionHandler
     {
         if (! $this->shouldReturnApiResponse($request)) {
             return parent::render($request, $e);
+        }
+
+        if ($e instanceof ConsentBlocked) {
+            return ApiResponse::error(
+                message: $e->getMessage(), statusCode: 403, code: 'COMMUNICATION_CONSENT_BLOCKED',
+                errors: ['consent' => $e->decision], request: $request,
+            )->header('Cache-Control', 'private, no-store');
         }
 
         if ($e instanceof ProviderException) {
