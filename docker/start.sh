@@ -36,6 +36,14 @@ if [ "${RUN_ISOLATION_SEEDER:-false}" = "true" ]; then
         --force
 fi
 
+if [ "${RUN_PERMISSION_SEEDER:-false}" = "true" ]; then
+    echo "Running permission seeder..."
+
+    php artisan db:seed \
+        --class=PermissionSeeder \
+        --force
+fi
+
 echo "Caching Laravel configuration..."
 php artisan config:cache
 
