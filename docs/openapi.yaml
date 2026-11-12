@@ -2041,44 +2041,194 @@ paths:
       - $ref: "#/components/parameters/TenantHeader"
     get:
       tags: [Messages]
-      summary: List messages
+      summary: Retired legacy messages API
       responses:
-        "200":
-          description: Message list.
+        "410":
+          description: Retired. Use conversation-threads; legacy records are not exposed.
     post:
       tags: [Messages]
-      summary: Create message
+      summary: Retired legacy message creation
       responses:
-        "201":
-          description: Message created.
+        "410":
+          description: Retired. Patient-to-patient messaging is prohibited.
   /api/messages/{message}:
     parameters:
       - $ref: "#/components/parameters/TenantHeader"
       - $ref: "#/components/parameters/MessageId"
     get:
       tags: [Messages]
-      summary: Get message
+      summary: Retired legacy message lookup
       responses:
-        "200":
-          description: Message details.
+        "410":
+          description: Retired. Use conversation-threads.
     patch:
       tags: [Messages]
-      summary: Update message
+      summary: Retired legacy message update
       responses:
-        "200":
-          description: Message updated.
+        "410":
+          description: Retired. Conversation messages are append-only.
     put:
       tags: [Messages]
-      summary: Update message
+      summary: Retired legacy message replacement
       responses:
-        "200":
-          description: Message updated.
+        "410":
+          description: Retired. Conversation messages are append-only.
     delete:
       tags: [Messages]
-      summary: Delete message
+      summary: Retired legacy message deletion
       responses:
-        "200":
-          $ref: "#/components/responses/DeleteMessage"
+        "410":
+          description: Retired. Use the controlled redaction workflow.
+  /api/conversation-threads:
+    parameters:
+      - $ref: "#/components/parameters/TenantHeader"
+    get:
+      tags: [Messages]
+      summary: List authorized conversations
+      description: Current participants with exact messaging permissions only. Admins never see patient threads. Search matches subjects only. See docs/platform-messaging.md.
+      parameters:
+        - { name: search, in: query, schema: { type: string, maxLength: 200 } }
+        - { name: page, in: query, schema: { type: integer, minimum: 1 } }
+        - { name: per_page, in: query, schema: { type: integer, minimum: 1, maximum: 100, default: 25 } }
+      responses:
+        "200": { description: ApiEnvelope with data.threads and meta.pagination. }
+    post:
+      tags: [Messages]
+      summary: Start an authorized conversation
+      description: Requires exact messaging.internal.send or messaging.patient.send. Patient threads require consent and exclude every admin. Staff cannot target admins. Attachments disabled. Ten new threads per actor per minute.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [subject]
+              properties:
+                subject: { type: string, maxLength: 200, example: Care coordination }
+                user_ids: { type: array, maxItems: 20, items: { type: integer }, example: [] }
+                patient_id: { type: integer, description: Optional patient; requires care or billing use_case. }
+                use_case: { type: string, enum: [care, billing] }
+      responses:
+        "201": { description: ApiEnvelope with data.thread and its participants. }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "422": { $ref: "#/components/responses/ValidationError" }
+        "429": { description: Thread creation or shared HTTP rate limit reached. }
+  /api/conversation-threads/{thread}:
+    parameters:
+      - $ref: "#/components/parameters/TenantHeader"
+      - { name: thread, in: path, required: true, schema: { type: integer } }
+    get:
+      tags: [Messages]
+      summary: Get a participating conversation
+      responses:
+        "200": { description: ApiEnvelope with data.thread and participants. }
+        "404": { $ref: "#/components/responses/NotFound" }
+  /api/conversation-threads/{thread}/messages:
+    parameters:
+      - $ref: "#/components/parameters/TenantHeader"
+      - { name: thread, in: path, required: true, schema: { type: integer } }
+    get:
+      tags: [Messages]
+      summary: List authorized thread messages
+      description: Oldest first. Redacted body and reason are null. Original content stays in protected storage.
+      parameters:
+        - { name: page, in: query, schema: { type: integer, minimum: 1 } }
+        - { name: per_page, in: query, schema: { type: integer, minimum: 1, maximum: 100, default: 25 } }
+      responses:
+        "200": { description: ApiEnvelope with data.messages and meta.pagination. }
+        "404": { $ref: "#/components/responses/NotFound" }
+    post:
+      tags: [Messages]
+      summary: Send or append a controlled correction or redaction
+      description: Sender and recipients derived server-side. Patient sends require a prepared confirmation token and explicit send_confirmed and consent_acknowledged flags. Consent is rechecked. Same tenant/actor idempotency key replays identical payload. Internal state available; patient state awaiting_portal, not delivered. No external provider calls. See docs/platform-messaging.md.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/ConversationSendRequest" }
+      responses:
+        "201": { description: 'ApiEnvelope with data.message containing sender_id, actor_id, recipient_ids, thread_id, body, kind, supersedes_id, reason, channel, delivery_state, audit_metadata, created_at and redacted.' }
+        "200": { description: 'Identical idempotent retry; same message, with current redaction applied.' }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "409": { description: 'Key reused with different payload, or target already redacted.' }
+        "422": { $ref: "#/components/responses/ValidationError" }
+        "429": { description: 'Twenty new messages per sender/minute or fifty per patient/hour, or shared HTTP limit.' }
+  /api/conversation-threads/{thread}/confirmations:
+    parameters:
+      - $ref: "#/components/parameters/TenantHeader"
+      - { name: thread, in: path, required: true, schema: { type: integer } }
+    post:
+      tags: [Messages]
+      summary: Prepare exact patient message for explicit send confirmation
+      description: Does not send. Returns a single-use token valid for five minutes, bound to actor, tenant, thread and exact payload. UI must obtain explicit user confirmation and consent acknowledgement after showing the preview. Subsequent send uses the exact same payload plus token and both true flags.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/ConversationSendRequest" }
+      responses:
+        "201": { description: 'ApiEnvelope data contains confirmation_token, expires_at, body, kind, supersedes_id, reason, channel, use_case, patient_id, preference_id and acknowledgement_required.' }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "422": { $ref: "#/components/responses/ValidationError" }
+        "429": { description: Shared HTTP rate limit reached. }
+  /api/users/{user}/messaging-permissions:
+    parameters:
+      - $ref: "#/components/parameters/TenantHeader"
+      - $ref: "#/components/parameters/UserId"
+    put:
+      tags: [Messages]
+      summary: Configure tenant user messaging overrides
+      description: Admin only. Null inherits exact role permission; false denies; true explicitly grants. Admin patient participation remains prohibited.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [internal_send, internal_receive, patient_send]
+              properties:
+                internal_send: { type: boolean, nullable: true, example: null }
+                internal_receive: { type: boolean, nullable: true, example: null }
+                patient_send: { type: boolean, nullable: true, example: false }
+      responses:
+        "200": { description: ApiEnvelope with data.messaging_permissions. }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+  /api/patients/{patient}/messaging-preferences:
+    parameters:
+      - $ref: "#/components/parameters/TenantHeader"
+      - $ref: "#/components/parameters/PatientId"
+    get:
+      tags: [Messages]
+      summary: Review patient in-app communication preferences
+      description: Staff with exact messaging.preferences.manage only; admins and patient sessions prohibited.
+      responses:
+        "200": { description: ApiEnvelope with data.preferences. }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+    put:
+      tags: [Messages]
+      summary: Record patient consent or withdrawal with evidence
+      description: Same staff authorization as GET. Missing consent defaults to denial. Verified email/SMS contacts do not imply in-app consent. The future portal can use the same preference records.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [channel, use_case, allowed, evidence]
+              properties:
+                channel: { type: string, enum: [in_app] }
+                use_case: { type: string, enum: [care, billing] }
+                allowed: { type: boolean, example: false }
+                evidence: { type: string, maxLength: 2000, example: Patient withdrew in-app care messaging consent. }
+      responses:
+        "200": { description: ApiEnvelope with data.preference. }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "422": { $ref: "#/components/responses/ValidationError" }
   /api/referrals:
     parameters:
       - $ref: "#/components/parameters/TenantHeader"
@@ -2873,6 +3023,23 @@ components:
                     properties:
                       clinicalNote: { $ref: "#/components/schemas/ClinicalNote" }
   schemas:
+    ConversationSendRequest:
+      type: object
+      required: [idempotency_key]
+      anyOf:
+        - required: [body]
+        - required: [kind, supersedes_id, reason]
+      description: For redaction omit body and require supersedes_id and reason. Correction requires body, supersedes_id and reason. Only the original sender can correct/redact their message. Patient sends additionally require confirmation_token and both acknowledgement flags true; preparing a confirmation needs none of those three fields.
+      properties:
+        body: { type: string, maxLength: 10000, example: Please review your care instructions. }
+        idempotency_key: { type: string, maxLength: 100, pattern: '^[A-Za-z0-9._:-]+$', example: unique-send-key }
+        kind: { type: string, enum: [message, correction, redaction], default: message }
+        supersedes_id: { type: integer }
+        reason: { type: string, maxLength: 1000 }
+        channel: { type: string, enum: [in_app] }
+        confirmation_token: { type: string, minLength: 64, maxLength: 64 }
+        send_confirmed: { type: boolean }
+        consent_acknowledged: { type: boolean }
     ReportStatusCounts:
       type: object
       required: [scheduled, checked_in, in_progress, completed, cancelled, no_show]

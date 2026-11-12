@@ -4174,7 +4174,7 @@
             "name": "Messages",
             "item": [
                 {
-                    "name": "GET List messages",
+                    "name": "GET Retired legacy messages API",
                     "request": {
                         "method": "GET",
                         "header": [
@@ -4199,16 +4199,12 @@
                     "response": []
                 },
                 {
-                    "name": "POST Create message",
+                    "name": "POST Retired legacy message creation",
                     "request": {
                         "method": "POST",
                         "header": [
                             {
                                 "key": "Accept",
-                                "value": "application/json"
-                            },
-                            {
-                                "key": "Content-Type",
                                 "value": "application/json"
                             }
                         ],
@@ -4223,21 +4219,12 @@
                             ],
                             "query": []
                         },
-                        "description": "POST /api/messages\nDomain writes require allow_writes=true. Missing required variables skip requests rather than selecting real records automatically.",
-                        "body": {
-                            "mode": "raw",
-                            "raw": "{\n    \"sender_id\": \"{{patient_id}}\",\n    \"receiver_id\": \"{{receiver_patient_id}}\",\n    \"message_text\": \"Postman test message\"\n}\n",
-                            "options": {
-                                "raw": {
-                                    "language": "json"
-                                }
-                            }
-                        }
+                        "description": "POST /api/messages\nDomain writes require allow_writes=true. Missing required variables skip requests rather than selecting real records automatically."
                     },
                     "response": []
                 },
                 {
-                    "name": "GET Get message",
+                    "name": "GET Retired legacy message lookup",
                     "request": {
                         "method": "GET",
                         "header": [
@@ -4263,17 +4250,13 @@
                     "response": []
                 },
                 {
-                    "name": "PATCH Update message",
+                    "name": "PATCH Retired legacy message update",
                     "request": {
                         "method": "PATCH",
                         "header": [
                             {
                                 "key": "Accept",
                                 "value": "application/json"
-                            },
-                            {
-                                "key": "Content-Type",
-                                "value": "application/json"
                             }
                         ],
                         "url": {
@@ -4288,31 +4271,18 @@
                             ],
                             "query": []
                         },
-                        "description": "PATCH /api/messages/{message}\nDomain writes require allow_writes=true. Missing required variables skip requests rather than selecting real records automatically.",
-                        "body": {
-                            "mode": "raw",
-                            "raw": "{\n    \"sender_id\": \"{{patient_id}}\",\n    \"receiver_id\": \"{{receiver_patient_id}}\",\n    \"message_text\": \"Postman test message\"\n}\n",
-                            "options": {
-                                "raw": {
-                                    "language": "json"
-                                }
-                            }
-                        }
+                        "description": "PATCH /api/messages/{message}\nDomain writes require allow_writes=true. Missing required variables skip requests rather than selecting real records automatically."
                     },
                     "response": []
                 },
                 {
-                    "name": "PUT Update message",
+                    "name": "PUT Retired legacy message replacement",
                     "request": {
                         "method": "PUT",
                         "header": [
                             {
                                 "key": "Accept",
                                 "value": "application/json"
-                            },
-                            {
-                                "key": "Content-Type",
-                                "value": "application/json"
                             }
                         ],
                         "url": {
@@ -4327,21 +4297,12 @@
                             ],
                             "query": []
                         },
-                        "description": "PUT /api/messages/{message}\nDomain writes require allow_writes=true. Missing required variables skip requests rather than selecting real records automatically.",
-                        "body": {
-                            "mode": "raw",
-                            "raw": "{\n    \"sender_id\": \"{{patient_id}}\",\n    \"receiver_id\": \"{{receiver_patient_id}}\",\n    \"message_text\": \"Postman test message\"\n}\n",
-                            "options": {
-                                "raw": {
-                                    "language": "json"
-                                }
-                            }
-                        }
+                        "description": "PUT /api/messages/{message}\nDomain writes require allow_writes=true. Missing required variables skip requests rather than selecting real records automatically."
                     },
                     "response": []
                 },
                 {
-                    "name": "DELETE Delete message",
+                    "name": "DELETE Retired legacy message deletion",
                     "request": {
                         "method": "DELETE",
                         "header": [
@@ -4363,6 +4324,341 @@
                             "query": []
                         },
                         "description": "DELETE /api/messages/{message}\nDomain writes require allow_writes=true. Missing required variables skip requests rather than selecting real records automatically."
+                    },
+                    "response": []
+                },
+                {
+                    "name": "GET List authorized conversations",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/api/conversation-threads?page=&per_page=25",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "conversation-threads"
+                            ],
+                            "query": [
+                                {
+                                    "key": "search",
+                                    "value": "",
+                                    "disabled": true,
+                                    "description": "Optional filter; enable its checkbox to send it."
+                                },
+                                {
+                                    "key": "page",
+                                    "value": "",
+                                    "disabled": false,
+                                    "description": "Optional filter; enable its checkbox to send it."
+                                },
+                                {
+                                    "key": "per_page",
+                                    "value": "25",
+                                    "disabled": false,
+                                    "description": "Optional filter; enable its checkbox to send it."
+                                }
+                            ]
+                        },
+                        "description": "Current participants with exact messaging permissions only. Admins never see patient threads. Search matches subjects only. See docs/platform-messaging.md.\n\nGET /api/conversation-threads\nDomain writes require allow_writes=true. Missing required variables skip requests rather than selecting real records automatically."
+                    },
+                    "response": []
+                },
+                {
+                    "name": "POST Start an authorized conversation",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            },
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/api/conversation-threads",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "conversation-threads"
+                            ],
+                            "query": []
+                        },
+                        "description": "Requires exact messaging.internal.send or messaging.patient.send. Patient threads require consent and exclude every admin. Staff cannot target admins. Attachments disabled. Ten new threads per actor per minute.\n\nPOST /api/conversation-threads\nDomain writes require allow_writes=true. Missing required variables skip requests rather than selecting real records automatically.",
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"subject\": \"Staff coordination\",\n    \"user_ids\": [\n        \"{{recipient_user_id}}\"\n    ]\n}\n",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        }
+                    },
+                    "response": []
+                },
+                {
+                    "name": "GET Get a participating conversation",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/api/conversation-threads/{{thread_id}}",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "conversation-threads",
+                                "{{thread_id}}"
+                            ],
+                            "query": []
+                        },
+                        "description": "GET /api/conversation-threads/{thread}\nDomain writes require allow_writes=true. Missing required variables skip requests rather than selecting real records automatically."
+                    },
+                    "response": []
+                },
+                {
+                    "name": "GET List authorized thread messages",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/api/conversation-threads/{{thread_id}}/messages?page=&per_page=25",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "conversation-threads",
+                                "{{thread_id}}",
+                                "messages"
+                            ],
+                            "query": [
+                                {
+                                    "key": "page",
+                                    "value": "",
+                                    "disabled": false,
+                                    "description": "Optional filter; enable its checkbox to send it."
+                                },
+                                {
+                                    "key": "per_page",
+                                    "value": "25",
+                                    "disabled": false,
+                                    "description": "Optional filter; enable its checkbox to send it."
+                                }
+                            ]
+                        },
+                        "description": "Oldest first. Redacted body and reason are null. Original content stays in protected storage.\n\nGET /api/conversation-threads/{thread}/messages\nDomain writes require allow_writes=true. Missing required variables skip requests rather than selecting real records automatically."
+                    },
+                    "response": []
+                },
+                {
+                    "name": "POST Send or append a controlled correction or redaction",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            },
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/api/conversation-threads/{{thread_id}}/messages",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "conversation-threads",
+                                "{{thread_id}}",
+                                "messages"
+                            ],
+                            "query": []
+                        },
+                        "description": "Sender and recipients derived server-side. Patient sends require a prepared confirmation token and explicit send_confirmed and consent_acknowledged flags. Consent is rechecked. Same tenant/actor idempotency key replays identical payload. Internal state available; patient state awaiting_portal, not delivered. No external provider calls. See docs/platform-messaging.md.\n\nPOST /api/conversation-threads/{thread}/messages\nDomain writes require allow_writes=true. Missing required variables skip requests rather than selecting real records automatically.",
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"body\": \"Please review your care instructions.\",\n    \"idempotency_key\": \"{{message_send_key}}\"\n}\n",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        }
+                    },
+                    "response": []
+                },
+                {
+                    "name": "POST Prepare exact patient message for explicit send confirmation",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            },
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/api/conversation-threads/{{thread_id}}/confirmations",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "conversation-threads",
+                                "{{thread_id}}",
+                                "confirmations"
+                            ],
+                            "query": []
+                        },
+                        "description": "Does not send. Returns a single-use token valid for five minutes, bound to actor, tenant, thread and exact payload. UI must obtain explicit user confirmation and consent acknowledgement after showing the preview. Subsequent send uses the exact same payload plus token and both true flags.\n\nPOST /api/conversation-threads/{thread}/confirmations\nDomain writes require allow_writes=true. Missing required variables skip requests rather than selecting real records automatically.",
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"body\": \"Please review your care instructions.\",\n    \"idempotency_key\": \"{{message_send_key}}\"\n}\n",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        }
+                    },
+                    "response": []
+                },
+                {
+                    "name": "PUT Configure tenant user messaging overrides",
+                    "request": {
+                        "method": "PUT",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            },
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/api/users/{{user_id}}/messaging-permissions",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "users",
+                                "{{user_id}}",
+                                "messaging-permissions"
+                            ],
+                            "query": []
+                        },
+                        "description": "Admin only. Null inherits exact role permission; false denies; true explicitly grants. Admin patient participation remains prohibited.\n\nPUT /api/users/{user}/messaging-permissions\nDomain writes require allow_writes=true. Missing required variables skip requests rather than selecting real records automatically.",
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"internal_send\": null,\n    \"internal_receive\": null,\n    \"patient_send\": false\n}\n",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        }
+                    },
+                    "response": []
+                },
+                {
+                    "name": "GET Review patient in-app communication preferences",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/api/patients/{{patient_id}}/messaging-preferences",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "patients",
+                                "{{patient_id}}",
+                                "messaging-preferences"
+                            ],
+                            "query": []
+                        },
+                        "description": "Staff with exact messaging.preferences.manage only; admins and patient sessions prohibited.\n\nGET /api/patients/{patient}/messaging-preferences\nDomain writes require allow_writes=true. Missing required variables skip requests rather than selecting real records automatically."
+                    },
+                    "response": []
+                },
+                {
+                    "name": "PUT Record patient consent or withdrawal with evidence",
+                    "request": {
+                        "method": "PUT",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            },
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/api/patients/{{patient_id}}/messaging-preferences",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "patients",
+                                "{{patient_id}}",
+                                "messaging-preferences"
+                            ],
+                            "query": []
+                        },
+                        "description": "Same staff authorization as GET. Missing consent defaults to denial. Verified email/SMS contacts do not imply in-app consent. The future portal can use the same preference records.\n\nPUT /api/patients/{patient}/messaging-preferences\nDomain writes require allow_writes=true. Missing required variables skip requests rather than selecting real records automatically.",
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"channel\": \"in_app\",\n    \"use_case\": \"care\",\n    \"allowed\": false,\n    \"evidence\": \"Patient withdrew in-app care messaging consent.\"\n}\n",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        }
                     },
                     "response": []
                 }
@@ -5200,22 +5496,32 @@
             "type": "string"
         },
         {
-            "key": "receiver_patient_id",
-            "value": "",
-            "type": "string"
-        },
-        {
             "key": "message_id",
             "value": "",
             "type": "string"
         },
         {
-            "key": "referral_id",
+            "key": "recipient_user_id",
+            "value": "",
+            "type": "string"
+        },
+        {
+            "key": "thread_id",
+            "value": "",
+            "type": "string"
+        },
+        {
+            "key": "message_send_key",
             "value": "",
             "type": "string"
         },
         {
             "key": "user_id",
+            "value": "",
+            "type": "string"
+        },
+        {
+            "key": "referral_id",
             "value": "",
             "type": "string"
         },

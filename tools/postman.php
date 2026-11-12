@@ -180,13 +180,19 @@ class PostmanExport
         if ($path === '/register') {
             return ['name' => 'Postman Test User', 'email' => '{{sample_email}}', 'password' => '{{new_user_password}}', 'password_confirmation' => '{{new_user_password}}'];
         }
+        if (str_ends_with($path, '/messaging-permissions')) {
+            return ['internal_send' => null, 'internal_receive' => null, 'patient_send' => false];
+        }
+        if ($path === '/api/conversation-threads' && $method === 'post') {
+            return ['subject' => 'Staff coordination', 'user_ids' => ['{{'.$this->variable('recipient_user_id').'}}']];
+        }
+        if (str_starts_with($path, '/api/conversation-threads/') && $method === 'post') {
+            return ['body' => 'Please review your care instructions.', 'idempotency_key' => '{{'.$this->variable('message_send_key').'}}'];
+        }
         if (str_starts_with($path, '/api/users') && ! str_ends_with($path, '/roles')) {
             return $method === 'post'
                 ? ['name' => 'Postman Test User', 'email' => '{{sample_email}}', 'password' => '{{new_user_password}}']
                 : ['name' => 'Postman Updated User'];
-        }
-        if (str_starts_with($path, '/api/messages')) {
-            return ['sender_id' => '{{'.$this->variable('patient_id').'}}', 'receiver_id' => '{{'.$this->variable('receiver_patient_id').'}}', 'message_text' => 'Postman test message'];
         }
         if ($path === '/api/dentists/{dentist}/availability' && $method === 'put') {
             return [
