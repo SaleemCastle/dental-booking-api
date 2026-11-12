@@ -155,6 +155,34 @@ class PostmanExportTest extends TestCase
         $this->assertArrayNotHasKey('auth', $this->requestFor('GET', '/api/audit-logs'));
     }
 
+    public function test_messaging_examples_require_deliberate_recipients_and_do_not_auto_confirm_patient_sends(): void
+    {
+        $thread = $this->bodyFor('POST', '/api/conversation-threads');
+        $this->assertSame(['{{recipient_user_id}}'], $thread['user_ids']);
+        $send = $this->bodyFor('POST', '/api/conversation-threads/{{thread_id}}/messages');
+        $this->assertSame('{{message_send_key}}', $send['idempotency_key']);
+        $this->assertArrayNotHasKey('send_confirmed', $send);
+        $this->assertArrayNotHasKey('consent_acknowledged', $send);
+        $this->assertArrayNotHasKey('confirmation_token', $send);
+        $this->assertSame($send, $this->bodyFor('POST', '/api/conversation-threads/{{thread_id}}/confirmations'));
+        $this->assertSame(['internal_send' => null, 'internal_receive' => null, 'patient_send' => false],
+            $this->bodyFor('PUT', '/api/users/{{user_id}}/messaging-permissions'));
+    }
+
+    public function test_consent_examples_keep_patient_evidence_separate_from_send_confirmation(): void
+    {
+        $consent = $this->bodyFor('POST', '/api/patients/{{patient_id}}/communication-consents');
+        $this->assertSame('declined', $consent['status']);
+        $this->assertSame('clinical', $consent['purpose']);
+        $this->assertSame('follow_up', $consent['scope']);
+        $this->assertArrayHasKey('text_version', $consent);
+        $this->assertArrayHasKey('acknowledged_text', $consent);
+        foreach (['send_confirmed', 'consent_acknowledged', 'captured_by', 'captured_at', 'version'] as $field) {
+            $this->assertArrayNotHasKey($field, $consent);
+        }
+        $this->assertArrayHasKey('authority_reference', $this->bodyFor('POST', '/api/patients/{{patient_id}}/operational-notice-bases'));
+    }
+
     private function requests(): array
     {
         $requests = [];

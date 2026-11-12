@@ -8,7 +8,6 @@ use App\Http\Controllers\Api\DashboardController;
 use App\Http\Controllers\Api\DentalChartController;
 use App\Http\Controllers\Api\DentistController;
 use App\Http\Controllers\Api\InvoiceController;
-use App\Http\Controllers\Api\MessageController;
 use App\Http\Controllers\Api\PatientController;
 use App\Http\Controllers\Api\PatientDocumentController;
 use App\Http\Controllers\Api\PaymentController;
@@ -119,7 +118,24 @@ Route::middleware(['auth:sanctum', 'tenant'])->group(function () {
     Route::apiResource('patients', PatientController::class);
     Route::apiResource('dentists', DentistController::class);
     Route::apiResource('appointments', AppointmentController::class);
-    Route::apiResource('messages', MessageController::class);
+    // Retire the legacy patient-to-patient API; preserve records for controlled migration.
+    Route::any('messages/{legacy?}', fn () => abort(410, 'Legacy messaging is retired. Use conversation threads.'));
+    Route::get('conversation-threads', [\App\Http\Controllers\Api\ConversationController::class, 'index']);
+    Route::get('conversation-threads/{thread}', [\App\Http\Controllers\Api\ConversationController::class, 'show'])->whereNumber('thread');
+    Route::get('conversation-threads/{thread}/messages', [\App\Http\Controllers\Api\ConversationController::class, 'messages'])->whereNumber('thread');
+    Route::middleware('throttle:30,1')->group(function () {
+        Route::post('conversation-threads', [\App\Http\Controllers\Api\ConversationController::class, 'store']);
+        Route::post('conversation-threads/{thread}/confirmations', [\App\Http\Controllers\Api\ConversationController::class, 'confirm'])->whereNumber('thread');
+        Route::post('conversation-threads/{thread}/messages', [\App\Http\Controllers\Api\ConversationController::class, 'send'])->whereNumber('thread');
+    });
+    Route::put('users/{user}/messaging-permissions', [\App\Http\Controllers\Api\ConversationController::class, 'permissions']);
+    Route::get('patients/{patient}/messaging-preferences', [\App\Http\Controllers\Api\ConversationController::class, 'preferences']);
+    Route::put('patients/{patient}/messaging-preferences', [\App\Http\Controllers\Api\ConversationController::class, 'savePreference']);
+    Route::get('patients/{patient}/communication-consents/current', [\App\Http\Controllers\Api\CommunicationConsentController::class, 'current']);
+    Route::get('patients/{patient}/communication-consents', [\App\Http\Controllers\Api\CommunicationConsentController::class, 'index']);
+    Route::post('patients/{patient}/communication-consents', [\App\Http\Controllers\Api\CommunicationConsentController::class, 'store']);
+    Route::get('patients/{patient}/operational-notice-bases', [\App\Http\Controllers\Api\CommunicationConsentController::class, 'notices']);
+    Route::post('patients/{patient}/operational-notice-bases', [\App\Http\Controllers\Api\CommunicationConsentController::class, 'storeNotice']);
     Route::apiResource('referrals', ReferralController::class);
     Route::apiResource('users', UserController::class);
     Route::apiResource('treatments', TreatmentController::class);

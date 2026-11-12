@@ -70,8 +70,8 @@ class RoleSeederTest extends TestCase
 
         $this->assertTrue($user->hasRole(Role::ADMIN));
         $this->assertSame(1, $user->roles()->where('slug', Role::ADMIN)->count());
-        $this->assertSame(64, Permission::count());
-        $this->assertCount(64, $user->permissionSlugs());
+        $this->assertSame(68, Permission::count());
+        $this->assertCount(68, $user->permissionSlugs());
         $this->assertContains('appointments.create', $user->permissionSlugs());
         $this->assertContains('appointments.update', $user->permissionSlugs());
     }

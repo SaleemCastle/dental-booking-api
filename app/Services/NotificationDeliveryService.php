@@ -83,6 +83,7 @@ final class NotificationDeliveryService
         }
         app(TenantContext::class)->run($tenant, function () use ($deliveryId) {
             $claimed = DB::transaction(function () use ($deliveryId) {
+                app(MessagingService::class)->lockTenant();
                 $delivery = NotificationDelivery::lockForUpdate()->find($deliveryId);
                 if (! $delivery || ! in_array($delivery->status, ['pending', 'retry'], true) || $delivery->available_at->isFuture()) {
                     return null;
@@ -90,6 +91,18 @@ final class NotificationDeliveryService
                 $notification = ClinicNotification::findOrFail($delivery->notification_id);
                 try {
                     $settings = $this->validateDelivery($delivery, $notification);
+                    if ($delivery->patient_contact_id !== null) {
+                        $patientId = $notification->patient_id ?? Invoice::findOrFail($notification->invoice_id)->patient_id;
+                        $service = app(CommunicationConsentService::class);
+                        $decision = $service->capture($service->forEvent($patientId, $notification->event, $delivery->channel),
+                            'notification_deliveries', $delivery->id, $notification->actor_id);
+                        $delivery->consent_decision_id = $decision->id;
+                        if (! $decision->allowed) {
+                            $this->finish($delivery, $notification, 'suppressed', $decision->reason);
+
+                            return null;
+                        }
+                    }
                 } catch (DeliveryException $error) {
                     $this->finish($delivery, $notification, 'suppressed', $error->reason);
 

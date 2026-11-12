@@ -39,6 +39,7 @@ use Tests\TestCase;
 class ClinicCommunicationsTest extends TestCase
 {
     use RefreshDatabase;
+    use \Tests\Concerns\CommunicationConsentFixtures;
 
     private FakeNotificationProvider $provider;
 
@@ -588,7 +589,7 @@ class ClinicCommunicationsTest extends TestCase
     public function test_deleted_actor_cannot_become_a_system_trigger_and_contact_addresses_are_immutable(): void
     {
         $this->within(function () {
-            [$actor, $payment, $delivery] = $this->queued();
+            [$actor, $payment, $delivery] = $this->queued(separateConsentRecorder: true);
             $contact = PatientContact::firstOrFail();
             try {
                 $contact->update(['address' => 'other@example.test']);
@@ -700,16 +701,18 @@ class ClinicCommunicationsTest extends TestCase
     {
         $service = app(PatientContactService::class);
         $contact = $service->create($patient, ['channel' => $channel, 'address' => $address, 'role' => $role, 'authorized_events' => $events], $actor);
+        $this->grantCommunicationConsent($patient, $actor, $channel);
 
         return $verified ? $service->verify($patient, $contact->id, 'in_person', $actor) : $contact;
     }
 
-    private function queued(): array
+    private function queued(bool $separateConsentRecorder = false): array
     {
         $actor = $this->actor();
         $this->configure();
         $payment = Payment::factory()->create();
-        $this->contact($payment->invoice->patient, $actor, 'patient@example.test');
+        // This optional recorder keeps the deletion test focused on the send initiator.
+        $this->contact($payment->invoice->patient, $separateConsentRecorder ? $this->actor() : $actor, 'patient@example.test');
         $notification = app(ClinicNotificationService::class)->paymentRecorded($payment->id, $actor->id);
 
         return [$actor, $payment, $notification->deliveries()->firstOrFail()];

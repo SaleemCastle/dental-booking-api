@@ -28,6 +28,7 @@ use Tests\TestCase;
 class PatientEngagementTest extends TestCase
 {
     use RefreshDatabase;
+    use \Tests\Concerns\CommunicationConsentFixtures;
 
     private FakeNotificationProvider $provider;
 
@@ -275,6 +276,7 @@ class PatientEngagementTest extends TestCase
         foreach (['email' => 'patient@example.test', 'sms' => '+15555550101'] as $channel => $address) {
             $contact = app(PatientContactService::class)->create($patient, ['channel' => $channel, 'address' => $address, 'role' => 'patient', 'authorized_events' => array_keys($events)], $actor);
             app(PatientContactService::class)->verify($patient, $contact->id, 'in_person', $actor);
+            $this->grantCommunicationConsent($patient, $actor, $channel);
         }
 
         return [$actor, $patient];

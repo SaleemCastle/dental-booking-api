@@ -34,6 +34,7 @@ use Tests\TestCase;
 class HandyPayReconciliationTest extends TestCase
 {
     use RefreshDatabase;
+    use \Tests\Concerns\CommunicationConsentFixtures;
 
     private const SECRET = 'sandbox_endpoint_signing_secret';
 
@@ -178,6 +179,7 @@ class HandyPayReconciliationTest extends TestCase
                 (new PatientContact)->forceFill(['patient_id' => $invoice->patient_id, 'channel' => $channel, 'address' => $address,
                     'role' => 'patient', 'authorized_events' => array_keys(SafeTemplate::DEFAULTS), 'verified_at' => now(),
                     'verified_by' => $copy->id, 'verification_method' => 'in_person'])->save();
+                $this->grantCommunicationConsent($invoice->patient, $copy, $channel);
             }
         });
 

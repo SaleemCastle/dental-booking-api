@@ -1,5 +1,9 @@
 # Transactional clinic communications
 
+Participant-scoped in-app conversations are separate from this transactional delivery outbox. See [platform messaging](platform-messaging.md) for role boundaries, patient consent, explicit send confirmation and append-only history.
+
+Patient/contact delivery now additionally requires explicit [communication consent](communication-consent.md) for the event scope and channel. Verified contacts do not imply consent. Workers retain each dispatch decision and suppress missing/declined/withdrawn/revoked consent with a specific `failure_reason`.
+
 Patient engagement reuses this outbox, worker and verified contacts; see [patient engagement](patient-engagement.md) for appointment and follow-up events.
 
 `ClinicNotificationService` queues `payment.recorded` receipts, `payment_link.created` checkout notices, and optional `payment_link.failed` / `payment_link.expired` notices. Manual payments, authoritative provider settlement (webhooks and reconciliation), and hosted checkout state changes call the same service. Provider calls run only in `communications:work`, never in a billing request. Clinics without an enabled configuration retain their existing billing behavior.

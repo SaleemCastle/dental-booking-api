@@ -43,7 +43,8 @@ Use requests interactively rather than running the whole collection with writes 
 - **Reporting:** the four Reporting requests are read-only. Set the enabled `date_from`/`date_to` parameters (at most 366 inclusive dates); optionally enable `dentist_id`. Provider/treatment pages default to 25 rows, maximum 100. Each report requires its source read permissions; billing requires both invoice and payment reads. See [metric definitions and export strategy](reporting.md).
 - **Payment Links:** provision clinic sandbox credentials with the operator command in [hosted payments](payment-links.md), then create a link for an issued invoice using only an idempotency key. Creation captures `payment_link_id`. Use the same key for a retry and a new key for a deliberate replacement after the previous checkout is resolved. HandyPay cancellation currently returns an unsupported-operation error. The active checkout blocks manual payment and invoice voiding until its remote status is resolved. Keep these requests on sandbox clinics with writes explicitly enabled.
 - **Roles:** use an admin account. Obtain `permission_id` from the permission catalog and deliberately select `user_id` and `role_id` before changing assignments. PUT permission/role assignment requests replace the full set, rather than appending it. See [roles](roles.md).
-- **Messages:** both `patient_id` (sender) and `receiver_patient_id` identify patients, not authenticated users.
+- **Messages:** legacy `/api/messages` requests return 410. Use conversation threads with explicit messaging permissions. Set `recipient_user_id` for internal threads and `thread_id` for messages. Choose a unique `message_send_key` for each new send and reuse it for a retry. Patient sends require a prepared confirmation and explicit user acknowledgement; see [platform messaging](platform-messaging.md). The default send example is for internal threads; add the reviewed confirmation token and both true flags only after explicit user confirmation for patient sends.
+- **Communication Consent:** authorized staff can review current decisions and append consent history for the selected patient. The generated example records a declined choice deliberately; set the actual patient's status, channel, purpose/scope and acknowledged text/version before sending it. Sender confirmation never supplies patient consent. Operational-basis examples only record separate evidence and report `dispatch_authorized=false`. See [communication consent](communication-consent.md).
 
 ## Audit logs
 
@@ -69,7 +70,7 @@ Avoid mixing session and bearer identities. Before switching back to bearer test
 
 ## Regeneration and validation
 
-The exports are deterministic and generated from `docs/openapi.yaml`. The generator adds legacy user/message/referral bodies from their controller contracts and selects safe partial-update examples. No application bootstrap, database access, network calls, or `.env` reads are needed.
+The exports are deterministic and generated from `docs/openapi.yaml`. The generator adds user/referral and messaging bodies from their controller contracts and selects safe partial-update examples. No application bootstrap, database access, network calls, or `.env` reads are needed.
 
 ```shell
 php tools/postman.php --write

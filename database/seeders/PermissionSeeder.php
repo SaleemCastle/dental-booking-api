@@ -56,6 +56,7 @@ class PermissionSeeder extends Seeder
             'treatment_plans' => ['view', 'create', 'update'],
             'tasks' => $crud,
             'messages' => $crud,
+            'messaging' => ['internal.send', 'internal.receive', 'patient.send', 'preferences.manage'],
             'referrals' => $crud,
             'users' => $crud,
             'roles' => $crud,
