@@ -20,4 +20,9 @@ class ConversationThread extends Model
     {
         return $this->hasMany(ConversationMessage::class, 'thread_id');
     }
+
+    public function state()
+    {
+        return $this->hasOne(ConversationThreadState::class, 'thread_id');
+    }
 }

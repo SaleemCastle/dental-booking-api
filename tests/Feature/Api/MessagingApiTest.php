@@ -45,7 +45,7 @@ class MessagingApiTest extends TestCase
         $user = User::factory()->create();
         $role = Role::firstOrCreate(['slug' => $slug], ['name' => $slug]);
         $user->roles()->attach($role);
-        foreach (['internal.send', 'internal.receive', 'patient.send', 'preferences.manage'] as $action) {
+        foreach (['internal.send', 'internal.receive', 'patient.send', 'patient.view', 'settings.manage', 'preferences.manage'] as $action) {
             $permission = Permission::firstOrCreate(['slug' => 'messaging.'.$action], ['name' => $action]);
             $role->permissions()->syncWithoutDetaching([$permission->id]);
         }
@@ -161,13 +161,13 @@ class MessagingApiTest extends TestCase
     {
         $id = $this->thread(true);
         $payload = $this->confirmed($id, $this->payload());
-        MessagingUserPermission::create(['user_id' => $this->staff->id, 'patient_send' => false]);
+        MessagingUserPermission::create(['user_id' => $this->staff->id, 'patient_send' => false, 'patient_view' => false]);
         $this->postJson("/api/conversation-threads/$id/messages", $payload)->assertNotFound();
         $this->getJson('/api/conversation-threads')->assertJsonCount(0, 'data.threads');
         MessagingUserPermission::where('user_id', $this->staff->id)->delete();
         $this->staff->roles()->first()->permissions()->detach();
         $this->postJson('/api/conversation-threads', ['subject' => 'Denied', 'patient_id' => $this->patient->id, 'use_case' => 'care'])->assertForbidden();
-        MessagingUserPermission::create(['user_id' => $this->staff->id, 'patient_send' => true]);
+        MessagingUserPermission::create(['user_id' => $this->staff->id, 'patient_send' => true, 'patient_view' => true]);
         $this->postJson("/api/conversation-threads/$id/messages", $payload)->assertCreated();
     }
 

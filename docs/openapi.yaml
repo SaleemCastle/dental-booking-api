@@ -35,6 +35,7 @@ tags:
   - name: Reporting
   - name: Communications
   - name: Communication Consent
+  - name: Communication Governance
 paths:
   /api/platform/tenants:
     get:
@@ -2086,9 +2087,10 @@ paths:
     get:
       tags: [Messages]
       summary: List authorized conversations
-      description: Current participants with exact messaging permissions only. Admins never see patient threads. Search matches subjects only. See docs/platform-messaging.md.
+      description: Active participants with exact view permission only. Send grants do not imply viewing. Admins never see patient threads. Search matches subjects only. Reads are access-logged. Default lists omit archived threads. See docs/communication-governance.md.
       parameters:
         - { name: search, in: query, schema: { type: string, maxLength: 200 } }
+        - { name: archived, in: query, description: Include archived conversations when true., schema: { type: boolean, default: false } }
         - { name: page, in: query, schema: { type: integer, minimum: 1 } }
         - { name: per_page, in: query, schema: { type: integer, minimum: 1, maximum: 100, default: 25 } }
       responses:
@@ -2096,7 +2098,7 @@ paths:
     post:
       tags: [Messages]
       summary: Start an authorized conversation
-      description: Requires exact messaging.internal.send or messaging.patient.send. Patient threads require consent and exclude every admin. Staff cannot target admins. Attachments disabled. Ten new threads per actor per minute.
+      description: Requires exact view and send grants for the channel/thread kind. Patient recipients need patient view. Patient threads require consent and exclude every admin. Staff cannot target admins. Attachments disabled. Ten new threads per actor per minute.
       requestBody:
         required: true
         content:
@@ -2131,7 +2133,7 @@ paths:
     get:
       tags: [Messages]
       summary: List authorized thread messages
-      description: Oldest first. Redacted body and reason are null. Original content stays in protected storage.
+      description: Requires active participation and exact internal/patient view grant. Read is access-logged. Oldest first. Sender and governance redactions hide body/reason. Original content stays in protected storage. Governance redaction details use the permission-controlled history endpoint.
       parameters:
         - { name: page, in: query, schema: { type: integer, minimum: 1 } }
         - { name: per_page, in: query, schema: { type: integer, minimum: 1, maximum: 100, default: 25 } }
@@ -2181,20 +2183,225 @@ paths:
     put:
       tags: [Messages]
       summary: Configure tenant user messaging overrides
-      description: Admin only. Null inherits exact role permission; false denies; true explicitly grants. Admin patient participation remains prohibited.
+      description: Requires admin role plus exact messaging.settings.manage. Only supplied override fields change; provide at least one. Null inherits exact role permission; false denies; true grants. Send permissions never imply view. Admin patient view/send grant attempts are prohibited.
       requestBody:
         required: true
         content:
           application/json:
             schema:
               type: object
-              required: [internal_send, internal_receive, patient_send]
+              minProperties: 1
               properties:
                 internal_send: { type: boolean, nullable: true, example: null }
                 internal_receive: { type: boolean, nullable: true, example: null }
                 patient_send: { type: boolean, nullable: true, example: false }
+                internal_view: { type: boolean, nullable: true }
+                patient_view: { type: boolean, nullable: true }
+                settings_manage: { type: boolean, nullable: true }
+                history_view: { type: boolean, nullable: true }
+                assign: { type: boolean, nullable: true }
+                escalate: { type: boolean, nullable: true }
+                supervise: { type: boolean, nullable: true }
+                archive: { type: boolean, nullable: true }
+                redact: { type: boolean, nullable: true }
+                export: { type: boolean, nullable: true }
       responses:
         "200": { description: ApiEnvelope with data.messaging_permissions. }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+  /api/communication-governance/policy:
+    parameters:
+      - $ref: "#/components/parameters/TenantHeader"
+    get:
+      tags: [Communication Governance]
+      summary: Get clinic communication governance policy
+      description: Exact messaging.settings.manage required. No policy means indefinite retention and disabled automatic archive/escalation.
+      responses:
+        "200": { description: ApiEnvelope with data.policy and originals_retained=true. }
+        "403": { $ref: "#/components/responses/Forbidden" }
+    put:
+      tags: [Communication Governance]
+      summary: Record an immutable clinic retention and escalation policy version
+      description: Exact settings grant required. Retention days are a minimum from latest activity, not a deletion deadline. Policy reference must identify the clinic compliance decision. Originals remain retained; automatic purge is disabled.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [retention_days, archive_after_days, escalation_enabled, policy_reference]
+              properties:
+                retention_days: { type: integer, nullable: true, minimum: 1, maximum: 36500 }
+                archive_after_days: { type: integer, nullable: true, minimum: 1, maximum: 36500 }
+                escalation_enabled: { type: boolean, example: false }
+                policy_reference: { type: string, maxLength: 2000, example: Clinic-approved policy reference. }
+      responses:
+        "201": { description: ApiEnvelope with data.policy and originals_retained=true. }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "422": { $ref: "#/components/responses/ValidationError" }
+  /api/users/{user}/communication-access/deactivate:
+    parameters:
+      - $ref: "#/components/parameters/TenantHeader"
+      - $ref: "#/components/parameters/UserId"
+    post:
+      tags: [Communication Governance]
+      summary: Revoke staff messaging access while retaining historical authorship
+      description: Admin plus settings-manage required. Revokes current thread access and all messaging overrides in this clinic. Other clinic memberships and historical messages remain intact. Hand off patient responsibility before deactivating the last eligible participant.
+      responses:
+        "200": { description: ApiEnvelope confirmation. }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+  /api/conversation-threads/{thread}/handoff:
+    parameters:
+      - $ref: "#/components/parameters/TenantHeader"
+      - { name: thread, in: path, required: true, schema: { type: integer } }
+    post:
+      tags: [Communication Governance]
+      summary: Hand off patient responsibility to permitted staff
+      description: Active participation plus patient view and messaging.assign required. Target must have patient view/send. Revokes previous assignee except current reviewer; retains original authorship. Invalidates prepared send confirmations. No tenant-wide visibility.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/GovernanceTargetRequest" }
+      responses:
+        "201": { description: ApiEnvelope with data.event including actor and assignment history. }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "409": { description: Archived thread or unchanged assignment. }
+  /api/conversation-threads/{thread}/escalate:
+    parameters:
+      - $ref: "#/components/parameters/TenantHeader"
+      - { name: thread, in: path, required: true, schema: { type: integer } }
+    post:
+      tags: [Communication Governance]
+      summary: Escalate a patient thread to one explicitly selected supervisor
+      description: Active participation plus patient view and messaging.escalate required. Clinic policy must enable escalation. Target requires patient view and supervise; admin targets prohibited. Grants this thread only.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/GovernanceTargetRequest" }
+      responses:
+        "201": { description: ApiEnvelope with data.event. }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "409": { description: Archived or already escalated thread. }
+  /api/conversation-threads/{thread}/resolve:
+    parameters:
+      - $ref: "#/components/parameters/TenantHeader"
+      - { name: thread, in: path, required: true, schema: { type: integer } }
+    post:
+      tags: [Communication Governance]
+      summary: Resolve escalation and remove temporary supervisor access
+      description: Only the selected supervisor with active view and supervise grants may resolve. Preserves pre-existing participation or newly assigned responsibility; otherwise temporary access is revoked.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/GovernanceReasonRequest" }
+      responses:
+        "201": { description: ApiEnvelope with data.event. }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+  /api/conversation-threads/{thread}/archive:
+    parameters:
+      - $ref: "#/components/parameters/TenantHeader"
+      - { name: thread, in: path, required: true, schema: { type: integer } }
+    post:
+      tags: [Communication Governance]
+      summary: Archive or reopen an authorized conversation
+      description: Requires active participation plus view/archive grants. Archived records remain readable but reject sends and confirmations. Unresolved escalations cannot be archived.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              allOf:
+                - { $ref: "#/components/schemas/GovernanceReasonRequest" }
+                - { type: object, required: [archived], properties: { archived: { type: boolean, example: true } } }
+      responses:
+        "201": { description: ApiEnvelope with data.event. }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "409": { description: Unresolved escalation or unchanged archive state. }
+  /api/conversation-threads/{thread}/hold:
+    parameters:
+      - $ref: "#/components/parameters/TenantHeader"
+      - { name: thread, in: path, required: true, schema: { type: integer } }
+    post:
+      tags: [Communication Governance]
+      summary: Record a retention legal hold or its release
+      description: Requires active participation plus view/settings-manage grants. Legal hold means indefinite retention and exemption from automatic archive. It never grants patient access to an administrator.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              allOf:
+                - { $ref: "#/components/schemas/GovernanceReasonRequest" }
+                - { type: object, required: [enabled], properties: { enabled: { type: boolean, example: true } } }
+      responses:
+        "201": { description: ApiEnvelope with data.event. }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+  /api/conversation-threads/{thread}/redact:
+    parameters:
+      - $ref: "#/components/parameters/TenantHeader"
+      - { name: thread, in: path, required: true, schema: { type: integer } }
+    post:
+      tags: [Communication Governance]
+      summary: Apply an auditable visibility redaction without mutating original content
+      description: Requires participation plus view/redact grants. Records actor/time/reason and original retention policy. Applies to any sender's message in this thread. Originals are retained; list/retry/export hide body and reason. Does not dispatch a patient message or substitute for consent.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              allOf:
+                - { $ref: "#/components/schemas/GovernanceReasonRequest" }
+                - { type: object, required: [message_id], properties: { message_id: { type: integer } } }
+      responses:
+        "201": { description: ApiEnvelope with immutable data.event. }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "409": { description: Message already redacted through governance. }
+  /api/conversation-threads/{thread}/history:
+    parameters:
+      - $ref: "#/components/parameters/TenantHeader"
+      - { name: thread, in: path, required: true, schema: { type: integer } }
+    get:
+      tags: [Communication Governance]
+      summary: Review authorized governance and access/export evidence
+      description: Requires active participation plus view/history-view grants. Includes protected reasons and actor/time metadata. Access itself is audited.
+      parameters:
+        - { name: page, in: query, schema: { type: integer, minimum: 1 } }
+        - { name: per_page, in: query, schema: { type: integer, minimum: 1, maximum: 100, default: 25 } }
+      responses:
+        "200": { description: ApiEnvelope with governance-event array in data and meta.pagination. }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+  /api/conversation-threads/{thread}/export:
+    parameters:
+      - $ref: "#/components/parameters/TenantHeader"
+      - { name: thread, in: path, required: true, schema: { type: integer } }
+    post:
+      tags: [Communication Governance]
+      summary: Export an authorized redacted message-history page with access logging
+      description: Requires active participation plus view/export grants. Returns private/no-store JSON attachment; each page records actor/time/purpose and exact message IDs. Does not expose unredacted originals. Archived history may be exported by authorized participants.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              allOf:
+                - { $ref: "#/components/schemas/GovernanceReasonRequest" }
+                - type: object
+                  properties:
+                    page: { type: integer, minimum: 1, example: 1 }
+                    per_page: { type: integer, minimum: 1, maximum: 100, example: 100 }
+      responses:
+        "200": { description: 'ApiEnvelope with data.thread, messages, retention, pagination, policy_version and export_event_id.' }
         "403": { $ref: "#/components/responses/Forbidden" }
         "404": { $ref: "#/components/responses/NotFound" }
   /api/patients/{patient}/messaging-preferences:
@@ -3111,6 +3318,18 @@ components:
                     properties:
                       clinicalNote: { $ref: "#/components/schemas/ClinicalNote" }
   schemas:
+    GovernanceReasonRequest:
+      type: object
+      required: [reason]
+      properties:
+        reason: { type: string, maxLength: 2000, example: Clinic-authorized operational review. }
+    GovernanceTargetRequest:
+      allOf:
+        - { $ref: "#/components/schemas/GovernanceReasonRequest" }
+        - type: object
+          required: [user_id]
+          properties:
+            user_id: { type: integer, description: Explicit permitted staff target within the current clinic. }
     CommunicationConsentRequest:
       type: object
       required: [purpose, scope, channel, status, source, text_version, acknowledged_text, evidence]

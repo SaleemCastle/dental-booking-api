@@ -20,15 +20,19 @@ class ConversationController extends Controller
 {
     public function index(Request $request, MessagingService $service)
     {
-        $data = $request->validate(['search' => ['sometimes', 'string', 'max:200'], 'per_page' => ['sometimes', 'integer', 'min:1', 'max:100']]);
+        $data = $request->validate(['search' => ['sometimes', 'string', 'max:200'], 'per_page' => ['sometimes', 'integer', 'min:1', 'max:100'], 'archived' => 'sometimes|boolean']);
         $query = $service->visible($request->user());
+        if (! $request->boolean('archived')) {
+            $query->whereDoesntHave('state', fn ($state) => $state->where('status', 'archived'));
+        }
         if (isset($data['search'])) {
             // Search subjects only: redacted bodies must not leak through search matches.
             $query->where('subject', 'like', '%'.$data['search'].'%');
         }
-        $threads = $query->with('participants')->orderByDesc('id')->paginate($data['per_page'] ?? 25);
+        $threads = $query->with(['participants', 'state'])->orderByDesc('id')->paginate($data['per_page'] ?? 25);
+        app(AuditLogService::class)->record('listed', 'conversation_threads', app(\App\Tenancy\TenantContext::class)->requireId(), $request->user()->id);
 
-        return ApiResponse::success(['threads' => $threads->items()], 'Conversations retrieved.', meta: ['pagination' => ['total' => $threads->total(), 'currentPage' => $threads->currentPage(), 'perPage' => $threads->perPage(), 'lastPage' => $threads->lastPage()]]);
+        return ApiResponse::success(['threads' => $threads->items()], 'Conversations retrieved.', meta: ['pagination' => ['total' => $threads->total(), 'currentPage' => $threads->currentPage(), 'perPage' => $threads->perPage(), 'lastPage' => $threads->lastPage()]])->header('Cache-Control', 'private, no-store');
     }
 
     public function store(Request $request, MessagingService $service)
@@ -45,15 +49,19 @@ class ConversationController extends Controller
 
     public function show(Request $request, int $thread, MessagingService $service)
     {
-        return ApiResponse::success(['thread' => $service->accessible($request->user(), $thread)->load('participants')], 'Conversation retrieved.');
+        $record = $service->accessible($request->user(), $thread)->load(['participants', 'state']);
+        app(AuditLogService::class)->record('viewed', 'conversation_threads', $thread, $request->user()->id);
+
+        return ApiResponse::success(['thread' => $record, 'retention' => app(\App\Services\CommunicationGovernanceService::class)->retention($record)], 'Conversation retrieved.')->header('Cache-Control', 'private, no-store');
     }
 
     public function messages(Request $request, int $thread, MessagingService $service)
     {
         $data = $request->validate(['per_page' => ['sometimes', 'integer', 'min:1', 'max:100']]);
         $messages = $service->accessible($request->user(), $thread)->messages()->orderBy('id')->paginate($data['per_page'] ?? 25);
+        app(AuditLogService::class)->record('message_history_accessed', 'conversation_threads', $thread, $request->user()->id);
 
-        return ApiResponse::success(['messages' => $messages->getCollection()->map(fn ($message) => $service->render($message))], 'Messages retrieved.', meta: ['pagination' => ['total' => $messages->total(), 'currentPage' => $messages->currentPage(), 'perPage' => $messages->perPage(), 'lastPage' => $messages->lastPage()]]);
+        return ApiResponse::success(['messages' => $messages->getCollection()->map(fn ($message) => $service->render($message))], 'Messages retrieved.', meta: ['pagination' => ['total' => $messages->total(), 'currentPage' => $messages->currentPage(), 'perPage' => $messages->perPage(), 'lastPage' => $messages->lastPage()]])->header('Cache-Control', 'private, no-store');
     }
 
     public function confirm(Request $request, int $thread, MessagingService $service)
@@ -71,12 +79,12 @@ class ConversationController extends Controller
     public function permissions(Request $request, User $user, MessagingService $service)
     {
         abort_unless($request->user()->hasRole(Role::ADMIN), 403);
-        $data = $request->validate([
-            'internal_send' => ['present', 'nullable', 'boolean'],
-            'internal_receive' => ['present', 'nullable', 'boolean'],
-            'patient_send' => ['present', 'nullable', 'boolean'],
-        ]);
-        abort_if($data['patient_send'] === true && $user->hasRole(Role::ADMIN), 403);
+        abort_unless($service->permitted($request->user(), 'settings_manage'), 403);
+        $data = $request->validate(array_fill_keys(MessagingService::PERMISSION_FIELDS, ['sometimes', 'nullable', 'boolean']));
+        if ($data === []) {
+            throw \Illuminate\Validation\ValidationException::withMessages(['permissions' => 'Provide at least one messaging permission override.']);
+        }
+        abort_if(((bool) ($data['patient_send'] ?? false) || (bool) ($data['patient_view'] ?? false)) && $user->hasRole(Role::ADMIN), 403);
         $permission = DB::transaction(function () use ($service, $request, $user, $data) {
             $service->lockTenant();
             $permission = MessagingUserPermission::updateOrCreate(['user_id' => $user->id], $data);

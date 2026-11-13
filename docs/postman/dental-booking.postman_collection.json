@@ -4354,6 +4354,12 @@
                                     "description": "Optional filter; enable its checkbox to send it."
                                 },
                                 {
+                                    "key": "archived",
+                                    "value": "",
+                                    "disabled": true,
+                                    "description": "Include archived conversations when true."
+                                },
+                                {
                                     "key": "page",
                                     "value": "",
                                     "disabled": false,
@@ -4367,7 +4373,7 @@
                                 }
                             ]
                         },
-                        "description": "Current participants with exact messaging permissions only. Admins never see patient threads. Search matches subjects only. See docs/platform-messaging.md.\n\nGET /api/conversation-threads\nDomain writes require allow_writes=true. Missing required variables skip requests rather than selecting real records automatically."
+                        "description": "Active participants with exact view permission only. Send grants do not imply viewing. Admins never see patient threads. Search matches subjects only. Reads are access-logged. Default lists omit archived threads. See docs/communication-governance.md.\n\nGET /api/conversation-threads\nDomain writes require allow_writes=true. Missing required variables skip requests rather than selecting real records automatically."
                     },
                     "response": []
                 },
@@ -4396,7 +4402,7 @@
                             ],
                             "query": []
                         },
-                        "description": "Requires exact messaging.internal.send or messaging.patient.send. Patient threads require consent and exclude every admin. Staff cannot target admins. Attachments disabled. Ten new threads per actor per minute.\n\nPOST /api/conversation-threads\nDomain writes require allow_writes=true. Missing required variables skip requests rather than selecting real records automatically.",
+                        "description": "Requires exact view and send grants for the channel/thread kind. Patient recipients need patient view. Patient threads require consent and exclude every admin. Staff cannot target admins. Attachments disabled. Ten new threads per actor per minute.\n\nPOST /api/conversation-threads\nDomain writes require allow_writes=true. Missing required variables skip requests rather than selecting real records automatically.",
                         "body": {
                             "mode": "raw",
                             "raw": "{\n    \"subject\": \"Staff coordination\",\n    \"user_ids\": [\n        \"{{recipient_user_id}}\"\n    ]\n}\n",
@@ -4471,7 +4477,7 @@
                                 }
                             ]
                         },
-                        "description": "Oldest first. Redacted body and reason are null. Original content stays in protected storage.\n\nGET /api/conversation-threads/{thread}/messages\nDomain writes require allow_writes=true. Missing required variables skip requests rather than selecting real records automatically."
+                        "description": "Requires active participation and exact internal/patient view grant. Read is access-logged. Oldest first. Sender and governance redactions hide body/reason. Original content stays in protected storage. Governance redaction details use the permission-controlled history endpoint.\n\nGET /api/conversation-threads/{thread}/messages\nDomain writes require allow_writes=true. Missing required variables skip requests rather than selecting real records automatically."
                     },
                     "response": []
                 },
@@ -4582,10 +4588,10 @@
                             ],
                             "query": []
                         },
-                        "description": "Admin only. Null inherits exact role permission; false denies; true explicitly grants. Admin patient participation remains prohibited.\n\nPUT /api/users/{user}/messaging-permissions\nDomain writes require allow_writes=true. Missing required variables skip requests rather than selecting real records automatically.",
+                        "description": "Requires admin role plus exact messaging.settings.manage. Only supplied override fields change; provide at least one. Null inherits exact role permission; false denies; true grants. Send permissions never imply view. Admin patient view/send grant attempts are prohibited.\n\nPUT /api/users/{user}/messaging-permissions\nDomain writes require allow_writes=true. Missing required variables skip requests rather than selecting real records automatically.",
                         "body": {
                             "mode": "raw",
-                            "raw": "{\n    \"internal_send\": null,\n    \"internal_receive\": null,\n    \"patient_send\": false\n}\n",
+                            "raw": "{\n    \"internal_view\": null,\n    \"internal_send\": null,\n    \"patient_view\": false,\n    \"patient_send\": false,\n    \"settings_manage\": null,\n    \"history_view\": null\n}\n",
                             "options": {
                                 "raw": {
                                     "language": "json"
@@ -4653,6 +4659,424 @@
                         "body": {
                             "mode": "raw",
                             "raw": "{\n    \"channel\": \"in_app\",\n    \"use_case\": \"care\",\n    \"allowed\": false,\n    \"evidence\": \"Patient withdrew in-app care messaging consent.\",\n    \"source\": \"in_person\",\n    \"text_version\": \"care-v1\",\n    \"acknowledged_text\": \"I withdraw consent to in-app care messages.\"\n}\n",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        }
+                    },
+                    "response": []
+                }
+            ]
+        },
+        {
+            "name": "Communication Governance",
+            "item": [
+                {
+                    "name": "GET Get clinic communication governance policy",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/api/communication-governance/policy",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "communication-governance",
+                                "policy"
+                            ],
+                            "query": []
+                        },
+                        "description": "Exact messaging.settings.manage required. No policy means indefinite retention and disabled automatic archive/escalation.\n\nGET /api/communication-governance/policy\nDomain writes require allow_writes=true. Missing required variables skip requests rather than selecting real records automatically."
+                    },
+                    "response": []
+                },
+                {
+                    "name": "PUT Record an immutable clinic retention and escalation policy version",
+                    "request": {
+                        "method": "PUT",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            },
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/api/communication-governance/policy",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "communication-governance",
+                                "policy"
+                            ],
+                            "query": []
+                        },
+                        "description": "Exact settings grant required. Retention days are a minimum from latest activity, not a deletion deadline. Policy reference must identify the clinic compliance decision. Originals remain retained; automatic purge is disabled.\n\nPUT /api/communication-governance/policy\nDomain writes require allow_writes=true. Missing required variables skip requests rather than selecting real records automatically.",
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"retention_days\": null,\n    \"archive_after_days\": null,\n    \"escalation_enabled\": false,\n    \"policy_reference\": \"Replace with the clinic-approved policy decision reference.\"\n}\n",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        }
+                    },
+                    "response": []
+                },
+                {
+                    "name": "POST Revoke staff messaging access while retaining historical authorship",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/api/users/{{user_id}}/communication-access/deactivate",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "users",
+                                "{{user_id}}",
+                                "communication-access",
+                                "deactivate"
+                            ],
+                            "query": []
+                        },
+                        "description": "Admin plus settings-manage required. Revokes current thread access and all messaging overrides in this clinic. Other clinic memberships and historical messages remain intact. Hand off patient responsibility before deactivating the last eligible participant.\n\nPOST /api/users/{user}/communication-access/deactivate\nDomain writes require allow_writes=true. Missing required variables skip requests rather than selecting real records automatically."
+                    },
+                    "response": []
+                },
+                {
+                    "name": "POST Hand off patient responsibility to permitted staff",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            },
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/api/conversation-threads/{{thread_id}}/handoff",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "conversation-threads",
+                                "{{thread_id}}",
+                                "handoff"
+                            ],
+                            "query": []
+                        },
+                        "description": "Active participation plus patient view and messaging.assign required. Target must have patient view/send. Revokes previous assignee except current reviewer; retains original authorship. Invalidates prepared send confirmations. No tenant-wide visibility.\n\nPOST /api/conversation-threads/{thread}/handoff\nDomain writes require allow_writes=true. Missing required variables skip requests rather than selecting real records automatically.",
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"user_id\": \"{{recipient_user_id}}\",\n    \"reason\": \"Clinic-approved responsibility or review handoff.\"\n}\n",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        }
+                    },
+                    "response": []
+                },
+                {
+                    "name": "POST Escalate a patient thread to one explicitly selected supervisor",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            },
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/api/conversation-threads/{{thread_id}}/escalate",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "conversation-threads",
+                                "{{thread_id}}",
+                                "escalate"
+                            ],
+                            "query": []
+                        },
+                        "description": "Active participation plus patient view and messaging.escalate required. Clinic policy must enable escalation. Target requires patient view and supervise; admin targets prohibited. Grants this thread only.\n\nPOST /api/conversation-threads/{thread}/escalate\nDomain writes require allow_writes=true. Missing required variables skip requests rather than selecting real records automatically.",
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"user_id\": \"{{recipient_user_id}}\",\n    \"reason\": \"Clinic-approved responsibility or review handoff.\"\n}\n",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        }
+                    },
+                    "response": []
+                },
+                {
+                    "name": "POST Resolve escalation and remove temporary supervisor access",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            },
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/api/conversation-threads/{{thread_id}}/resolve",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "conversation-threads",
+                                "{{thread_id}}",
+                                "resolve"
+                            ],
+                            "query": []
+                        },
+                        "description": "Only the selected supervisor with active view and supervise grants may resolve. Preserves pre-existing participation or newly assigned responsibility; otherwise temporary access is revoked.\n\nPOST /api/conversation-threads/{thread}/resolve\nDomain writes require allow_writes=true. Missing required variables skip requests rather than selecting real records automatically.",
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"reason\": \"Clinic-authorized operational review.\"\n}\n",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        }
+                    },
+                    "response": []
+                },
+                {
+                    "name": "POST Archive or reopen an authorized conversation",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            },
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/api/conversation-threads/{{thread_id}}/archive",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "conversation-threads",
+                                "{{thread_id}}",
+                                "archive"
+                            ],
+                            "query": []
+                        },
+                        "description": "Requires active participation plus view/archive grants. Archived records remain readable but reject sends and confirmations. Unresolved escalations cannot be archived.\n\nPOST /api/conversation-threads/{thread}/archive\nDomain writes require allow_writes=true. Missing required variables skip requests rather than selecting real records automatically.",
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"reason\": \"Clinic-authorized operational review.\",\n    \"archived\": true\n}\n",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        }
+                    },
+                    "response": []
+                },
+                {
+                    "name": "POST Record a retention legal hold or its release",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            },
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/api/conversation-threads/{{thread_id}}/hold",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "conversation-threads",
+                                "{{thread_id}}",
+                                "hold"
+                            ],
+                            "query": []
+                        },
+                        "description": "Requires active participation plus view/settings-manage grants. Legal hold means indefinite retention and exemption from automatic archive. It never grants patient access to an administrator.\n\nPOST /api/conversation-threads/{thread}/hold\nDomain writes require allow_writes=true. Missing required variables skip requests rather than selecting real records automatically.",
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"reason\": \"Clinic-authorized operational review.\",\n    \"enabled\": true\n}\n",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        }
+                    },
+                    "response": []
+                },
+                {
+                    "name": "POST Apply an auditable visibility redaction without mutating original content",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            },
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/api/conversation-threads/{{thread_id}}/redact",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "conversation-threads",
+                                "{{thread_id}}",
+                                "redact"
+                            ],
+                            "query": []
+                        },
+                        "description": "Requires participation plus view/redact grants. Records actor/time/reason and original retention policy. Applies to any sender's message in this thread. Originals are retained; list/retry/export hide body and reason. Does not dispatch a patient message or substitute for consent.\n\nPOST /api/conversation-threads/{thread}/redact\nDomain writes require allow_writes=true. Missing required variables skip requests rather than selecting real records automatically.",
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"reason\": \"Clinic-authorized operational review.\",\n    \"message_id\": \"{{message_id}}\"\n}\n",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        }
+                    },
+                    "response": []
+                },
+                {
+                    "name": "GET Review authorized governance and access/export evidence",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/api/conversation-threads/{{thread_id}}/history?page=&per_page=25",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "conversation-threads",
+                                "{{thread_id}}",
+                                "history"
+                            ],
+                            "query": [
+                                {
+                                    "key": "page",
+                                    "value": "",
+                                    "disabled": false,
+                                    "description": "Optional filter; enable its checkbox to send it."
+                                },
+                                {
+                                    "key": "per_page",
+                                    "value": "25",
+                                    "disabled": false,
+                                    "description": "Optional filter; enable its checkbox to send it."
+                                }
+                            ]
+                        },
+                        "description": "Requires active participation plus view/history-view grants. Includes protected reasons and actor/time metadata. Access itself is audited.\n\nGET /api/conversation-threads/{thread}/history\nDomain writes require allow_writes=true. Missing required variables skip requests rather than selecting real records automatically."
+                    },
+                    "response": []
+                },
+                {
+                    "name": "POST Export an authorized redacted message-history page with access logging",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            },
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/api/conversation-threads/{{thread_id}}/export",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "conversation-threads",
+                                "{{thread_id}}",
+                                "export"
+                            ],
+                            "query": []
+                        },
+                        "description": "Requires active participation plus view/export grants. Returns private/no-store JSON attachment; each page records actor/time/purpose and exact message IDs. Does not expose unredacted originals. Archived history may be exported by authorized participants.\n\nPOST /api/conversation-threads/{thread}/export\nDomain writes require allow_writes=true. Missing required variables skip requests rather than selecting real records automatically.",
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"reason\": \"Clinic-authorized operational review.\"\n}\n",
                             "options": {
                                 "raw": {
                                     "language": "json"

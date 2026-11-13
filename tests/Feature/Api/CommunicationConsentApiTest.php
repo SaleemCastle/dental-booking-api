@@ -30,7 +30,7 @@ class CommunicationConsentApiTest extends TestCase
         $this->staff = User::factory()->create();
         $role = Role::create(['name' => 'Consent staff', 'slug' => 'consent-staff']);
         $this->staff->roles()->attach($role);
-        foreach (['preferences.manage', 'patient.send'] as $action) {
+        foreach (['preferences.manage', 'patient.send', 'patient.view'] as $action) {
             $role->permissions()->attach(Permission::create(['name' => $action, 'slug' => 'messaging.'.$action]));
         }
         $this->patient = Patient::factory()->create();

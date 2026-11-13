@@ -129,6 +129,15 @@ Route::middleware(['auth:sanctum', 'tenant'])->group(function () {
         Route::post('conversation-threads/{thread}/messages', [\App\Http\Controllers\Api\ConversationController::class, 'send'])->whereNumber('thread');
     });
     Route::put('users/{user}/messaging-permissions', [\App\Http\Controllers\Api\ConversationController::class, 'permissions']);
+    Route::get('communication-governance/policy', [\App\Http\Controllers\Api\CommunicationGovernanceController::class, 'policy']);
+    Route::put('communication-governance/policy', [\App\Http\Controllers\Api\CommunicationGovernanceController::class, 'savePolicy']);
+    Route::post('users/{user}/communication-access/deactivate', [\App\Http\Controllers\Api\CommunicationGovernanceController::class, 'deactivate']);
+    Route::get('conversation-threads/{thread}/history', [\App\Http\Controllers\Api\CommunicationGovernanceController::class, 'history'])->whereNumber('thread');
+    Route::middleware('throttle:30,1')->group(function () {
+        foreach (['handoff', 'escalate', 'resolve', 'archive', 'hold', 'redact', 'export'] as $action) {
+            Route::post('conversation-threads/{thread}/'.$action, [\App\Http\Controllers\Api\CommunicationGovernanceController::class, $action])->whereNumber('thread');
+        }
+    });
     Route::get('patients/{patient}/messaging-preferences', [\App\Http\Controllers\Api\ConversationController::class, 'preferences']);
     Route::put('patients/{patient}/messaging-preferences', [\App\Http\Controllers\Api\ConversationController::class, 'savePreference']);
     Route::get('patients/{patient}/communication-consents/current', [\App\Http\Controllers\Api\CommunicationConsentController::class, 'current']);

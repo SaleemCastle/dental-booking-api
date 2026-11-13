@@ -181,12 +181,24 @@ class PostmanExport
             return ['name' => 'Postman Test User', 'email' => '{{sample_email}}', 'password' => '{{new_user_password}}', 'password_confirmation' => '{{new_user_password}}'];
         }
         if (str_ends_with($path, '/messaging-permissions')) {
-            return ['internal_send' => null, 'internal_receive' => null, 'patient_send' => false];
+            return ['internal_view' => null, 'internal_send' => null, 'patient_view' => false, 'patient_send' => false,
+                'settings_manage' => null, 'history_view' => null];
+        }
+        if (str_ends_with($path, '/communication-access/deactivate')) {
+            return null;
+        }
+        if ($path === '/api/communication-governance/policy') {
+            return ['retention_days' => null, 'archive_after_days' => null, 'escalation_enabled' => false,
+                'policy_reference' => 'Replace with the clinic-approved policy decision reference.'];
+        }
+        if (str_starts_with($path, '/api/conversation-threads/') && (str_ends_with($path, '/handoff') || str_ends_with($path, '/escalate'))) {
+            return ['user_id' => '{{'.$this->variable('recipient_user_id').'}}', 'reason' => 'Clinic-approved responsibility or review handoff.'];
         }
         if ($path === '/api/conversation-threads' && $method === 'post') {
             return ['subject' => 'Staff coordination', 'user_ids' => ['{{'.$this->variable('recipient_user_id').'}}']];
         }
-        if (str_starts_with($path, '/api/conversation-threads/') && $method === 'post') {
+        if (str_starts_with($path, '/api/conversation-threads/') && $method === 'post'
+            && (str_ends_with($path, '/messages') || str_ends_with($path, '/confirmations'))) {
             return ['body' => 'Please review your care instructions.', 'idempotency_key' => '{{'.$this->variable('message_send_key').'}}'];
         }
         if (str_starts_with($path, '/api/users') && ! str_ends_with($path, '/roles')) {

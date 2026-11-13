@@ -12,4 +12,14 @@ class ConversationParticipant extends Model
     public $timestamps = false;
 
     protected $guarded = ['id', 'tenant_id'];
+
+    public function accessState()
+    {
+        return $this->hasOne(ConversationAccessState::class, 'participant_id');
+    }
+
+    public function scopeActive($query)
+    {
+        return $query->whereDoesntHave('accessState', fn ($state) => $state->where('active', false));
+    }
 }

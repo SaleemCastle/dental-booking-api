@@ -32,6 +32,7 @@ class Handler extends ExceptionHandler
         'api_key',
         'webhook_secret',
         'credentials',
+        'body', 'message_text', 'reason', 'evidence', 'acknowledged_text', 'confirmation_token',
     ];
 
     /**
@@ -42,7 +43,10 @@ class Handler extends ExceptionHandler
         $this->dontReport[] = ProviderException::class;
         $this->dontReport[] = ConsentBlocked::class;
         $this->reportable(function (Throwable $e) {
-            //
+            if ($this->sensitiveCommunication(request())) {
+                // SQL/transport exceptions can embed message bodies, policy evidence or tokens.
+                return false;
+            }
         });
     }
 
@@ -136,7 +140,7 @@ class Handler extends ExceptionHandler
 
         Log::error('Unhandled API exception.', [
             'request_id' => $request->attributes->get('request_id'),
-            'exception' => $e,
+            ...($this->sensitiveCommunication($request) ? ['exception_class' => $e::class] : ['exception' => $e]),
         ]);
 
         return ApiResponse::error(
@@ -162,6 +166,12 @@ class Handler extends ExceptionHandler
             || $request->is('logout')
             || $request->is('register')
             || $request->is('sanctum/csrf-cookie');
+    }
+
+    private function sensitiveCommunication(Request $request): bool
+    {
+        return $request->is('api/conversation-threads*', 'api/communication-governance*', 'api/*/communications',
+            'api/*/communication-consents*', 'api/*/messaging-preferences', 'api/*/messaging-permissions', 'api/*/communication-access/*', 'api/*/operational-notice-bases');
     }
 
     private function httpMessage(int $statusCode): string

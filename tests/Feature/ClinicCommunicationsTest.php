@@ -677,6 +677,7 @@ class ClinicCommunicationsTest extends TestCase
         $actor = User::factory()->create();
         $role = Role::firstOrCreate(['slug' => $slug], ['name' => $slug]);
         $actor->roles()->attach($role);
+        $role->permissions()->syncWithoutDetaching([\App\Models\Permission::firstOrCreate(['slug' => 'messaging.history.view'], ['name' => 'View communication history'])->id]);
 
         return $actor;
     }
