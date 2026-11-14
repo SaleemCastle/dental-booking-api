@@ -18,6 +18,8 @@ yarn-error.log
 /.idea
 /.vscode
 /docs/*
+!/docs/insurance-catalog.md
+!/docs/insurance-catalog.openapi.json
 !/docs/multi-tenancy.md
 !/docs/tenant-operations.md
 !/docs/dental-charting.md
@@ -38,6 +40,8 @@ yarn-error.log
 /docs/postman/*
 !/docs/postman/dental-booking.postman_collection.json
 !/docs/postman/local.postman_environment.json
+!/docs/postman/insurance-catalog.postman_collection.json
+!/docs/postman/insurance-catalog.postman_environment.json
 
 # Local environment files
 .env.*

@@ -7,6 +7,9 @@ use App\Models\AuditLog;
 use App\Models\ClinicalNote;
 use App\Models\Concerns\BelongsToTenant;
 use App\Models\DentalChartRevision;
+use App\Models\InsurancePlan;
+use App\Models\InsurancePlanVersion;
+use App\Models\Insurer;
 use App\Models\Invoice;
 use App\Models\Patient;
 use App\Models\PatientDocument;
@@ -21,6 +24,9 @@ use App\Policies\AppointmentPolicy;
 use App\Policies\AuditLogPolicy;
 use App\Policies\ClinicalNotePolicy;
 use App\Policies\DentalChartRevisionPolicy;
+use App\Policies\InsurancePlanPolicy;
+use App\Policies\InsurancePlanVersionPolicy;
+use App\Policies\InsurerPolicy;
 use App\Policies\InvoicePolicy;
 use App\Policies\PatientDocumentPolicy;
 use App\Policies\PatientPolicy;
@@ -51,6 +57,9 @@ class AuthServiceProvider extends ServiceProvider
         Patient::class => PatientPolicy::class,
         PatientDocument::class => PatientDocumentPolicy::class,
         Invoice::class => InvoicePolicy::class,
+        Insurer::class => InsurerPolicy::class,
+        InsurancePlan::class => InsurancePlanPolicy::class,
+        InsurancePlanVersion::class => InsurancePlanVersionPolicy::class,
         Payment::class => PaymentPolicy::class,
         PaymentLink::class => PaymentLinkPolicy::class,
         ProviderAvailability::class => ProviderAvailabilityPolicy::class,
@@ -79,7 +88,10 @@ class AuthServiceProvider extends ServiceProvider
                 }
             }
 
-            if ($resource instanceof ClinicalNote || $resource === ClinicalNote::class
+            if ($resource instanceof Insurer || $resource === Insurer::class
+                || $resource instanceof InsurancePlan || $resource === InsurancePlan::class
+                || $resource instanceof InsurancePlanVersion || $resource === InsurancePlanVersion::class
+                || $resource instanceof ClinicalNote || $resource === ClinicalNote::class
                 || $resource instanceof PatientDocument || $resource === PatientDocument::class
                 || $resource instanceof DentalChartRevision || $resource === DentalChartRevision::class
                 || $resource instanceof TreatmentPlan || $resource === TreatmentPlan::class
