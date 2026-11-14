@@ -62,6 +62,26 @@ Route::middleware('auth:sanctum')->get('tenants', function (Request $request) {
 Route::middleware('auth:sanctum')->delete('auth/token', [TokenController::class, 'destroy']);
 
 Route::middleware(['auth:sanctum', 'tenant'])->group(function () {
+    Route::prefix('insurance')->controller(\App\Http\Controllers\Api\InsuranceCatalogController::class)->group(function () {
+        Route::get('insurers', 'indexInsurers');
+        Route::post('insurers', 'storeInsurer');
+        Route::get('insurers/{insurer}', 'showInsurer')->whereNumber('insurer');
+        Route::patch('insurers/{insurer}', 'updateInsurer')->whereNumber('insurer');
+        Route::delete('insurers/{insurer}', 'archiveInsurer')->whereNumber('insurer');
+        Route::get('insurers/{insurer}/plans', 'indexPlans')->whereNumber('insurer');
+        Route::post('insurers/{insurer}/plans', 'storePlan')->whereNumber('insurer');
+        Route::get('plans/{plan}', 'showPlan')->whereNumber('plan');
+        Route::patch('plans/{plan}', 'updatePlan')->whereNumber('plan');
+        Route::delete('plans/{plan}', 'archivePlan')->whereNumber('plan');
+        Route::get('plans/{plan}/versions', 'indexVersions')->whereNumber('plan');
+        Route::post('plans/{plan}/versions', 'storeVersion')->whereNumber('plan');
+        Route::get('plan-versions/{version}', 'showVersion')->whereNumber('version');
+        Route::patch('plan-versions/{version}', 'updateVersion')->whereNumber('version');
+        Route::delete('plan-versions/{version}', 'withdrawVersion')->whereNumber('version');
+        Route::post('plan-versions/{version}/review', 'reviewVersion')->whereNumber('version');
+        Route::post('plan-versions/{version}/publish', 'publishVersion')->whereNumber('version');
+    });
+
     Route::get('/user', function (Request $request, TenantContext $context) {
         return ApiResponse::success(
             data: array_merge($request->user()->loadMissing('roles.permissions')->toArray(), [
