@@ -62,6 +62,22 @@ Route::middleware('auth:sanctum')->get('tenants', function (Request $request) {
 Route::middleware('auth:sanctum')->delete('auth/token', [TokenController::class, 'destroy']);
 
 Route::middleware(['auth:sanctum', 'tenant'])->group(function () {
+    Route::controller(\App\Http\Controllers\Api\InsuranceDocumentController::class)->group(function () {
+        Route::get('insurance/documents', 'index');
+        Route::post('insurance/documents', 'store');
+        Route::get('patients/{patient}/insurance-documents', 'index')->whereNumber('patient');
+        Route::post('patients/{patient}/insurance-documents', 'store')->whereNumber('patient');
+        Route::get('insurance/documents/{document}', 'show')->whereNumber('document');
+        Route::get('insurance/documents/{document}/download', 'download')->whereNumber('document');
+        Route::post('patients/{patient}/documents/{document}/versions', 'clinicalVersion')->whereNumber('patient')->whereNumber('document');
+        Route::post('insurance/documents/{document}/versions', 'version')->whereNumber('document');
+        Route::post('insurance/documents/{document}/archive', 'archive')->whereNumber('document');
+        Route::delete('insurance/documents/{document}', 'destroy')->whereNumber('document')->withTrashed();
+        Route::post('document-evidence/{document}/links', 'link')->whereNumber('document')->withTrashed();
+        Route::post('document-evidence/{document}/holds', 'hold')->whereNumber('document')->withTrashed();
+        Route::post('document-evidence/{document}/quarantine', 'quarantine')->whereNumber('document');
+    });
+
     Route::prefix('insurance')->controller(\App\Http\Controllers\Api\InsuranceCatalogController::class)->group(function () {
         Route::get('insurers', 'indexInsurers');
         Route::post('insurers', 'storeInsurer');

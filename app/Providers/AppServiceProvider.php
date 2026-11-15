@@ -12,6 +12,7 @@ class AppServiceProvider extends ServiceProvider
      */
     public function register(): void
     {
+        $this->app->bind(\App\Documents\EvidenceScanner::class, \App\Documents\UnconfiguredEvidenceScanner::class);
         $this->app->scoped(\App\Tenancy\TenantContext::class);
         $this->app->bind(\App\Documents\DocumentStorage::class, \App\Documents\FilesystemDocumentStorage::class);
     }

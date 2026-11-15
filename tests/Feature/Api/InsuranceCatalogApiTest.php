@@ -138,9 +138,13 @@ class InsuranceCatalogApiTest extends TestCase
         foreach (['invoices', 'invoice_items', 'payments'] as $table) {
             $before[$table] = DB::table($table)->orderBy('id')->get()->toJson();
         }
+        // Unwind the newer empty evidence FK dependency before this catalog round-trip.
+        $evidence = require database_path('migrations/2026_11_14_000001_protect_document_evidence.php');
+        $evidence->down();
         $migration = require database_path('migrations/2026_11_13_000001_create_insurance_catalog.php');
         $migration->down();
         $migration->up();
+        $evidence->up();
         foreach ($before as $table => $rows) {
             $this->assertSame($rows, DB::table($table)->orderBy('id')->get()->toJson());
         }
