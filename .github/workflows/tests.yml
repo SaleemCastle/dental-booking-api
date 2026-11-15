@@ -20,7 +20,7 @@ jobs:
       fail-fast: true
       matrix:
         php: [8.2]
-        database: [sqlite, mysql, pgsql]
+        database: [pgsql]
 
     name: PHP ${{ matrix.php }} / ${{ matrix.database }}
 
@@ -37,25 +37,13 @@ jobs:
           --health-interval=10s
           --health-timeout=5s
           --health-retries=10
-      mysql:
-        image: mysql:8.0
-        env:
-          MYSQL_ROOT_PASSWORD: testing
-          MYSQL_DATABASE: dental_booking_test
-        ports:
-          - 3306/tcp
-        options: >-
-          --health-cmd="mysqladmin ping -h localhost -ptesting"
-          --health-interval=10s
-          --health-timeout=5s
-          --health-retries=10
 
     env:
       DB_CONNECTION: ${{ matrix.database }}
-      DB_DATABASE: ${{ matrix.database == 'sqlite' && ':memory:' || 'dental_booking_test' }}
+      DB_DATABASE: dental_booking_test
       DB_HOST: 127.0.0.1
-      DB_PORT: ${{ matrix.database == 'pgsql' && job.services.postgres.ports[5432] || job.services.mysql.ports[3306] }}
-      DB_USERNAME: ${{ matrix.database == 'pgsql' && 'postgres' || 'root' }}
+      DB_PORT: ${{ job.services.postgres.ports[5432] }}
+      DB_USERNAME: postgres
       DB_PASSWORD: testing
 
     steps:

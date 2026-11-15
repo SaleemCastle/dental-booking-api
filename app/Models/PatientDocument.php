@@ -26,6 +26,11 @@ class PatientDocument extends Model
         'purged_at' => 'datetime',
     ];
 
+    public function versionRecord()
+    {
+        return $this->hasOne(DocumentVersion::class, 'document_id');
+    }
+
     public function patient()
     {
         return $this->belongsTo(Patient::class);

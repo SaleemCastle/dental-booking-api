@@ -32,6 +32,7 @@ class Handler extends ExceptionHandler
         'api_key',
         'webhook_secret',
         'credentials',
+        'file', 'reason', 'provenance',
     ];
 
     /**
@@ -42,7 +43,9 @@ class Handler extends ExceptionHandler
         $this->dontReport[] = ProviderException::class;
         $this->dontReport[] = ConsentBlocked::class;
         $this->reportable(function (Throwable $e) {
-            //
+            if (request()->is('api/insurance/documents*', 'api/document-evidence*', 'api/patients/*/insurance-documents*', 'api/patients/*/documents*')) {
+                return false;
+            }
         });
     }
 
@@ -50,6 +53,10 @@ class Handler extends ExceptionHandler
     {
         if (! $this->shouldReturnApiResponse($request)) {
             return parent::render($request, $e);
+        }
+
+        if ($e instanceof DocumentProtectionConflict) {
+            return ApiResponse::error(message: $e->getMessage(), statusCode: 409, code: $e->apiCode, request: $request)->header('Cache-Control', 'private, no-store');
         }
 
         if ($e instanceof ConsentBlocked) {
@@ -136,7 +143,7 @@ class Handler extends ExceptionHandler
 
         Log::error('Unhandled API exception.', [
             'request_id' => $request->attributes->get('request_id'),
-            'exception' => $e,
+            ...($request->is('api/insurance/documents*', 'api/document-evidence*', 'api/patients/*/insurance-documents*', 'api/patients/*/documents*') ? ['exception_class' => $e::class] : ['exception' => $e]),
         ]);
 
         return ApiResponse::error(
