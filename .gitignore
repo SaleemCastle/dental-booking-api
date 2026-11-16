@@ -18,6 +18,7 @@ yarn-error.log
 /.idea
 /.vscode
 /docs/*
+!/docs/manual-insurance-eligibility.md
 !/docs/insurance-evidence.md
 !/docs/insurance-evidence.openapi.json
 !/docs/patient-insurance.md
