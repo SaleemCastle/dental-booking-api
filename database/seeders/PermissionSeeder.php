@@ -29,7 +29,7 @@ class PermissionSeeder extends Seeder
                     );
                     // Insurance authority must be assigned deliberately; do not auto-grant
                     // editor/reviewer/publisher powers to existing clinic admins.
-                    if (! in_array($resource, ['insurance_catalog', 'insurance_documents', 'document_holds', 'document_quarantine'], true)) {
+                    if (! in_array($resource, ['patient_insurance', 'insurance_catalog', 'insurance_documents', 'document_holds', 'document_quarantine'], true)) {
                         $permissionIds[] = $permission->id;
                     }
                 }
@@ -70,6 +70,7 @@ class PermissionSeeder extends Seeder
             'document_holds' => ['manage'],
             'document_quarantine' => ['manage'],
             'insurance_catalog' => ['view', 'manage', 'review', 'publish'],
+            'patient_insurance' => ['view', 'manage', 'reveal'],
         ];
     }
 }

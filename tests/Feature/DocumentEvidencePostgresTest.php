@@ -331,6 +331,9 @@ class DocumentEvidencePostgresTest extends TestCase
 
     public function test_repeated_fresh_creation_and_empty_rollback_leave_no_orphan_helpers(): void
     {
+        // M1-B references the shared patient candidate key owned by M1-C.
+        $patientInsurance = require database_path('migrations/2026_11_15_000001_create_patient_insurance.php');
+        $patientInsurance->down();
         $migration = require database_path('migrations/2026_11_14_000001_protect_document_evidence.php');
         for ($i = 0; $i < 2; $i++) {
             $migration->down();
@@ -338,12 +341,15 @@ class DocumentEvidencePostgresTest extends TestCase
             $this->assertSame(0, (int) DB::selectOne("SELECT COUNT(*) AS c FROM pg_proc p JOIN pg_namespace n ON n.oid=p.pronamespace WHERE n.nspname=current_schema() AND p.proname LIKE 'evidence_%'")->c);
             $migration->up();
         }
+        $patientInsurance->up();
         $this->artisan('migrate:fresh')->assertSuccessful();
         $this->artisan('migrate:fresh')->assertSuccessful();
     }
 
     public function test_backfill_preserves_legacy_bytes_and_unknown_hash_and_refuses_populated_down(): void
     {
+        $patientInsurance = require database_path('migrations/2026_11_15_000001_create_patient_insurance.php');
+        $patientInsurance->down();
         $migration = require database_path('migrations/2026_11_14_000001_protect_document_evidence.php');
         $migration->down();
         $actor = User::factory()->create();
@@ -352,6 +358,7 @@ class DocumentEvidencePostgresTest extends TestCase
         Storage::disk('clinical_documents')->put($key, 'actual legacy bytes');
         $id = DB::table('patient_documents')->insertGetId(['tenant_id' => $patient->tenant_id, 'patient_id' => $patient->id, 'disk' => 'clinical_documents', 'storage_key' => $key, 'original_filename' => 'legacy.pdf', 'mime_type' => 'application/pdf', 'size_bytes' => 19, 'uploaded_by_user_id' => $actor->id]);
         $migration->up();
+        $patientInsurance->up();
         $v = DB::table('document_versions')->where('document_id', $id)->first();
         $this->assertNull($v->content_sha256);
         $this->assertSame('legacy_unverified', $v->scan_status);

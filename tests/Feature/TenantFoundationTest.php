@@ -216,7 +216,7 @@ class TenantFoundationTest extends TestCase
             $this->seed(AppointmentLocationSeeder::class);
             $this->assertSame(6, Role::count());
             $this->assertSame(2, Chair::count());
-            $this->assertSame($permissionCount - 11, Role::where('slug', Role::ADMIN)->sole()->permissions()->count());
+            $this->assertSame($permissionCount - 14, Role::where('slug', Role::ADMIN)->sole()->permissions()->count());
             $this->assertFalse(Role::where('slug', Role::ADMIN)->sole()->permissions()->where('resource', 'insurance_catalog')->exists());
         });
         $this->assertSame(6, Role::count());

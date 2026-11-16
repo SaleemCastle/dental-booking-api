@@ -78,6 +78,20 @@ Route::middleware(['auth:sanctum', 'tenant'])->group(function () {
         Route::post('document-evidence/{document}/quarantine', 'quarantine')->whereNumber('document');
     });
 
+    Route::prefix('patients/{patient}/insurance-associations')->whereNumber('patient')->controller(\App\Http\Controllers\Api\PatientInsuranceController::class)->group(function () {
+        Route::get('', 'index');
+        Route::post('', 'store');
+        Route::get('{association}', 'show')->whereNumber('association');
+        Route::patch('{association}', 'update')->whereNumber('association');
+        Route::get('{association}/history', 'history')->whereNumber('association');
+        Route::get('{association}/policy-revisions', 'policies')->whereNumber('association');
+        Route::post('{association}/policy-revisions', 'revisePolicy')->whereNumber('association');
+        Route::get('{association}/policy-revisions/{revision}/identifiers', 'identifiers')->whereNumber('association')->whereNumber('revision');
+        Route::get('{association}/checks', 'checks')->whereNumber('association');
+        Route::post('{association}/checks', 'recordCheck')->whereNumber('association');
+        Route::get('{association}/checks/{check}/details', 'checkDetails')->whereNumber('association')->whereNumber('check');
+    });
+
     Route::prefix('insurance')->controller(\App\Http\Controllers\Api\InsuranceCatalogController::class)->group(function () {
         Route::get('insurers', 'indexInsurers');
         Route::post('insurers', 'storeInsurer');
