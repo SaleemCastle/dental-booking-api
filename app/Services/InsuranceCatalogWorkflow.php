@@ -177,6 +177,9 @@ class InsuranceCatalogWorkflow
             $data = CatalogInput::validate('updateVersion', $data, $version);
             $this->expected($version, $data);
             abort_unless($version->status === 'draft', 409);
+            if (isset($data['currency']) && \App\Models\InsuranceBenefitRule::where('plan_version_id', $version->id)->whereNotNull('currency')->where('currency', '<>', $data['currency'])->exists()) {
+                throw ValidationException::withMessages(['currency' => ['Currency conflicts with recorded benefit rules; create a new plan version.']]);
+            }
             $version->forceFill(array_diff_key($data, ['expected_version' => true]));
             $version->last_edited_by_user_id = $actor->id;
             $version->lock_version++;

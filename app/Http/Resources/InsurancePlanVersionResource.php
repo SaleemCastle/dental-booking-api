@@ -18,7 +18,7 @@ class InsurancePlanVersionResource extends JsonResource
             'created_by_user_id' => $this->created_by_user_id, 'last_edited_by_user_id' => $this->last_edited_by_user_id,
             'reviewed_by_user_id' => $this->reviewed_by_user_id, 'reviewed_at' => $this->reviewed_at,
             'published_by_user_id' => $this->published_by_user_id, 'published_at' => $this->published_at,
-            'benefits_configured' => false,
+            'benefits_configured' => \App\Models\InsuranceBenefitRule::where('plan_version_id', $this->id)->exists(),
             'created_at' => $this->created_at, 'updated_at' => $this->updated_at,
         ];
     }

@@ -18,6 +18,8 @@ yarn-error.log
 /.idea
 /.vscode
 /docs/*
+!/docs/insurance-benefits.md
+!/docs/insurance-benefits.openapi.json
 !/docs/manual-insurance-eligibility.md
 !/docs/insurance-evidence.md
 !/docs/insurance-evidence.openapi.json
@@ -43,6 +45,8 @@ yarn-error.log
 !/docs/postman.md
 !/docs/postman/
 /docs/postman/*
+!/docs/postman/insurance-benefits.postman_collection.json
+!/docs/postman/insurance-benefits.postman_environment.json
 !/docs/postman/patient-insurance.postman_collection.json
 !/docs/postman/patient-insurance.postman_environment.json
 !/docs/postman/dental-booking.postman_collection.json

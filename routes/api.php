@@ -62,6 +62,15 @@ Route::middleware('auth:sanctum')->get('tenants', function (Request $request) {
 Route::middleware('auth:sanctum')->delete('auth/token', [TokenController::class, 'destroy']);
 
 Route::middleware(['auth:sanctum', 'tenant'])->group(function () {
+    Route::controller(\App\Http\Controllers\Api\InsuranceBenefitController::class)->group(function () {
+        Route::get('insurance/plan-versions/{version}/benefits', 'planIndex')->whereNumber('version');
+        Route::post('insurance/plan-versions/{version}/benefits', 'planStore')->whereNumber('version');
+        Route::get('insurance/plan-versions/{version}/benefits/{benefit}/details', 'planDetails')->whereNumber('version')->whereNumber('benefit');
+        Route::get('patients/{patient}/insurance-associations/{association}/benefits', 'patientIndex')->whereNumber('patient')->whereNumber('association');
+        Route::post('patients/{patient}/insurance-associations/{association}/benefits', 'patientStore')->whereNumber('patient')->whereNumber('association');
+        Route::get('patients/{patient}/insurance-associations/{association}/benefits/{benefit}/details', 'patientDetails')->whereNumber('patient')->whereNumber('association')->whereNumber('benefit');
+    });
+
     Route::controller(\App\Http\Controllers\Api\InsuranceDocumentController::class)->group(function () {
         Route::get('insurance/documents', 'index');
         Route::post('insurance/documents', 'store');
