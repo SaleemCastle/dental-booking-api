@@ -18,6 +18,9 @@ yarn-error.log
 /.idea
 /.vscode
 /docs/*
+!/docs/architecture/
+/docs/architecture/*
+!/docs/architecture/P4-M3-A-insurance-estimation-gap-analysis.md
 !/docs/insurance-benefits.md
 !/docs/insurance-benefits.openapi.json
 !/docs/manual-insurance-eligibility.md

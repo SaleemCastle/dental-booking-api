@@ -62,6 +62,10 @@ Route::middleware('auth:sanctum')->get('tenants', function (Request $request) {
 Route::middleware('auth:sanctum')->delete('auth/token', [TokenController::class, 'destroy']);
 
 Route::middleware(['auth:sanctum', 'tenant'])->group(function () {
+    Route::get('patients/{patient}/insurance-estimates', [\App\Http\Controllers\Api\InsuranceEstimateController::class, 'index'])->whereNumber('patient');
+    Route::post('patients/{patient}/insurance-estimates', [\App\Http\Controllers\Api\InsuranceEstimateController::class, 'store'])->whereNumber('patient');
+    Route::get('patients/{patient}/insurance-estimates/{estimate}', [\App\Http\Controllers\Api\InsuranceEstimateController::class, 'show'])->whereNumber('patient')->whereNumber('estimate');
+    Route::post('patients/{patient}/insurance-estimates/{estimate}/supersede', [\App\Http\Controllers\Api\InsuranceEstimateController::class, 'supersede'])->whereNumber('patient')->whereNumber('estimate');
     Route::controller(\App\Http\Controllers\Api\InsuranceBenefitController::class)->group(function () {
         Route::get('insurance/plan-versions/{version}/benefits', 'planIndex')->whereNumber('version');
         Route::post('insurance/plan-versions/{version}/benefits', 'planStore')->whereNumber('version');

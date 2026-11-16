@@ -1239,6 +1239,161 @@
             ]
         },
         {
+            "name": "Insurance Estimates",
+            "item": [
+                {
+                    "name": "GET List immutable insurance estimate snapshots",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/api/patients/{{patient_id}}/insurance-estimates?page=&per_page=",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "patients",
+                                "{{patient_id}}",
+                                "insurance-estimates"
+                            ],
+                            "query": [
+                                {
+                                    "key": "page",
+                                    "value": "",
+                                    "disabled": false,
+                                    "description": "Optional filter; enable its checkbox to send it."
+                                },
+                                {
+                                    "key": "per_page",
+                                    "value": "",
+                                    "disabled": false,
+                                    "description": "Optional filter; enable its checkbox to send it."
+                                }
+                            ]
+                        },
+                        "description": "GET /api/patients/{patient}/insurance-estimates\nDomain writes require allow_writes=true. Missing required variables skip requests rather than selecting real records automatically."
+                    },
+                    "response": []
+                },
+                {
+                    "name": "POST Create an informational provisional estimate",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            },
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/api/patients/{{patient_id}}/insurance-estimates",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "patients",
+                                "{{patient_id}}",
+                                "insurance-estimates"
+                            ],
+                            "query": []
+                        },
+                        "description": "Requires patients.view and insurance_estimates.create. Gross amount and currency are caller supplied; one explicitly selected rule is evaluated. Unknown or conflicting facts return unresolved reason codes. No financial ledger or benefit usage changes.\n\nPOST /api/patients/{patient}/insurance-estimates\nDomain writes require allow_writes=true. Missing required variables skip requests rather than selecting real records automatically.",
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"service_date\": \"Postman test data\",\n    \"treatment_description\": \"Postman test data\",\n    \"gross_amount\": \"125.00\",\n    \"currency\": \"JMD\"\n}\n",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        }
+                    },
+                    "response": []
+                },
+                {
+                    "name": "GET Retrieve an immutable estimate snapshot",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/api/patients/{{patient_id}}/insurance-estimates/{{estimate_id}}",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "patients",
+                                "{{patient_id}}",
+                                "insurance-estimates",
+                                "{{estimate_id}}"
+                            ],
+                            "query": []
+                        },
+                        "description": "GET /api/patients/{patient}/insurance-estimates/{estimate}\nDomain writes require allow_writes=true. Missing required variables skip requests rather than selecting real records automatically."
+                    },
+                    "response": []
+                },
+                {
+                    "name": "POST Create a new estimate snapshot superseding an earlier estimate",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            },
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/api/patients/{{patient_id}}/insurance-estimates/{{estimate_id}}/supersede",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "patients",
+                                "{{patient_id}}",
+                                "insurance-estimates",
+                                "{{estimate_id}}",
+                                "supersede"
+                            ],
+                            "query": []
+                        },
+                        "description": "POST /api/patients/{patient}/insurance-estimates/{estimate}/supersede\nDomain writes require allow_writes=true. Missing required variables skip requests rather than selecting real records automatically.",
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"service_date\": \"Postman test data\",\n    \"treatment_description\": \"Postman test data\",\n    \"gross_amount\": \"125.00\",\n    \"currency\": \"JMD\"\n}\n",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        }
+                    },
+                    "response": []
+                }
+            ]
+        },
+        {
             "name": "Treatment Plans",
             "item": [
                 {
@@ -5676,6 +5831,11 @@
         },
         {
             "key": "document_id",
+            "value": "",
+            "type": "string"
+        },
+        {
+            "key": "estimate_id",
             "value": "",
             "type": "string"
         },
