@@ -27,6 +27,7 @@ tags:
   - name: Users
   - name: Roles
   - name: Audit Logs
+  - name: Insurance Estimates
   - name: Tenants
   - name: Platform Tenants
   - name: Dental Charts
@@ -471,6 +472,66 @@ paths:
         "401": { $ref: "#/components/responses/Unauthenticated" }
         "403": { $ref: "#/components/responses/Forbidden" }
         "404": { $ref: "#/components/responses/NotFound" }
+  /api/patients/{patient}/insurance-estimates:
+    get:
+      tags: [Insurance Estimates]
+      operationId: listInsuranceEstimates
+      summary: List immutable insurance estimate snapshots
+      parameters:
+        - { name: patient, in: path, required: true, schema: { type: integer } }
+        - { name: page, in: query, schema: { type: integer, minimum: 1 } }
+        - { name: per_page, in: query, schema: { type: integer, minimum: 1, maximum: 100 } }
+      responses:
+        '200': { description: ApiEnvelope with newest-first data array and meta.pagination. Requires patients.view and insurance_estimates.view; reads are audited. }
+        '403': { description: Permission denied. }
+    post:
+      tags: [Insurance Estimates]
+      operationId: createInsuranceEstimate
+      summary: Create an informational provisional estimate
+      description: Requires patients.view and insurance_estimates.create. Gross amount and currency are caller supplied; one explicitly selected rule is evaluated. Unknown or conflicting facts return unresolved reason codes. No financial ledger or benefit usage changes.
+      parameters:
+        - { name: patient, in: path, required: true, schema: { type: integer } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/InsuranceEstimateInput' }
+            example: { service_date: '2030-02-14', treatment_description: 'Synthetic dental service', procedure_code: 'SYN-001', code_system: 'Synthetic', gross_amount: '125.00', currency: 'JMD', association_id: 42, benefit_rule_id: 7 }
+      responses:
+        '201': { description: ApiEnvelope with immutable data.estimate snapshot and calculation trace. }
+        '403': { description: Permission denied. }
+        '404': { description: Patient or selected tenant scoped source not found. }
+        '422': { description: Invalid input or non-applicable plan version. }
+  /api/patients/{patient}/insurance-estimates/{estimate}:
+    get:
+      tags: [Insurance Estimates]
+      operationId: showInsuranceEstimate
+      summary: Retrieve an immutable estimate snapshot
+      parameters:
+        - { name: patient, in: path, required: true, schema: { type: integer } }
+        - { name: estimate, in: path, required: true, schema: { type: integer } }
+      responses:
+        '200': { description: ApiEnvelope with data.estimate; read is audited. }
+        '403': { description: Permission denied. }
+        '404': { description: Estimate does not belong to this patient and tenant. }
+  /api/patients/{patient}/insurance-estimates/{estimate}/supersede:
+    post:
+      tags: [Insurance Estimates]
+      operationId: supersedeInsuranceEstimate
+      summary: Create a new estimate snapshot superseding an earlier estimate
+      parameters:
+        - { name: patient, in: path, required: true, schema: { type: integer } }
+        - { name: estimate, in: path, required: true, schema: { type: integer } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/InsuranceEstimateInput' }
+      responses:
+        '201': { description: ApiEnvelope with new data.estimate; original snapshot remains unchanged. }
+        '403': { description: Permission denied. }
+        '404': { description: Estimate does not belong to this patient and tenant. }
+        '409': { description: Estimate already has a successor. }
   /api/patients/{patient}/treatment-plans:
     parameters:
       - $ref: "#/components/parameters/TenantHeader"
@@ -3398,6 +3459,39 @@ components:
         clinical_note_id: { type: integer, nullable: true }
         recorded_at: { type: string, format: date-time, nullable: true, readOnly: true }
         reason: { type: string, nullable: true }
+    InsuranceEstimateInput:
+      type: object
+      additionalProperties: false
+      required: [service_date, treatment_description, gross_amount, currency]
+      properties:
+        association_id: { type: integer, nullable: true, minimum: 1 }
+        benefit_rule_id: { type: integer, nullable: true, minimum: 1, description: Explicitly selected rule; omitted means unresolved. }
+        service_date: { type: string, format: date }
+        treatment_description: { type: string, minLength: 1, maxLength: 1000 }
+        procedure_code: { type: string, nullable: true, maxLength: 100 }
+        code_system: { type: string, nullable: true, maxLength: 100 }
+        gross_amount: { type: string, pattern: '^\\d{1,8}(\\.\\d{1,2})?$', example: '125.00' }
+        currency: { type: string, pattern: '^[A-Z]{3}$', example: JMD }
+    InsuranceEstimate:
+      type: object
+      description: Immutable provisional snapshot; amounts are informational and never cash or receivables.
+      properties:
+        id: { type: integer, readOnly: true }
+        patient_id: { type: integer, readOnly: true }
+        association_id: { type: integer, nullable: true }
+        service_date: { type: string, format: date }
+        treatment_description: { type: string }
+        procedure_code: { type: string, nullable: true }
+        code_system: { type: string, nullable: true }
+        gross_amount: { type: string }
+        currency: { type: string }
+        status: { type: string, enum: [resolved, unresolved, excluded] }
+        insurer_amount: { type: string, nullable: true }
+        patient_amount: { type: string, nullable: true }
+        calculation: { type: object, additionalProperties: true }
+        supersedes_id: { type: integer, nullable: true }
+        created_by_user_id: { type: integer, readOnly: true }
+        recorded_at: { type: string, format: date-time, readOnly: true }
     AuditLog:
       type: object
       required: [id, actor_id, actorName, action, resource_type, resource_id, occurred_at, ip_address, user_agent, request_metadata]

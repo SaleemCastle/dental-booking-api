@@ -82,6 +82,7 @@ trait BelongsToTenant
             'tasks' => ['patient_id' => 'patient', 'appointment_id' => 'appointment'],
             'treatment_plans' => ['patient_id' => 'patient'],
             'treatment_plan_items' => ['treatment_plan_id' => 'treatment_plans', 'treatment_id' => 'treatments', 'dentist_id' => 'dentist'],
+            'insurance_estimates' => ['patient_id' => 'patient', 'association_id' => 'patient_insurer_associations', 'benefit_rule_id' => 'insurance_benefit_rules', 'supersedes_id' => 'insurance_estimates'],
         ];
     }
 }
