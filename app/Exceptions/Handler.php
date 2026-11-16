@@ -32,7 +32,7 @@ class Handler extends ExceptionHandler
         'api_key',
         'webhook_secret',
         'credentials',
-        'file', 'reason', 'provenance',
+        'file', 'reason', 'provenance', 'policy_number', 'membership_id', 'subscriber_name', 'reference',
     ];
 
     /**
@@ -43,7 +43,7 @@ class Handler extends ExceptionHandler
         $this->dontReport[] = ProviderException::class;
         $this->dontReport[] = ConsentBlocked::class;
         $this->reportable(function (Throwable $e) {
-            if (request()->is('api/insurance/documents*', 'api/document-evidence*', 'api/patients/*/insurance-documents*', 'api/patients/*/documents*')) {
+            if (request()->is('api/patients/*/insurance-associations*', 'api/insurance/documents*', 'api/document-evidence*', 'api/patients/*/insurance-documents*', 'api/patients/*/documents*')) {
                 return false;
             }
         });
@@ -143,7 +143,7 @@ class Handler extends ExceptionHandler
 
         Log::error('Unhandled API exception.', [
             'request_id' => $request->attributes->get('request_id'),
-            ...($request->is('api/insurance/documents*', 'api/document-evidence*', 'api/patients/*/insurance-documents*', 'api/patients/*/documents*') ? ['exception_class' => $e::class] : ['exception' => $e]),
+            ...($request->is('api/patients/*/insurance-associations*', 'api/insurance/documents*', 'api/document-evidence*', 'api/patients/*/insurance-documents*', 'api/patients/*/documents*') ? ['exception_class' => $e::class] : ['exception' => $e]),
         ]);
 
         return ApiResponse::error(

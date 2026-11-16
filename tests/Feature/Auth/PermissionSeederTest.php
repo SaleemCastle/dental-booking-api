@@ -22,8 +22,8 @@ class PermissionSeederTest extends TestCase
         $this->seed(PermissionSeeder::class);
 
         $this->assertSame($originalIds, Permission::orderBy('slug')->pluck('id', 'slug')->all());
-        $this->assertDatabaseCount('permissions', 79);
-        foreach (['insurance_documents.view', 'insurance_documents.upload', 'insurance_documents.link', 'insurance_documents.tenant_view', 'insurance_documents.tenant_upload', 'document_holds.manage', 'document_quarantine.manage'] as $slug) {
+        $this->assertDatabaseCount('permissions', 82);
+        foreach (['patient_insurance.view', 'patient_insurance.manage', 'patient_insurance.reveal', 'insurance_documents.view', 'insurance_documents.upload', 'insurance_documents.link', 'insurance_documents.tenant_view', 'insurance_documents.tenant_upload', 'document_holds.manage', 'document_quarantine.manage'] as $slug) {
             $this->assertDatabaseHas('permissions', ['slug' => $slug]);
             $this->assertNotContains($slug, Role::where('slug', Role::ADMIN)->first()?->permissions()->pluck('slug')->all() ?? []);
         }
@@ -119,7 +119,7 @@ class PermissionSeederTest extends TestCase
         foreach (['appointments.create', 'appointments.update', 'patients.medical.update', 'clinical_notes.create', 'tasks.update', 'audit_logs.view'] as $slug) {
             $this->assertContains($slug, $response->json('data.permissions'));
         }
-        $catalog = $this->getJson('/api/permissions')->assertOk()->assertJsonCount(79, 'data.permissions');
+        $catalog = $this->getJson('/api/permissions')->assertOk()->assertJsonCount(82, 'data.permissions');
         $this->assertContains('appointments.create', array_column($catalog->json('data.permissions'), 'slug'));
     }
 }
