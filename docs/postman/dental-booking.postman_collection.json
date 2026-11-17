@@ -1274,6 +1274,18 @@
                                     "value": "",
                                     "disabled": false,
                                     "description": "Optional filter; enable its checkbox to send it."
+                                },
+                                {
+                                    "key": "treatment_plan_id",
+                                    "value": "{{treatment_plan_id}}",
+                                    "disabled": true,
+                                    "description": "Restrict results to estimates linked to this patient's plan. Requires treatment_plans.view."
+                                },
+                                {
+                                    "key": "latest_only",
+                                    "value": "",
+                                    "disabled": true,
+                                    "description": "With treatment_plan_id, return only the newest immutable snapshot per plan item."
                                 }
                             ]
                         },
@@ -1312,6 +1324,48 @@
                         "body": {
                             "mode": "raw",
                             "raw": "{\n    \"service_date\": \"Postman test data\",\n    \"treatment_description\": \"Postman test data\",\n    \"gross_amount\": \"125.00\",\n    \"currency\": \"JMD\"\n}\n",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        }
+                    },
+                    "response": []
+                },
+                {
+                    "name": "POST Create an immutable provisional estimate from a treatment-plan item",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            },
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/api/treatment-plans/{{treatment_plan_id}}/items/{{item_id}}/insurance-estimates",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "treatment-plans",
+                                "{{treatment_plan_id}}",
+                                "items",
+                                "{{item_id}}",
+                                "insurance-estimates"
+                            ],
+                            "query": []
+                        },
+                        "description": "Requires treatment_plans.view, patients.view, and insurance_estimates.create. Description and gross are derived from the locked item; service date and currency must be supplied. Procedure codes are not inferred. Only a selected association and benefit rule may be supplied. Does not change the plan or financial records.\n\nPOST /api/treatment-plans/{treatment_plan}/items/{item}/insurance-estimates\nDomain writes require allow_writes=true. Missing required variables skip requests rather than selecting real records automatically.",
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"service_date\": \"2030-04-01\",\n    \"currency\": \"JMD\"\n}\n",
                             "options": {
                                 "raw": {
                                     "language": "json"
@@ -5835,22 +5889,22 @@
             "type": "string"
         },
         {
-            "key": "estimate_id",
-            "value": "",
-            "type": "string"
-        },
-        {
             "key": "treatment_plan_id",
             "value": "",
             "type": "string"
         },
         {
-            "key": "treatment_id",
+            "key": "item_id",
             "value": "",
             "type": "string"
         },
         {
-            "key": "item_id",
+            "key": "estimate_id",
+            "value": "",
+            "type": "string"
+        },
+        {
+            "key": "treatment_id",
             "value": "",
             "type": "string"
         },

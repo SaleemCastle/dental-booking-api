@@ -21,6 +21,8 @@ yarn-error.log
 !/docs/architecture/
 /docs/architecture/*
 !/docs/architecture/P4-M3-A-insurance-estimation-gap-analysis.md
+!/docs/architecture/P4-M3-B-coverage-estimate-workflow-gap-analysis.md
+!/docs/insurance-estimates.md
 !/docs/insurance-benefits.md
 !/docs/insurance-benefits.openapi.json
 !/docs/manual-insurance-eligibility.md

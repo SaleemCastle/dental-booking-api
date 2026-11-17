@@ -7,6 +7,8 @@ use App\Models\Permission;
 use App\Models\Role;
 use App\Models\Tenant;
 use App\Models\User;
+use App\Models\TreatmentPlan;
+use App\Models\TreatmentPlanItem;
 use App\Services\InsuranceEstimateWorkflow;
 use App\Tenancy\TenantContext;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -146,6 +148,7 @@ class InsuranceEstimatePostgresTest extends TestCase
         $url = '/api/patients/'.$patient->id.'/insurance-estimates/'.$first;
         $this->postJson($url.'/supersede', $this->estimatePayload(['gross_amount' => '125.00']))->assertCreated()
             ->assertJsonPath('data.estimate.supersedes_id', $first)->assertJsonPath('data.estimate.gross_amount', '125.00');
+        $this->getJson($url)->assertOk()->assertJsonPath('data.estimate.superseded', true);
         $this->getJson('/api/patients/'.$patient->id.'/insurance-estimates?per_page=1')->assertOk()->assertJsonPath('meta.pagination.total', 2);
         $migration = require database_path('migrations/2026_11_16_000002_create_insurance_estimates.php');
         try {
@@ -199,5 +202,96 @@ class InsuranceEstimatePostgresTest extends TestCase
             $this->assertSame(403, $error->getStatusCode());
         }
         $this->assertSame($before, DB::table('insurance_estimates')->count());
+    }
+    public function test_treatment_plan_item_estimate_uses_source_snapshot_and_does_not_mutate_billing(): void
+    {
+        $actor = $this->actor(['patients.view', 'treatment_plans.view', 'insurance_estimates.view', 'insurance_estimates.create']);
+        $patient = Patient::factory()->create();
+        $plan = TreatmentPlan::factory()->create(['patient_id' => $patient->id]);
+        $item = TreatmentPlanItem::factory()->create(['treatment_plan_id' => $plan->id, 'treatment_name' => 'Source name', 'estimated_price' => '120.45']);
+        $counts = collect(['invoices', 'invoice_items', 'payments', 'insurance_estimates'])->mapWithKeys(fn ($table) => [$table => DB::table($table)->count()])->all();
+        $this->postJson("/api/treatment-plans/{$plan->id}/items/{$item->id}/insurance-estimates", ['service_date' => '2030-04-01', 'currency' => 'JMD'])
+            ->assertCreated()->assertJsonPath('data.estimate.treatment_plan_item_id', $item->id)
+            ->assertJsonPath('data.estimate.treatment_description', 'Source name')->assertJsonPath('data.estimate.gross_amount', '120.45')
+            ->assertJsonPath('data.estimate.procedure_code', null)->assertJsonPath('data.estimate.status', 'unresolved')
+            ->assertJsonPath('data.estimate.calculation.reason_codes.0', 'BENEFIT_NOT_SELECTED');
+        $this->postJson("/api/treatment-plans/{$plan->id}/items/{$item->id}/insurance-estimates", ['service_date' => '2030-04-01', 'currency' => 'JMD'])->assertCreated();
+        $this->assertSame('120.45', $item->fresh()->estimated_price);
+        $this->assertSame($counts['invoices'], DB::table('invoices')->count());
+        $this->assertSame($counts['invoice_items'], DB::table('invoice_items')->count());
+        $this->assertSame($counts['payments'], DB::table('payments')->count());
+        $this->assertSame($counts['insurance_estimates'] + 2, DB::table('insurance_estimates')->count());
+        $this->getJson("/api/patients/{$patient->id}/insurance-estimates?treatment_plan_id={$plan->id}")
+            ->assertOk()->assertJsonPath('meta.pagination.total', 2);
+        $this->getJson("/api/patients/{$patient->id}/insurance-estimates?treatment_plan_id={$plan->id}&latest_only=1")
+            ->assertOk()->assertJsonPath('meta.pagination.total', 1);
+    }
+
+    public function test_treatment_plan_estimate_rejects_caller_supplied_values_and_wrong_item(): void
+    {
+        $actor = $this->actor(['patients.view', 'treatment_plans.view', 'insurance_estimates.view', 'insurance_estimates.create']);
+        $patient = Patient::factory()->create();
+        $plan = TreatmentPlan::factory()->create(['patient_id' => $patient->id]);
+        $item = TreatmentPlanItem::factory()->create(['treatment_plan_id' => $plan->id]);
+        $otherPlan = TreatmentPlan::factory()->create(['patient_id' => Patient::factory()->create()->id]);
+        $otherItem = TreatmentPlanItem::factory()->create(['treatment_plan_id' => $otherPlan->id]);
+        $this->postJson("/api/treatment-plans/{$plan->id}/items/{$item->id}/insurance-estimates", ['service_date' => '2030-04-01', 'currency' => 'JMD', 'gross_amount' => '0.01'])->assertUnprocessable();
+        $this->postJson("/api/treatment-plans/{$plan->id}/items/{$otherItem->id}/insurance-estimates", ['service_date' => '2030-04-01', 'currency' => 'JMD'])->assertNotFound();
+        $tenantId = $patient->tenant_id;
+        try {
+            DB::transaction(fn () => DB::table('insurance_estimates')->insert([
+                'tenant_id' => $tenantId, 'patient_id' => $patient->id, 'treatment_plan_item_id' => $otherItem->id,
+                'service_date' => '2030-04-01', 'treatment_description' => 'Synthetic', 'gross_amount' => '10.00',
+                'currency' => 'JMD', 'status' => 'unresolved', 'calculation' => '{}', 'created_by_user_id' => $actor->id,
+            ]));
+            $this->fail('The database must reject a treatment item belonging to another patient.');
+        } catch (\Illuminate\Database\QueryException) {
+            $this->assertDatabaseCount('insurance_estimates', 0);
+        }
+        $otherTenant = Tenant::factory()->create();
+        $foreignItem = app(TenantContext::class)->run($otherTenant, function () {
+            $otherPatient = Patient::factory()->create();
+            $otherPlan = TreatmentPlan::factory()->create(['patient_id' => $otherPatient->id]);
+            return TreatmentPlanItem::factory()->create(['treatment_plan_id' => $otherPlan->id]);
+        });
+        try {
+            DB::transaction(fn () => DB::table('insurance_estimates')->insert([
+                'tenant_id' => $tenantId, 'patient_id' => $patient->id, 'treatment_plan_item_id' => $foreignItem->id,
+                'service_date' => '2030-04-01', 'treatment_description' => 'Synthetic', 'gross_amount' => '10.00',
+                'currency' => 'JMD', 'status' => 'unresolved', 'calculation' => '{}', 'created_by_user_id' => $actor->id,
+            ]));
+            $this->fail('The database must reject a treatment item belonging to another tenant.');
+        } catch (\Illuminate\Database\QueryException) {
+            $this->assertDatabaseCount('insurance_estimates', 0);
+        }
+    }
+
+    public function test_treatment_plan_estimate_requires_explicit_treatment_permission(): void
+    {
+        $this->actor(['patients.view', 'insurance_estimates.create', 'insurance_estimates.view']);
+        $patient = Patient::factory()->create();
+        $plan = TreatmentPlan::factory()->create(['patient_id' => $patient->id]);
+        $item = TreatmentPlanItem::factory()->create(['treatment_plan_id' => $plan->id]);
+        $this->postJson("/api/treatment-plans/{$plan->id}/items/{$item->id}/insurance-estimates", ['service_date' => '2030-04-01', 'currency' => 'JMD'])->assertForbidden();
+    }
+
+    public function test_treatment_plan_estimate_is_flagged_stale_without_refreshing_snapshot(): void
+    {
+        $this->actor(['patients.view', 'patient_insurance.view', 'patient_insurance.manage', 'treatment_plans.view', 'insurance_estimates.view', 'insurance_estimates.create']);
+        $patient = Patient::factory()->create();
+        $this->patientId = $patient->id;
+        $this->associationId = $this->association($patient);
+        $this->ruleId = $this->rule($this->associationId);
+        $plan = TreatmentPlan::factory()->create(['patient_id' => $patient->id]);
+        $item = TreatmentPlanItem::factory()->create(['treatment_plan_id' => $plan->id, 'estimated_price' => '100.00']);
+        $id = $this->postJson("/api/treatment-plans/{$plan->id}/items/{$item->id}/insurance-estimates", [
+            'service_date' => '2030-04-01', 'currency' => 'JMD', 'association_id' => $this->associationId, 'benefit_rule_id' => $this->ruleId,
+        ])
+            ->assertCreated()->json('data.estimate.id');
+        $this->rule($this->associationId, ['supersedes_id' => $this->ruleId, 'percentage' => '70.00']);
+        $item->update(['estimated_price' => '110.00']);
+        $this->getJson("/api/patients/{$patient->id}/insurance-estimates/{$id}")
+            ->assertOk()->assertJsonPath('data.estimate.gross_amount', '100.00')->assertJsonPath('data.estimate.stale', true)
+            ->assertJsonPath('data.estimate.stale_reason_codes', ['TREATMENT_SOURCE_CHANGED', 'BENEFIT_OBSERVATION_SUPERSEDED']);
     }
 }
