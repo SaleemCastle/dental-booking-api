@@ -62,6 +62,18 @@ Route::middleware('auth:sanctum')->get('tenants', function (Request $request) {
 Route::middleware('auth:sanctum')->delete('auth/token', [TokenController::class, 'destroy']);
 
 Route::middleware(['auth:sanctum', 'tenant'])->group(function () {
+    Route::get('patients/{patient}/insurance-claims', [\App\Http\Controllers\Api\InsuranceClaimController::class, 'index'])->whereNumber('patient');
+    Route::post('patients/{patient}/insurance-claims', [\App\Http\Controllers\Api\InsuranceClaimController::class, 'store'])->whereNumber('patient');
+    Route::get('patients/{patient}/insurance-claims/{claim}', [\App\Http\Controllers\Api\InsuranceClaimController::class, 'show'])->whereNumber('patient')->whereNumber('claim');
+    Route::patch('patients/{patient}/insurance-claims/{claim}', [\App\Http\Controllers\Api\InsuranceClaimController::class, 'update'])->whereNumber('patient')->whereNumber('claim');
+    Route::post('patients/{patient}/insurance-claims/{claim}/lines', [\App\Http\Controllers\Api\InsuranceClaimController::class, 'addLine'])->whereNumber('patient')->whereNumber('claim');
+    Route::patch('patients/{patient}/insurance-claims/{claim}/lines/{line}', [\App\Http\Controllers\Api\InsuranceClaimController::class, 'updateLine'])->whereNumber('patient')->whereNumber('claim')->whereNumber('line');
+    Route::delete('patients/{patient}/insurance-claims/{claim}/lines/{line}', [\App\Http\Controllers\Api\InsuranceClaimController::class, 'removeLine'])->whereNumber('patient')->whereNumber('claim')->whereNumber('line');
+    Route::post('patients/{patient}/insurance-claims/{claim}/readiness', [\App\Http\Controllers\Api\InsuranceClaimController::class, 'validateReadiness'])->whereNumber('patient')->whereNumber('claim');
+    Route::post('patients/{patient}/insurance-claims/{claim}/cancel', [\App\Http\Controllers\Api\InsuranceClaimController::class, 'cancel'])->whereNumber('patient')->whereNumber('claim');
+    Route::post('patients/{patient}/insurance-claims/{claim}/submissions', [\App\Http\Controllers\Api\InsuranceClaimController::class, 'submit'])->whereNumber('patient')->whereNumber('claim');
+    Route::get('patients/{patient}/insurance-claims/{claim}/submissions', [\App\Http\Controllers\Api\InsuranceClaimController::class, 'submissions'])->whereNumber('patient')->whereNumber('claim');
+    Route::get('patients/{patient}/insurance-claims/{claim}/events', [\App\Http\Controllers\Api\InsuranceClaimController::class, 'events'])->whereNumber('patient')->whereNumber('claim');
     Route::get('patients/{patient}/insurance-estimates', [\App\Http\Controllers\Api\InsuranceEstimateController::class, 'index'])->whereNumber('patient');
     Route::post('patients/{patient}/insurance-estimates', [\App\Http\Controllers\Api\InsuranceEstimateController::class, 'store'])->whereNumber('patient');
     Route::get('patients/{patient}/insurance-estimates/{estimate}', [\App\Http\Controllers\Api\InsuranceEstimateController::class, 'show'])->whereNumber('patient')->whereNumber('estimate');
