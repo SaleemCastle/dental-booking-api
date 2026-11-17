@@ -28,6 +28,7 @@ tags:
   - name: Roles
   - name: Audit Logs
   - name: Insurance Estimates
+  - name: Insurance Claims
   - name: Tenants
   - name: Platform Tenants
   - name: Dental Charts
@@ -561,6 +562,197 @@ paths:
         '403': { description: Permission denied. }
         '404': { description: Estimate does not belong to this patient and tenant. }
         '409': { description: Estimate already has a successor. }
+  /api/patients/{patient}/insurance-claims:
+    get:
+      tags: [Insurance Claims]
+      summary: List a patient's insurance claims
+      description: Requires patients.view and insurance_claims.view. Tenant and patient scoped; access is audited. Paginated newest first.
+      parameters:
+        - { name: patient, in: path, required: true, schema: { type: integer } }
+        - { name: status, in: query, schema: { type: string, enum: [draft, ready, submitted, cancelled] } }
+        - { name: page, in: query, schema: { type: integer, minimum: 1 } }
+        - { name: per_page, in: query, schema: { type: integer, minimum: 1, maximum: 100 } }
+      responses:
+        '200': { description: Standard ApiEnvelope containing claim array and pagination metadata. }
+        '403': { description: Explicit claims view permission required. }
+        '404': { description: Patient is outside current tenant. }
+    post:
+      tags: [Insurance Claims]
+      summary: Create a draft insurance claim
+      description: Requires patients.view and insurance_claims.prepare. An insurance association must be explicitly selected; policy and estimate references are optional. Claim identifier is local and is not an insurer identifier.
+      parameters:
+        - { name: patient, in: path, required: true, schema: { type: integer } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/InsuranceClaimDraftInput' }
+      responses:
+        '201': { description: Standard envelope containing the new draft claim. }
+        '403': { description: Explicit claims prepare permission required. }
+        '404': { description: Patient or selected association is outside patient/tenant scope. }
+        '422': { description: Invalid or missing selected insurance association. }
+  /api/patients/{patient}/insurance-claims/{claim}:
+    get:
+      tags: [Insurance Claims]
+      summary: Retrieve a claim and its draft line snapshots
+      parameters:
+        - { name: patient, in: path, required: true, schema: { type: integer } }
+        - { name: claim, in: path, required: true, schema: { type: integer } }
+      responses:
+        '200': { description: Audited ApiEnvelope containing claim and lines. }
+        '403': { description: Explicit claims view permission required. }
+        '404': { description: Claim does not belong to patient and tenant. }
+    patch:
+      tags: [Insurance Claims]
+      summary: Update optional draft source references
+      description: Requires insurance_claims.prepare and a matching expected_version. An edit to ready returns it to draft. Association and patient identity cannot be changed.
+      parameters:
+        - { name: patient, in: path, required: true, schema: { type: integer } }
+        - { name: claim, in: path, required: true, schema: { type: integer } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/InsuranceClaimUpdateInput' }
+      responses:
+        '200': { description: Updated draft claim with incremented lock_version. }
+        '403': { description: Explicit claims prepare permission required. }
+        '404': { description: Claim or optional source outside patient/tenant scope. }
+        '409': { description: Stale version or claim is submitted/cancelled. }
+        '422': { description: Invalid source reference. }
+  /api/patients/{patient}/insurance-claims/{claim}/lines:
+    post:
+      tags: [Insurance Claims]
+      summary: Add a commercial line snapshot to a draft claim
+      description: Exact decimal unit amounts, integer quantity, explicit currency/date and optional real code. PostgreSQL derives gross amount. Requires expected_version; editing ready returns claim to draft.
+      parameters:
+        - { name: patient, in: path, required: true, schema: { type: integer } }
+        - { name: claim, in: path, required: true, schema: { type: integer } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/InsuranceClaimLineInput' }
+      responses:
+        '201': { description: Claim and line snapshots with exact amounts. }
+        '403': { description: Explicit claims prepare permission required. }
+        '404': { description: Source item is outside the claim patient/tenant. }
+        '409': { description: Stale version or claim is immutable. }
+        '422': { description: 'Invalid line fields, currency or amount precision.' }
+  /api/patients/{patient}/insurance-claims/{claim}/lines/{line}:
+    patch:
+      tags: [Insurance Claims]
+      summary: Replace a draft claim line snapshot
+      parameters:
+        - { name: patient, in: path, required: true, schema: { type: integer } }
+        - { name: claim, in: path, required: true, schema: { type: integer } }
+        - { name: line, in: path, required: true, schema: { type: integer } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/InsuranceClaimLineInput' }
+      responses:
+        '200': { description: Updated claim and line; edit returns a ready claim to draft. }
+        '403': { description: Explicit claims prepare permission required. }
+        '404': { description: Claim line not found in the claim and patient scope. }
+        '409': { description: Stale version or claim is immutable. }
+        '422': { description: Invalid line. }
+    delete:
+      tags: [Insurance Claims]
+      summary: Remove a line from a draft claim
+      parameters:
+        - { name: patient, in: path, required: true, schema: { type: integer } }
+        - { name: claim, in: path, required: true, schema: { type: integer } }
+        - { name: line, in: path, required: true, schema: { type: integer } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/ExpectedClaimVersion' }
+      responses:
+        '200': { description: Updated claim and incremented version. }
+        '403': { description: Explicit claims prepare permission required. }
+        '404': { description: Claim line not found in claim scope. }
+        '409': { description: Stale version or claim is immutable. }
+  /api/patients/{patient}/insurance-claims/{claim}/readiness:
+    post:
+      tags: [Insurance Claims]
+      summary: Validate claim readiness
+      description: '`ready` means locally validated only. It does not mean transmitted, acknowledged, approved, or paid. Requires insurance_claims.prepare and expected_version.'
+      parameters:
+        - { name: patient, in: path, required: true, schema: { type: integer } }
+        - { name: claim, in: path, required: true, schema: { type: integer } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/ExpectedClaimVersion' }
+      responses:
+        '200': { description: Claim plus ready boolean and structured reason_codes; successful validation changes draft to ready. }
+        '403': { description: Explicit claims prepare permission required. }
+        '404': { description: Claim outside patient/tenant scope. }
+        '409': { description: Stale version or terminal claim. }
+  /api/patients/{patient}/insurance-claims/{claim}/cancel:
+    post:
+      tags: [Insurance Claims]
+      summary: Cancel a draft or ready claim
+      parameters:
+        - { name: patient, in: path, required: true, schema: { type: integer } }
+        - { name: claim, in: path, required: true, schema: { type: integer } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/InsuranceClaimCancelInput' }
+      responses:
+        '200': { description: Cancelled claim; submitted claims cannot be cancelled in M4-A. }
+        '403': { description: Explicit claims prepare permission required. }
+        '404': { description: Claim outside patient/tenant scope. }
+        '409': { description: Stale version or invalid transition. }
+  /api/patients/{patient}/insurance-claims/{claim}/submissions:
+    get:
+      tags: [Insurance Claims]
+      summary: Retrieve immutable claim submission history
+      parameters:
+        - { name: patient, in: path, required: true, schema: { type: integer } }
+        - { name: claim, in: path, required: true, schema: { type: integer } }
+      responses:
+        '200': { description: 'Audited submission snapshots; submitted means clinic staff recorded the action, not confirmed insurer receipt.' }
+        '403': { description: Explicit claims view permission required. }
+        '404': { description: Claim outside patient/tenant scope. }
+    post:
+      tags: [Insurance Claims]
+      summary: Record staff-submitted claim snapshot
+      description: Requires insurance_claims.submit. Repeated idempotency key and identical metadata replays the same record. Acknowledgement is not inferred; no insurer API or financial ledger is called.
+      parameters:
+        - { name: patient, in: path, required: true, schema: { type: integer } }
+        - { name: claim, in: path, required: true, schema: { type: integer } }
+        - { name: Idempotency-Key, in: header, required: true, schema: { type: string, minLength: 1, maxLength: 120, example: postman-claim-submit-001 } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/InsuranceClaimSubmitInput' }
+      responses:
+        '201': { description: Immutable snapshot and submitted claim; insurer receipt remains unconfirmed. }
+        '200': { description: Identical idempotent replay. }
+        '403': { description: Explicit claims submit permission required. }
+        '404': { description: Claim outside patient/tenant scope. }
+        '409': { description: 'Stale version, invalid state, duplicate key with changed data, or conflicting submission.' }
+        '422': { description: Claim not ready or invalid submission metadata. }
+  /api/patients/{patient}/insurance-claims/{claim}/events:
+    get:
+      tags: [Insurance Claims]
+      summary: Retrieve append-only lifecycle history
+      parameters:
+        - { name: patient, in: path, required: true, schema: { type: integer } }
+        - { name: claim, in: path, required: true, schema: { type: integer } }
+      responses:
+        '200': { description: Audited ordered event history. }
+        '403': { description: Explicit claims view permission required. }
+        '404': { description: Claim outside patient/tenant scope. }
   /api/patients/{patient}/treatment-plans:
     parameters:
       - $ref: "#/components/parameters/TenantHeader"
@@ -3201,6 +3393,62 @@ components:
                     properties:
                       clinicalNote: { $ref: "#/components/schemas/ClinicalNote" }
   schemas:
+    InsuranceClaimDraftInput:
+      type: object
+      additionalProperties: false
+      required: [association_id]
+      properties:
+        association_id: { type: integer, minimum: 1, example: 42 }
+        policy_revision_id: { type: integer, nullable: true, minimum: 1, example: 9 }
+        estimate_id: { type: integer, nullable: true, minimum: 1, example: 18 }
+        corrects_claim_id: { type: integer, nullable: true, minimum: 1, example: 12, description: Link a correction to a prior submitted claim. }
+    ExpectedClaimVersion:
+      type: object
+      additionalProperties: false
+      required: [expected_version]
+      properties:
+        expected_version: { type: integer, minimum: 1, example: 1 }
+    InsuranceClaimUpdateInput:
+      type: object
+      additionalProperties: false
+      required: [expected_version]
+      properties:
+        expected_version: { type: integer, minimum: 1, example: 2 }
+        policy_revision_id: { type: integer, nullable: true, minimum: 1, example: 9 }
+        estimate_id: { type: integer, nullable: true, minimum: 1, example: 18 }
+    InsuranceClaimLineInput:
+      type: object
+      additionalProperties: false
+      required: [expected_version, treatment_description, service_date, quantity, unit_amount, currency]
+      properties:
+        expected_version: { type: integer, minimum: 1, example: 1 }
+        treatment_plan_item_id: { type: integer, nullable: true, minimum: 1, example: 55 }
+        treatment_description: { type: string, minLength: 1, maxLength: 1000, example: Synthetic examination }
+        procedure_code: { type: string, nullable: true, maxLength: 100, example: SYN-001 }
+        code_system: { type: string, nullable: true, maxLength: 100, example: Synthetic }
+        service_date: { type: string, format: date, example: '2031-04-02' }
+        quantity: { type: integer, minimum: 1, maximum: 10000, example: 2 }
+        unit_amount: { type: string, pattern: '^(0|[1-9][0-9]{0,7})(\\.[0-9]{1,2})?$', example: '25.25' }
+        currency: { type: string, pattern: '^[A-Z]{3}$', example: JMD }
+    InsuranceClaimCancelInput:
+      type: object
+      additionalProperties: false
+      required: [expected_version, reason]
+      properties:
+        expected_version: { type: integer, minimum: 1, example: 2 }
+        reason: { type: string, minLength: 3, maxLength: 500, example: Synthetic cancellation }
+    InsuranceClaimSubmitInput:
+      type: object
+      additionalProperties: false
+      required: [expected_version, channel]
+      properties:
+        expected_version: { type: integer, minimum: 1, example: 3 }
+        channel: { type: string, enum: [portal, email, paper, other], example: paper }
+        channel_metadata:
+          type: object
+          additionalProperties: false
+          properties:
+            method_note: { type: string, maxLength: 500, example: Synthetic staff-recorded note }
     CommunicationConsentRequest:
       type: object
       required: [purpose, scope, channel, status, source, text_version, acknowledged_text, evidence]

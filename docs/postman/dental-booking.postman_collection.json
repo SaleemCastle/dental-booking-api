@@ -563,6 +563,12 @@
                             {
                                 "key": "Accept",
                                 "value": "application/json"
+                            },
+                            {
+                                "key": "X-Tenant-Id",
+                                "value": "",
+                                "description": "Select an active clinic membership. Omit for default-clinic. Does not confer membership or bypass authorization.",
+                                "disabled": true
                             }
                         ],
                         "url": {
@@ -590,6 +596,12 @@
                             {
                                 "key": "Accept",
                                 "value": "application/json"
+                            },
+                            {
+                                "key": "X-Tenant-Id",
+                                "value": "",
+                                "description": "Select an active clinic membership. Omit for default-clinic. Does not confer membership or bypass authorization.",
+                                "disabled": true
                             },
                             {
                                 "key": "Content-Type",
@@ -632,6 +644,12 @@
                                 "value": "application/json"
                             },
                             {
+                                "key": "X-Tenant-Id",
+                                "value": "",
+                                "description": "Select an active clinic membership. Omit for default-clinic. Does not confer membership or bypass authorization.",
+                                "disabled": true
+                            },
+                            {
                                 "key": "Content-Type",
                                 "value": "application/json"
                             }
@@ -672,6 +690,12 @@
                             {
                                 "key": "Accept",
                                 "value": "application/json"
+                            },
+                            {
+                                "key": "X-Tenant-Id",
+                                "value": "",
+                                "description": "Select an active clinic membership. Omit for default-clinic. Does not confer membership or bypass authorization.",
+                                "disabled": true
                             }
                         ],
                         "url": {
@@ -700,6 +724,12 @@
                             {
                                 "key": "Accept",
                                 "value": "application/json"
+                            },
+                            {
+                                "key": "X-Tenant-Id",
+                                "value": "",
+                                "description": "Select an active clinic membership. Omit for default-clinic. Does not confer membership or bypass authorization.",
+                                "disabled": true
                             }
                         ],
                         "url": {
@@ -740,6 +770,12 @@
                             {
                                 "key": "Accept",
                                 "value": "application/json"
+                            },
+                            {
+                                "key": "X-Tenant-Id",
+                                "value": "",
+                                "description": "Select an active clinic membership. Omit for default-clinic. Does not confer membership or bypass authorization.",
+                                "disabled": true
                             }
                         ],
                         "url": {
@@ -780,6 +816,12 @@
                             {
                                 "key": "Accept",
                                 "value": "application/json"
+                            },
+                            {
+                                "key": "X-Tenant-Id",
+                                "value": "",
+                                "description": "Select an active clinic membership. Omit for default-clinic. Does not confer membership or bypass authorization.",
+                                "disabled": true
                             }
                         ],
                         "url": {
@@ -825,6 +867,12 @@
                             {
                                 "key": "Accept",
                                 "value": "application/json"
+                            },
+                            {
+                                "key": "X-Tenant-Id",
+                                "value": "",
+                                "description": "Select an active clinic membership. Omit for default-clinic. Does not confer membership or bypass authorization.",
+                                "disabled": true
                             }
                         ],
                         "url": {
@@ -870,6 +918,12 @@
                             {
                                 "key": "Accept",
                                 "value": "application/json"
+                            },
+                            {
+                                "key": "X-Tenant-Id",
+                                "value": "",
+                                "description": "Select an active clinic membership. Omit for default-clinic. Does not confer membership or bypass authorization.",
+                                "disabled": true
                             }
                         ],
                         "url": {
@@ -927,6 +981,12 @@
                             {
                                 "key": "Accept",
                                 "value": "application/json"
+                            },
+                            {
+                                "key": "X-Tenant-Id",
+                                "value": "",
+                                "description": "Select an active clinic membership. Omit for default-clinic. Does not confer membership or bypass authorization.",
+                                "disabled": true
                             }
                         ],
                         "url": {
@@ -984,6 +1044,12 @@
                             {
                                 "key": "Accept",
                                 "value": "application/json"
+                            },
+                            {
+                                "key": "X-Tenant-Id",
+                                "value": "",
+                                "description": "Select an active clinic membership. Omit for default-clinic. Does not confer membership or bypass authorization.",
+                                "disabled": true
                             }
                         ],
                         "url": {
@@ -1034,6 +1100,12 @@
                             {
                                 "key": "Accept",
                                 "value": "application/json"
+                            },
+                            {
+                                "key": "X-Tenant-Id",
+                                "value": "",
+                                "description": "Select an active clinic membership. Omit for default-clinic. Does not confer membership or bypass authorization.",
+                                "disabled": true
                             }
                         ],
                         "url": {
@@ -1080,6 +1152,12 @@
                             {
                                 "key": "Accept",
                                 "value": "application/json"
+                            },
+                            {
+                                "key": "X-Tenant-Id",
+                                "value": "",
+                                "description": "Select an active clinic membership. Omit for default-clinic. Does not confer membership or bypass authorization.",
+                                "disabled": true
                             }
                         ],
                         "url": {
@@ -1130,6 +1208,12 @@
                             {
                                 "key": "Accept",
                                 "value": "application/json"
+                            },
+                            {
+                                "key": "X-Tenant-Id",
+                                "value": "",
+                                "description": "Select an active clinic membership. Omit for default-clinic. Does not confer membership or bypass authorization.",
+                                "disabled": true
                             }
                         ],
                         "url": {
@@ -1158,6 +1242,12 @@
                             {
                                 "key": "Accept",
                                 "value": "application/json"
+                            },
+                            {
+                                "key": "X-Tenant-Id",
+                                "value": "",
+                                "description": "Select an active clinic membership. Omit for default-clinic. Does not confer membership or bypass authorization.",
+                                "disabled": true
                             }
                         ],
                         "url": {
@@ -1186,6 +1276,12 @@
                             {
                                 "key": "Accept",
                                 "value": "application/json"
+                            },
+                            {
+                                "key": "X-Tenant-Id",
+                                "value": "",
+                                "description": "Select an active clinic membership. Omit for default-clinic. Does not confer membership or bypass authorization.",
+                                "disabled": true
                             }
                         ],
                         "url": {
@@ -1215,6 +1311,12 @@
                             {
                                 "key": "Accept",
                                 "value": "application/json"
+                            },
+                            {
+                                "key": "X-Tenant-Id",
+                                "value": "",
+                                "description": "Select an active clinic membership. Omit for default-clinic. Does not confer membership or bypass authorization.",
+                                "disabled": true
                             }
                         ],
                         "url": {
@@ -1448,6 +1550,484 @@
             ]
         },
         {
+            "name": "Insurance Claims",
+            "item": [
+                {
+                    "name": "GET List a patient's insurance claims",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/api/patients/{{patient_id}}/insurance-claims?page=&per_page=",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "patients",
+                                "{{patient_id}}",
+                                "insurance-claims"
+                            ],
+                            "query": [
+                                {
+                                    "key": "status",
+                                    "value": "draft",
+                                    "disabled": true,
+                                    "description": "Optional filter; enable its checkbox to send it."
+                                },
+                                {
+                                    "key": "page",
+                                    "value": "",
+                                    "disabled": false,
+                                    "description": "Optional filter; enable its checkbox to send it."
+                                },
+                                {
+                                    "key": "per_page",
+                                    "value": "",
+                                    "disabled": false,
+                                    "description": "Optional filter; enable its checkbox to send it."
+                                }
+                            ]
+                        },
+                        "description": "Requires patients.view and insurance_claims.view. Tenant and patient scoped; access is audited. Paginated newest first.\n\nGET /api/patients/{patient}/insurance-claims\nDomain writes require allow_writes=true. Missing required variables skip requests rather than selecting real records automatically."
+                    },
+                    "response": []
+                },
+                {
+                    "name": "POST Create a draft insurance claim",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            },
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/api/patients/{{patient_id}}/insurance-claims",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "patients",
+                                "{{patient_id}}",
+                                "insurance-claims"
+                            ],
+                            "query": []
+                        },
+                        "description": "Requires patients.view and insurance_claims.prepare. An insurance association must be explicitly selected; policy and estimate references are optional. Claim identifier is local and is not an insurer identifier.\n\nPOST /api/patients/{patient}/insurance-claims\nDomain writes require allow_writes=true. Missing required variables skip requests rather than selecting real records automatically.",
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"association_id\": \"{{association_id}}\"\n}\n",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        }
+                    },
+                    "response": []
+                },
+                {
+                    "name": "GET Retrieve a claim and its draft line snapshots",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/api/patients/{{patient_id}}/insurance-claims/{{claim_id}}",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "patients",
+                                "{{patient_id}}",
+                                "insurance-claims",
+                                "{{claim_id}}"
+                            ],
+                            "query": []
+                        },
+                        "description": "GET /api/patients/{patient}/insurance-claims/{claim}\nDomain writes require allow_writes=true. Missing required variables skip requests rather than selecting real records automatically."
+                    },
+                    "response": []
+                },
+                {
+                    "name": "PATCH Update optional draft source references",
+                    "request": {
+                        "method": "PATCH",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            },
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/api/patients/{{patient_id}}/insurance-claims/{{claim_id}}",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "patients",
+                                "{{patient_id}}",
+                                "insurance-claims",
+                                "{{claim_id}}"
+                            ],
+                            "query": []
+                        },
+                        "description": "Requires insurance_claims.prepare and a matching expected_version. An edit to ready returns it to draft. Association and patient identity cannot be changed.\n\nPATCH /api/patients/{patient}/insurance-claims/{claim}\nDomain writes require allow_writes=true. Missing required variables skip requests rather than selecting real records automatically.",
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"notes\": \"Postman updated test data\"\n}\n",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        }
+                    },
+                    "response": []
+                },
+                {
+                    "name": "POST Add a commercial line snapshot to a draft claim",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            },
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/api/patients/{{patient_id}}/insurance-claims/{{claim_id}}/lines",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "patients",
+                                "{{patient_id}}",
+                                "insurance-claims",
+                                "{{claim_id}}",
+                                "lines"
+                            ],
+                            "query": []
+                        },
+                        "description": "Exact decimal unit amounts, integer quantity, explicit currency/date and optional real code. PostgreSQL derives gross amount. Requires expected_version; editing ready returns claim to draft.\n\nPOST /api/patients/{patient}/insurance-claims/{claim}/lines\nDomain writes require allow_writes=true. Missing required variables skip requests rather than selecting real records automatically.",
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"expected_version\": 1,\n    \"treatment_description\": \"Synthetic examination\",\n    \"service_date\": \"2031-04-02\",\n    \"quantity\": 2,\n    \"unit_amount\": \"25.25\",\n    \"currency\": \"JMD\"\n}\n",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        }
+                    },
+                    "response": []
+                },
+                {
+                    "name": "PATCH Replace a draft claim line snapshot",
+                    "request": {
+                        "method": "PATCH",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            },
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/api/patients/{{patient_id}}/insurance-claims/{{claim_id}}/lines/{{line_id}}",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "patients",
+                                "{{patient_id}}",
+                                "insurance-claims",
+                                "{{claim_id}}",
+                                "lines",
+                                "{{line_id}}"
+                            ],
+                            "query": []
+                        },
+                        "description": "PATCH /api/patients/{patient}/insurance-claims/{claim}/lines/{line}\nDomain writes require allow_writes=true. Missing required variables skip requests rather than selecting real records automatically.",
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"notes\": \"Postman updated test data\"\n}\n",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        }
+                    },
+                    "response": []
+                },
+                {
+                    "name": "DELETE Remove a line from a draft claim",
+                    "request": {
+                        "method": "DELETE",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            },
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/api/patients/{{patient_id}}/insurance-claims/{{claim_id}}/lines/{{line_id}}",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "patients",
+                                "{{patient_id}}",
+                                "insurance-claims",
+                                "{{claim_id}}",
+                                "lines",
+                                "{{line_id}}"
+                            ],
+                            "query": []
+                        },
+                        "description": "DELETE /api/patients/{patient}/insurance-claims/{claim}/lines/{line}\nDomain writes require allow_writes=true. Missing required variables skip requests rather than selecting real records automatically.",
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"expected_version\": 1\n}\n",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        }
+                    },
+                    "response": []
+                },
+                {
+                    "name": "POST Validate claim readiness",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            },
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/api/patients/{{patient_id}}/insurance-claims/{{claim_id}}/readiness",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "patients",
+                                "{{patient_id}}",
+                                "insurance-claims",
+                                "{{claim_id}}",
+                                "readiness"
+                            ],
+                            "query": []
+                        },
+                        "description": "`ready` means locally validated only. It does not mean transmitted, acknowledged, approved, or paid. Requires insurance_claims.prepare and expected_version.\n\nPOST /api/patients/{patient}/insurance-claims/{claim}/readiness\nDomain writes require allow_writes=true. Missing required variables skip requests rather than selecting real records automatically.",
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"expected_version\": 1\n}\n",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        }
+                    },
+                    "response": []
+                },
+                {
+                    "name": "POST Cancel a draft or ready claim",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            },
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/api/patients/{{patient_id}}/insurance-claims/{{claim_id}}/cancel",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "patients",
+                                "{{patient_id}}",
+                                "insurance-claims",
+                                "{{claim_id}}",
+                                "cancel"
+                            ],
+                            "query": []
+                        },
+                        "description": "POST /api/patients/{patient}/insurance-claims/{claim}/cancel\nDomain writes require allow_writes=true. Missing required variables skip requests rather than selecting real records automatically.",
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"cancellation_reason\": \"Patient requested cancellation.\"\n}\n",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        }
+                    },
+                    "response": []
+                },
+                {
+                    "name": "GET Retrieve immutable claim submission history",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/api/patients/{{patient_id}}/insurance-claims/{{claim_id}}/submissions",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "patients",
+                                "{{patient_id}}",
+                                "insurance-claims",
+                                "{{claim_id}}",
+                                "submissions"
+                            ],
+                            "query": []
+                        },
+                        "description": "GET /api/patients/{patient}/insurance-claims/{claim}/submissions\nDomain writes require allow_writes=true. Missing required variables skip requests rather than selecting real records automatically."
+                    },
+                    "response": []
+                },
+                {
+                    "name": "POST Record staff-submitted claim snapshot",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            },
+                            {
+                                "key": "Idempotency-Key",
+                                "value": "postman-claim-submit-001",
+                                "description": "",
+                                "disabled": false
+                            },
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/api/patients/{{patient_id}}/insurance-claims/{{claim_id}}/submissions",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "patients",
+                                "{{patient_id}}",
+                                "insurance-claims",
+                                "{{claim_id}}",
+                                "submissions"
+                            ],
+                            "query": []
+                        },
+                        "description": "Requires insurance_claims.submit. Repeated idempotency key and identical metadata replays the same record. Acknowledgement is not inferred; no insurer API or financial ledger is called.\n\nPOST /api/patients/{patient}/insurance-claims/{claim}/submissions\nDomain writes require allow_writes=true. Missing required variables skip requests rather than selecting real records automatically.",
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"expected_version\": 3,\n    \"channel\": \"paper\"\n}\n",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        }
+                    },
+                    "response": []
+                },
+                {
+                    "name": "GET Retrieve append-only lifecycle history",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/api/patients/{{patient_id}}/insurance-claims/{{claim_id}}/events",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "patients",
+                                "{{patient_id}}",
+                                "insurance-claims",
+                                "{{claim_id}}",
+                                "events"
+                            ],
+                            "query": []
+                        },
+                        "description": "GET /api/patients/{patient}/insurance-claims/{claim}/events\nDomain writes require allow_writes=true. Missing required variables skip requests rather than selecting real records automatically."
+                    },
+                    "response": []
+                }
+            ]
+        },
+        {
             "name": "Treatment Plans",
             "item": [
                 {
@@ -1458,6 +2038,12 @@
                             {
                                 "key": "Accept",
                                 "value": "application/json"
+                            },
+                            {
+                                "key": "X-Tenant-Id",
+                                "value": "",
+                                "description": "Select an active clinic membership. Omit for default-clinic. Does not confer membership or bypass authorization.",
+                                "disabled": true
                             }
                         ],
                         "url": {
@@ -1506,6 +2092,12 @@
                                 "value": "application/json"
                             },
                             {
+                                "key": "X-Tenant-Id",
+                                "value": "",
+                                "description": "Select an active clinic membership. Omit for default-clinic. Does not confer membership or bypass authorization.",
+                                "disabled": true
+                            },
+                            {
                                 "key": "Content-Type",
                                 "value": "application/json"
                             }
@@ -1544,6 +2136,12 @@
                             {
                                 "key": "Accept",
                                 "value": "application/json"
+                            },
+                            {
+                                "key": "X-Tenant-Id",
+                                "value": "",
+                                "description": "Select an active clinic membership. Omit for default-clinic. Does not confer membership or bypass authorization.",
+                                "disabled": true
                             }
                         ],
                         "url": {
@@ -1570,6 +2168,12 @@
                             {
                                 "key": "Accept",
                                 "value": "application/json"
+                            },
+                            {
+                                "key": "X-Tenant-Id",
+                                "value": "",
+                                "description": "Select an active clinic membership. Omit for default-clinic. Does not confer membership or bypass authorization.",
+                                "disabled": true
                             },
                             {
                                 "key": "Content-Type",
@@ -1611,6 +2215,12 @@
                                 "value": "application/json"
                             },
                             {
+                                "key": "X-Tenant-Id",
+                                "value": "",
+                                "description": "Select an active clinic membership. Omit for default-clinic. Does not confer membership or bypass authorization.",
+                                "disabled": true
+                            },
+                            {
                                 "key": "Content-Type",
                                 "value": "application/json"
                             }
@@ -1648,6 +2258,12 @@
                             {
                                 "key": "Accept",
                                 "value": "application/json"
+                            },
+                            {
+                                "key": "X-Tenant-Id",
+                                "value": "",
+                                "description": "Select an active clinic membership. Omit for default-clinic. Does not confer membership or bypass authorization.",
+                                "disabled": true
                             },
                             {
                                 "key": "Content-Type",
@@ -1690,6 +2306,12 @@
                                 "value": "application/json"
                             },
                             {
+                                "key": "X-Tenant-Id",
+                                "value": "",
+                                "description": "Select an active clinic membership. Omit for default-clinic. Does not confer membership or bypass authorization.",
+                                "disabled": true
+                            },
+                            {
                                 "key": "Content-Type",
                                 "value": "application/json"
                             }
@@ -1729,6 +2351,12 @@
                             {
                                 "key": "Accept",
                                 "value": "application/json"
+                            },
+                            {
+                                "key": "X-Tenant-Id",
+                                "value": "",
+                                "description": "Select an active clinic membership. Omit for default-clinic. Does not confer membership or bypass authorization.",
+                                "disabled": true
                             },
                             {
                                 "key": "Content-Type",
@@ -1775,6 +2403,12 @@
                             {
                                 "key": "Accept",
                                 "value": "application/json"
+                            },
+                            {
+                                "key": "X-Tenant-Id",
+                                "value": "",
+                                "description": "Select an active clinic membership. Omit for default-clinic. Does not confer membership or bypass authorization.",
+                                "disabled": true
                             }
                         ],
                         "url": {
@@ -1808,6 +2442,12 @@
                             {
                                 "key": "Accept",
                                 "value": "application/json"
+                            },
+                            {
+                                "key": "X-Tenant-Id",
+                                "value": "",
+                                "description": "Select an active clinic membership. Omit for default-clinic. Does not confer membership or bypass authorization.",
+                                "disabled": true
                             }
                         ],
                         "url": {
@@ -1850,6 +2490,12 @@
                                 "value": "application/json"
                             },
                             {
+                                "key": "X-Tenant-Id",
+                                "value": "",
+                                "description": "Select an active clinic membership. Omit for default-clinic. Does not confer membership or bypass authorization.",
+                                "disabled": true
+                            },
+                            {
                                 "key": "Content-Type",
                                 "value": "application/json"
                             }
@@ -1889,6 +2535,12 @@
                             {
                                 "key": "Accept",
                                 "value": "application/json"
+                            },
+                            {
+                                "key": "X-Tenant-Id",
+                                "value": "",
+                                "description": "Select an active clinic membership. Omit for default-clinic. Does not confer membership or bypass authorization.",
+                                "disabled": true
                             }
                         ],
                         "url": {
@@ -1942,6 +2594,12 @@
                             {
                                 "key": "Accept",
                                 "value": "application/json"
+                            },
+                            {
+                                "key": "X-Tenant-Id",
+                                "value": "",
+                                "description": "Select an active clinic membership. Omit for default-clinic. Does not confer membership or bypass authorization.",
+                                "disabled": true
                             }
                         ],
                         "url": {
@@ -2019,6 +2677,12 @@
                             {
                                 "key": "Accept",
                                 "value": "application/json"
+                            },
+                            {
+                                "key": "X-Tenant-Id",
+                                "value": "",
+                                "description": "Select an active clinic membership. Omit for default-clinic. Does not confer membership or bypass authorization.",
+                                "disabled": true
                             }
                         ],
                         "url": {
@@ -2044,6 +2708,12 @@
                             {
                                 "key": "Accept",
                                 "value": "application/json"
+                            },
+                            {
+                                "key": "X-Tenant-Id",
+                                "value": "",
+                                "description": "Select an active clinic membership. Omit for default-clinic. Does not confer membership or bypass authorization.",
+                                "disabled": true
                             }
                         ],
                         "url": {
@@ -2069,6 +2739,12 @@
                             {
                                 "key": "Accept",
                                 "value": "application/json"
+                            },
+                            {
+                                "key": "X-Tenant-Id",
+                                "value": "",
+                                "description": "Select an active clinic membership. Omit for default-clinic. Does not confer membership or bypass authorization.",
+                                "disabled": true
                             },
                             {
                                 "key": "Content-Type",
@@ -2107,6 +2783,12 @@
                             {
                                 "key": "Accept",
                                 "value": "application/json"
+                            },
+                            {
+                                "key": "X-Tenant-Id",
+                                "value": "",
+                                "description": "Select an active clinic membership. Omit for default-clinic. Does not confer membership or bypass authorization.",
+                                "disabled": true
                             }
                         ],
                         "url": {
@@ -2133,6 +2815,12 @@
                             {
                                 "key": "Accept",
                                 "value": "application/json"
+                            },
+                            {
+                                "key": "X-Tenant-Id",
+                                "value": "",
+                                "description": "Select an active clinic membership. Omit for default-clinic. Does not confer membership or bypass authorization.",
+                                "disabled": true
                             },
                             {
                                 "key": "Content-Type",
@@ -2174,6 +2862,12 @@
                                 "value": "application/json"
                             },
                             {
+                                "key": "X-Tenant-Id",
+                                "value": "",
+                                "description": "Select an active clinic membership. Omit for default-clinic. Does not confer membership or bypass authorization.",
+                                "disabled": true
+                            },
+                            {
                                 "key": "Content-Type",
                                 "value": "application/json"
                             }
@@ -2211,6 +2905,12 @@
                             {
                                 "key": "Accept",
                                 "value": "application/json"
+                            },
+                            {
+                                "key": "X-Tenant-Id",
+                                "value": "",
+                                "description": "Select an active clinic membership. Omit for default-clinic. Does not confer membership or bypass authorization.",
+                                "disabled": true
                             }
                         ],
                         "url": {
@@ -2242,6 +2942,12 @@
                             {
                                 "key": "Accept",
                                 "value": "application/json"
+                            },
+                            {
+                                "key": "X-Tenant-Id",
+                                "value": "",
+                                "description": "Select an active clinic membership. Omit for default-clinic. Does not confer membership or bypass authorization.",
+                                "disabled": true
                             }
                         ],
                         "url": {
@@ -2273,6 +2979,12 @@
                             {
                                 "key": "Accept",
                                 "value": "application/json"
+                            },
+                            {
+                                "key": "X-Tenant-Id",
+                                "value": "",
+                                "description": "Select an active clinic membership. Omit for default-clinic. Does not confer membership or bypass authorization.",
+                                "disabled": true
                             }
                         ],
                         "url": {
@@ -2325,6 +3037,12 @@
                                 "value": "application/json"
                             },
                             {
+                                "key": "X-Tenant-Id",
+                                "value": "",
+                                "description": "Select an active clinic membership. Omit for default-clinic. Does not confer membership or bypass authorization.",
+                                "disabled": true
+                            },
+                            {
                                 "key": "Content-Type",
                                 "value": "application/json"
                             }
@@ -2361,6 +3079,12 @@
                             {
                                 "key": "Accept",
                                 "value": "application/json"
+                            },
+                            {
+                                "key": "X-Tenant-Id",
+                                "value": "",
+                                "description": "Select an active clinic membership. Omit for default-clinic. Does not confer membership or bypass authorization.",
+                                "disabled": true
                             }
                         ],
                         "url": {
@@ -2387,6 +3111,12 @@
                             {
                                 "key": "Accept",
                                 "value": "application/json"
+                            },
+                            {
+                                "key": "X-Tenant-Id",
+                                "value": "",
+                                "description": "Select an active clinic membership. Omit for default-clinic. Does not confer membership or bypass authorization.",
+                                "disabled": true
                             },
                             {
                                 "key": "Content-Type",
@@ -2428,6 +3158,12 @@
                                 "value": "application/json"
                             },
                             {
+                                "key": "X-Tenant-Id",
+                                "value": "",
+                                "description": "Select an active clinic membership. Omit for default-clinic. Does not confer membership or bypass authorization.",
+                                "disabled": true
+                            },
+                            {
                                 "key": "Content-Type",
                                 "value": "application/json"
                             }
@@ -2465,6 +3201,12 @@
                             {
                                 "key": "Accept",
                                 "value": "application/json"
+                            },
+                            {
+                                "key": "X-Tenant-Id",
+                                "value": "",
+                                "description": "Select an active clinic membership. Omit for default-clinic. Does not confer membership or bypass authorization.",
+                                "disabled": true
                             }
                         ],
                         "url": {
@@ -2491,6 +3233,12 @@
                             {
                                 "key": "Accept",
                                 "value": "application/json"
+                            },
+                            {
+                                "key": "X-Tenant-Id",
+                                "value": "",
+                                "description": "Select an active clinic membership. Omit for default-clinic. Does not confer membership or bypass authorization.",
+                                "disabled": true
                             },
                             {
                                 "key": "Content-Type",
@@ -2531,6 +3279,12 @@
                             {
                                 "key": "Accept",
                                 "value": "application/json"
+                            },
+                            {
+                                "key": "X-Tenant-Id",
+                                "value": "",
+                                "description": "Select an active clinic membership. Omit for default-clinic. Does not confer membership or bypass authorization.",
+                                "disabled": true
                             }
                         ],
                         "url": {
@@ -2563,6 +3317,12 @@
                             {
                                 "key": "Accept",
                                 "value": "application/json"
+                            },
+                            {
+                                "key": "X-Tenant-Id",
+                                "value": "",
+                                "description": "Select an active clinic membership. Omit for default-clinic. Does not confer membership or bypass authorization.",
+                                "disabled": true
                             }
                         ],
                         "url": {
@@ -2590,6 +3350,12 @@
                             {
                                 "key": "Accept",
                                 "value": "application/json"
+                            },
+                            {
+                                "key": "X-Tenant-Id",
+                                "value": "",
+                                "description": "Select an active clinic membership. Omit for default-clinic. Does not confer membership or bypass authorization.",
+                                "disabled": true
                             },
                             {
                                 "key": "Content-Type",
@@ -2635,6 +3401,12 @@
                             {
                                 "key": "Accept",
                                 "value": "application/json"
+                            },
+                            {
+                                "key": "X-Tenant-Id",
+                                "value": "",
+                                "description": "Select an active clinic membership. Omit for default-clinic. Does not confer membership or bypass authorization.",
+                                "disabled": true
                             }
                         ],
                         "url": {
@@ -2660,6 +3432,12 @@
                             {
                                 "key": "Accept",
                                 "value": "application/json"
+                            },
+                            {
+                                "key": "X-Tenant-Id",
+                                "value": "",
+                                "description": "Select an active clinic membership. Omit for default-clinic. Does not confer membership or bypass authorization.",
+                                "disabled": true
                             }
                         ],
                         "url": {
@@ -2692,6 +3470,12 @@
                             {
                                 "key": "Accept",
                                 "value": "application/json"
+                            },
+                            {
+                                "key": "X-Tenant-Id",
+                                "value": "",
+                                "description": "Select an active clinic membership. Omit for default-clinic. Does not confer membership or bypass authorization.",
+                                "disabled": true
                             },
                             {
                                 "key": "Content-Type",
@@ -2730,6 +3514,12 @@
                             {
                                 "key": "Accept",
                                 "value": "application/json"
+                            },
+                            {
+                                "key": "X-Tenant-Id",
+                                "value": "",
+                                "description": "Select an active clinic membership. Omit for default-clinic. Does not confer membership or bypass authorization.",
+                                "disabled": true
                             }
                         ],
                         "url": {
@@ -2756,6 +3546,12 @@
                             {
                                 "key": "Accept",
                                 "value": "application/json"
+                            },
+                            {
+                                "key": "X-Tenant-Id",
+                                "value": "",
+                                "description": "Select an active clinic membership. Omit for default-clinic. Does not confer membership or bypass authorization.",
+                                "disabled": true
                             },
                             {
                                 "key": "Content-Type",
@@ -2797,6 +3593,12 @@
                                 "value": "application/json"
                             },
                             {
+                                "key": "X-Tenant-Id",
+                                "value": "",
+                                "description": "Select an active clinic membership. Omit for default-clinic. Does not confer membership or bypass authorization.",
+                                "disabled": true
+                            },
+                            {
                                 "key": "Content-Type",
                                 "value": "application/json"
                             }
@@ -2834,6 +3636,12 @@
                             {
                                 "key": "Accept",
                                 "value": "application/json"
+                            },
+                            {
+                                "key": "X-Tenant-Id",
+                                "value": "",
+                                "description": "Select an active clinic membership. Omit for default-clinic. Does not confer membership or bypass authorization.",
+                                "disabled": true
                             }
                         ],
                         "url": {
@@ -2860,6 +3668,12 @@
                             {
                                 "key": "Accept",
                                 "value": "application/json"
+                            },
+                            {
+                                "key": "X-Tenant-Id",
+                                "value": "",
+                                "description": "Select an active clinic membership. Omit for default-clinic. Does not confer membership or bypass authorization.",
+                                "disabled": true
                             }
                         ],
                         "url": {
@@ -2887,6 +3701,12 @@
                             {
                                 "key": "Accept",
                                 "value": "application/json"
+                            },
+                            {
+                                "key": "X-Tenant-Id",
+                                "value": "",
+                                "description": "Select an active clinic membership. Omit for default-clinic. Does not confer membership or bypass authorization.",
+                                "disabled": true
                             }
                         ],
                         "url": {
@@ -2914,6 +3734,12 @@
                             {
                                 "key": "Accept",
                                 "value": "application/json"
+                            },
+                            {
+                                "key": "X-Tenant-Id",
+                                "value": "",
+                                "description": "Select an active clinic membership. Omit for default-clinic. Does not confer membership or bypass authorization.",
+                                "disabled": true
                             },
                             {
                                 "key": "Content-Type",
@@ -2959,6 +3785,12 @@
                             {
                                 "key": "Accept",
                                 "value": "application/json"
+                            },
+                            {
+                                "key": "X-Tenant-Id",
+                                "value": "",
+                                "description": "Select an active clinic membership. Omit for default-clinic. Does not confer membership or bypass authorization.",
+                                "disabled": true
                             }
                         ],
                         "url": {
@@ -2984,6 +3816,12 @@
                             {
                                 "key": "Accept",
                                 "value": "application/json"
+                            },
+                            {
+                                "key": "X-Tenant-Id",
+                                "value": "",
+                                "description": "Select an active clinic membership. Omit for default-clinic. Does not confer membership or bypass authorization.",
+                                "disabled": true
                             },
                             {
                                 "key": "Content-Type",
@@ -3022,6 +3860,12 @@
                             {
                                 "key": "Accept",
                                 "value": "application/json"
+                            },
+                            {
+                                "key": "X-Tenant-Id",
+                                "value": "",
+                                "description": "Select an active clinic membership. Omit for default-clinic. Does not confer membership or bypass authorization.",
+                                "disabled": true
                             }
                         ],
                         "url": {
@@ -3048,6 +3892,12 @@
                             {
                                 "key": "Accept",
                                 "value": "application/json"
+                            },
+                            {
+                                "key": "X-Tenant-Id",
+                                "value": "",
+                                "description": "Select an active clinic membership. Omit for default-clinic. Does not confer membership or bypass authorization.",
+                                "disabled": true
                             },
                             {
                                 "key": "Content-Type",
@@ -3089,6 +3939,12 @@
                                 "value": "application/json"
                             },
                             {
+                                "key": "X-Tenant-Id",
+                                "value": "",
+                                "description": "Select an active clinic membership. Omit for default-clinic. Does not confer membership or bypass authorization.",
+                                "disabled": true
+                            },
+                            {
                                 "key": "Content-Type",
                                 "value": "application/json"
                             }
@@ -3126,6 +3982,12 @@
                             {
                                 "key": "Accept",
                                 "value": "application/json"
+                            },
+                            {
+                                "key": "X-Tenant-Id",
+                                "value": "",
+                                "description": "Select an active clinic membership. Omit for default-clinic. Does not confer membership or bypass authorization.",
+                                "disabled": true
                             }
                         ],
                         "url": {
@@ -3157,6 +4019,12 @@
                             {
                                 "key": "Accept",
                                 "value": "application/json"
+                            },
+                            {
+                                "key": "X-Tenant-Id",
+                                "value": "",
+                                "description": "Select an active clinic membership. Omit for default-clinic. Does not confer membership or bypass authorization.",
+                                "disabled": true
                             }
                         ],
                         "url": {
@@ -3189,6 +4057,12 @@
                             {
                                 "key": "Accept",
                                 "value": "application/json"
+                            },
+                            {
+                                "key": "X-Tenant-Id",
+                                "value": "",
+                                "description": "Select an active clinic membership. Omit for default-clinic. Does not confer membership or bypass authorization.",
+                                "disabled": true
                             },
                             {
                                 "key": "Content-Type",
@@ -3227,6 +4101,12 @@
                             {
                                 "key": "Accept",
                                 "value": "application/json"
+                            },
+                            {
+                                "key": "X-Tenant-Id",
+                                "value": "",
+                                "description": "Select an active clinic membership. Omit for default-clinic. Does not confer membership or bypass authorization.",
+                                "disabled": true
                             }
                         ],
                         "url": {
@@ -3253,6 +4133,12 @@
                             {
                                 "key": "Accept",
                                 "value": "application/json"
+                            },
+                            {
+                                "key": "X-Tenant-Id",
+                                "value": "",
+                                "description": "Select an active clinic membership. Omit for default-clinic. Does not confer membership or bypass authorization.",
+                                "disabled": true
                             },
                             {
                                 "key": "Content-Type",
@@ -3294,6 +4180,12 @@
                                 "value": "application/json"
                             },
                             {
+                                "key": "X-Tenant-Id",
+                                "value": "",
+                                "description": "Select an active clinic membership. Omit for default-clinic. Does not confer membership or bypass authorization.",
+                                "disabled": true
+                            },
+                            {
                                 "key": "Content-Type",
                                 "value": "application/json"
                             }
@@ -3331,6 +4223,12 @@
                             {
                                 "key": "Accept",
                                 "value": "application/json"
+                            },
+                            {
+                                "key": "X-Tenant-Id",
+                                "value": "",
+                                "description": "Select an active clinic membership. Omit for default-clinic. Does not confer membership or bypass authorization.",
+                                "disabled": true
                             }
                         ],
                         "url": {
@@ -3362,6 +4260,12 @@
                             {
                                 "key": "Accept",
                                 "value": "application/json"
+                            },
+                            {
+                                "key": "X-Tenant-Id",
+                                "value": "",
+                                "description": "Select an active clinic membership. Omit for default-clinic. Does not confer membership or bypass authorization.",
+                                "disabled": true
                             }
                         ],
                         "url": {
@@ -3414,6 +4318,12 @@
                                 "value": "application/json"
                             },
                             {
+                                "key": "X-Tenant-Id",
+                                "value": "",
+                                "description": "Select an active clinic membership. Omit for default-clinic. Does not confer membership or bypass authorization.",
+                                "disabled": true
+                            },
+                            {
                                 "key": "Content-Type",
                                 "value": "application/json"
                             }
@@ -3450,6 +4360,12 @@
                             {
                                 "key": "Accept",
                                 "value": "application/json"
+                            },
+                            {
+                                "key": "X-Tenant-Id",
+                                "value": "",
+                                "description": "Select an active clinic membership. Omit for default-clinic. Does not confer membership or bypass authorization.",
+                                "disabled": true
                             }
                         ],
                         "url": {
@@ -3476,6 +4392,12 @@
                             {
                                 "key": "Accept",
                                 "value": "application/json"
+                            },
+                            {
+                                "key": "X-Tenant-Id",
+                                "value": "",
+                                "description": "Select an active clinic membership. Omit for default-clinic. Does not confer membership or bypass authorization.",
+                                "disabled": true
                             },
                             {
                                 "key": "Content-Type",
@@ -3515,6 +4437,12 @@
                             {
                                 "key": "Accept",
                                 "value": "application/json"
+                            },
+                            {
+                                "key": "X-Tenant-Id",
+                                "value": "",
+                                "description": "Select an active clinic membership. Omit for default-clinic. Does not confer membership or bypass authorization.",
+                                "disabled": true
                             },
                             {
                                 "key": "Content-Type",
@@ -3559,6 +4487,12 @@
                             {
                                 "key": "Accept",
                                 "value": "application/json"
+                            },
+                            {
+                                "key": "X-Tenant-Id",
+                                "value": "",
+                                "description": "Select an active clinic membership. Omit for default-clinic. Does not confer membership or bypass authorization.",
+                                "disabled": true
                             }
                         ],
                         "url": {
@@ -3605,6 +4539,12 @@
                                 "value": "application/json"
                             },
                             {
+                                "key": "X-Tenant-Id",
+                                "value": "",
+                                "description": "Select an active clinic membership. Omit for default-clinic. Does not confer membership or bypass authorization.",
+                                "disabled": true
+                            },
+                            {
                                 "key": "Content-Type",
                                 "value": "application/json"
                             }
@@ -3641,6 +4581,12 @@
                             {
                                 "key": "Accept",
                                 "value": "application/json"
+                            },
+                            {
+                                "key": "X-Tenant-Id",
+                                "value": "",
+                                "description": "Select an active clinic membership. Omit for default-clinic. Does not confer membership or bypass authorization.",
+                                "disabled": true
                             }
                         ],
                         "url": {
@@ -3667,6 +4613,12 @@
                             {
                                 "key": "Accept",
                                 "value": "application/json"
+                            },
+                            {
+                                "key": "X-HandyPay-Signature",
+                                "value": "",
+                                "description": "",
+                                "disabled": false
                             },
                             {
                                 "key": "Content-Type",
@@ -3715,6 +4667,12 @@
                             {
                                 "key": "Accept",
                                 "value": "application/json"
+                            },
+                            {
+                                "key": "X-Tenant-Id",
+                                "value": "",
+                                "description": "Select an active clinic membership. Omit for default-clinic. Does not confer membership or bypass authorization.",
+                                "disabled": true
                             }
                         ],
                         "url": {
@@ -3757,6 +4715,12 @@
                                 "value": "application/json"
                             },
                             {
+                                "key": "X-Tenant-Id",
+                                "value": "",
+                                "description": "Select an active clinic membership. Omit for default-clinic. Does not confer membership or bypass authorization.",
+                                "disabled": true
+                            },
+                            {
                                 "key": "Content-Type",
                                 "value": "application/json"
                             }
@@ -3795,6 +4759,12 @@
                             {
                                 "key": "Accept",
                                 "value": "application/json"
+                            },
+                            {
+                                "key": "X-Tenant-Id",
+                                "value": "",
+                                "description": "Select an active clinic membership. Omit for default-clinic. Does not confer membership or bypass authorization.",
+                                "disabled": true
                             }
                         ],
                         "url": {
@@ -3821,6 +4791,12 @@
                             {
                                 "key": "Accept",
                                 "value": "application/json"
+                            },
+                            {
+                                "key": "X-Tenant-Id",
+                                "value": "",
+                                "description": "Select an active clinic membership. Omit for default-clinic. Does not confer membership or bypass authorization.",
+                                "disabled": true
                             }
                         ],
                         "url": {
@@ -3848,6 +4824,12 @@
                             {
                                 "key": "Accept",
                                 "value": "application/json"
+                            },
+                            {
+                                "key": "X-Tenant-Id",
+                                "value": "",
+                                "description": "Select an active clinic membership. Omit for default-clinic. Does not confer membership or bypass authorization.",
+                                "disabled": true
                             }
                         ],
                         "url": {
@@ -3880,6 +4862,12 @@
                             {
                                 "key": "Accept",
                                 "value": "application/json"
+                            },
+                            {
+                                "key": "X-Tenant-Id",
+                                "value": "",
+                                "description": "Select an active clinic membership. Omit for default-clinic. Does not confer membership or bypass authorization.",
+                                "disabled": true
                             }
                         ],
                         "url": {
@@ -3950,6 +4938,12 @@
                                 "value": "application/json"
                             },
                             {
+                                "key": "X-Tenant-Id",
+                                "value": "",
+                                "description": "Select an active clinic membership. Omit for default-clinic. Does not confer membership or bypass authorization.",
+                                "disabled": true
+                            },
+                            {
                                 "key": "Content-Type",
                                 "value": "application/json"
                             }
@@ -3986,6 +4980,12 @@
                             {
                                 "key": "Accept",
                                 "value": "application/json"
+                            },
+                            {
+                                "key": "X-Tenant-Id",
+                                "value": "",
+                                "description": "Select an active clinic membership. Omit for default-clinic. Does not confer membership or bypass authorization.",
+                                "disabled": true
                             }
                         ],
                         "url": {
@@ -4012,6 +5012,12 @@
                             {
                                 "key": "Accept",
                                 "value": "application/json"
+                            },
+                            {
+                                "key": "X-Tenant-Id",
+                                "value": "",
+                                "description": "Select an active clinic membership. Omit for default-clinic. Does not confer membership or bypass authorization.",
+                                "disabled": true
                             },
                             {
                                 "key": "Content-Type",
@@ -4053,6 +5059,12 @@
                                 "value": "application/json"
                             },
                             {
+                                "key": "X-Tenant-Id",
+                                "value": "",
+                                "description": "Select an active clinic membership. Omit for default-clinic. Does not confer membership or bypass authorization.",
+                                "disabled": true
+                            },
+                            {
                                 "key": "Content-Type",
                                 "value": "application/json"
                             }
@@ -4090,6 +5102,12 @@
                             {
                                 "key": "Accept",
                                 "value": "application/json"
+                            },
+                            {
+                                "key": "X-Tenant-Id",
+                                "value": "",
+                                "description": "Select an active clinic membership. Omit for default-clinic. Does not confer membership or bypass authorization.",
+                                "disabled": true
                             }
                         ],
                         "url": {
@@ -4116,6 +5134,12 @@
                             {
                                 "key": "Accept",
                                 "value": "application/json"
+                            },
+                            {
+                                "key": "X-Tenant-Id",
+                                "value": "",
+                                "description": "Select an active clinic membership. Omit for default-clinic. Does not confer membership or bypass authorization.",
+                                "disabled": true
                             },
                             {
                                 "key": "Content-Type",
@@ -4161,6 +5185,12 @@
                             {
                                 "key": "Accept",
                                 "value": "application/json"
+                            },
+                            {
+                                "key": "X-Tenant-Id",
+                                "value": "",
+                                "description": "Select an active clinic membership. Omit for default-clinic. Does not confer membership or bypass authorization.",
+                                "disabled": true
                             }
                         ],
                         "url": {
@@ -4219,6 +5249,12 @@
                                 "value": "application/json"
                             },
                             {
+                                "key": "X-Tenant-Id",
+                                "value": "",
+                                "description": "Select an active clinic membership. Omit for default-clinic. Does not confer membership or bypass authorization.",
+                                "disabled": true
+                            },
+                            {
                                 "key": "Content-Type",
                                 "value": "application/json"
                             }
@@ -4255,6 +5291,12 @@
                             {
                                 "key": "Accept",
                                 "value": "application/json"
+                            },
+                            {
+                                "key": "X-Tenant-Id",
+                                "value": "",
+                                "description": "Select an active clinic membership. Omit for default-clinic. Does not confer membership or bypass authorization.",
+                                "disabled": true
                             }
                         ],
                         "url": {
@@ -4281,6 +5323,12 @@
                             {
                                 "key": "Accept",
                                 "value": "application/json"
+                            },
+                            {
+                                "key": "X-Tenant-Id",
+                                "value": "",
+                                "description": "Select an active clinic membership. Omit for default-clinic. Does not confer membership or bypass authorization.",
+                                "disabled": true
                             },
                             {
                                 "key": "Content-Type",
@@ -4322,6 +5370,12 @@
                                 "value": "application/json"
                             },
                             {
+                                "key": "X-Tenant-Id",
+                                "value": "",
+                                "description": "Select an active clinic membership. Omit for default-clinic. Does not confer membership or bypass authorization.",
+                                "disabled": true
+                            },
+                            {
                                 "key": "Content-Type",
                                 "value": "application/json"
                             }
@@ -4359,6 +5413,12 @@
                             {
                                 "key": "Accept",
                                 "value": "application/json"
+                            },
+                            {
+                                "key": "X-Tenant-Id",
+                                "value": "",
+                                "description": "Select an active clinic membership. Omit for default-clinic. Does not confer membership or bypass authorization.",
+                                "disabled": true
                             }
                         ],
                         "url": {
@@ -4390,6 +5450,12 @@
                             {
                                 "key": "Accept",
                                 "value": "application/json"
+                            },
+                            {
+                                "key": "X-Tenant-Id",
+                                "value": "",
+                                "description": "Select an active clinic membership. Omit for default-clinic. Does not confer membership or bypass authorization.",
+                                "disabled": true
                             }
                         ],
                         "url": {
@@ -4415,6 +5481,12 @@
                             {
                                 "key": "Accept",
                                 "value": "application/json"
+                            },
+                            {
+                                "key": "X-Tenant-Id",
+                                "value": "",
+                                "description": "Select an active clinic membership. Omit for default-clinic. Does not confer membership or bypass authorization.",
+                                "disabled": true
                             }
                         ],
                         "url": {
@@ -4440,6 +5512,12 @@
                             {
                                 "key": "Accept",
                                 "value": "application/json"
+                            },
+                            {
+                                "key": "X-Tenant-Id",
+                                "value": "",
+                                "description": "Select an active clinic membership. Omit for default-clinic. Does not confer membership or bypass authorization.",
+                                "disabled": true
                             }
                         ],
                         "url": {
@@ -4466,6 +5544,12 @@
                             {
                                 "key": "Accept",
                                 "value": "application/json"
+                            },
+                            {
+                                "key": "X-Tenant-Id",
+                                "value": "",
+                                "description": "Select an active clinic membership. Omit for default-clinic. Does not confer membership or bypass authorization.",
+                                "disabled": true
                             }
                         ],
                         "url": {
@@ -4492,6 +5576,12 @@
                             {
                                 "key": "Accept",
                                 "value": "application/json"
+                            },
+                            {
+                                "key": "X-Tenant-Id",
+                                "value": "",
+                                "description": "Select an active clinic membership. Omit for default-clinic. Does not confer membership or bypass authorization.",
+                                "disabled": true
                             }
                         ],
                         "url": {
@@ -4518,6 +5608,12 @@
                             {
                                 "key": "Accept",
                                 "value": "application/json"
+                            },
+                            {
+                                "key": "X-Tenant-Id",
+                                "value": "",
+                                "description": "Select an active clinic membership. Omit for default-clinic. Does not confer membership or bypass authorization.",
+                                "disabled": true
                             }
                         ],
                         "url": {
@@ -4544,6 +5640,12 @@
                             {
                                 "key": "Accept",
                                 "value": "application/json"
+                            },
+                            {
+                                "key": "X-Tenant-Id",
+                                "value": "",
+                                "description": "Select an active clinic membership. Omit for default-clinic. Does not confer membership or bypass authorization.",
+                                "disabled": true
                             }
                         ],
                         "url": {
@@ -4590,6 +5692,12 @@
                                 "value": "application/json"
                             },
                             {
+                                "key": "X-Tenant-Id",
+                                "value": "",
+                                "description": "Select an active clinic membership. Omit for default-clinic. Does not confer membership or bypass authorization.",
+                                "disabled": true
+                            },
+                            {
                                 "key": "Content-Type",
                                 "value": "application/json"
                             }
@@ -4626,6 +5734,12 @@
                             {
                                 "key": "Accept",
                                 "value": "application/json"
+                            },
+                            {
+                                "key": "X-Tenant-Id",
+                                "value": "",
+                                "description": "Select an active clinic membership. Omit for default-clinic. Does not confer membership or bypass authorization.",
+                                "disabled": true
                             }
                         ],
                         "url": {
@@ -4652,6 +5766,12 @@
                             {
                                 "key": "Accept",
                                 "value": "application/json"
+                            },
+                            {
+                                "key": "X-Tenant-Id",
+                                "value": "",
+                                "description": "Select an active clinic membership. Omit for default-clinic. Does not confer membership or bypass authorization.",
+                                "disabled": true
                             }
                         ],
                         "url": {
@@ -4694,6 +5814,12 @@
                                 "value": "application/json"
                             },
                             {
+                                "key": "X-Tenant-Id",
+                                "value": "",
+                                "description": "Select an active clinic membership. Omit for default-clinic. Does not confer membership or bypass authorization.",
+                                "disabled": true
+                            },
+                            {
                                 "key": "Content-Type",
                                 "value": "application/json"
                             }
@@ -4732,6 +5858,12 @@
                             {
                                 "key": "Accept",
                                 "value": "application/json"
+                            },
+                            {
+                                "key": "X-Tenant-Id",
+                                "value": "",
+                                "description": "Select an active clinic membership. Omit for default-clinic. Does not confer membership or bypass authorization.",
+                                "disabled": true
                             },
                             {
                                 "key": "Content-Type",
@@ -4774,6 +5906,12 @@
                                 "value": "application/json"
                             },
                             {
+                                "key": "X-Tenant-Id",
+                                "value": "",
+                                "description": "Select an active clinic membership. Omit for default-clinic. Does not confer membership or bypass authorization.",
+                                "disabled": true
+                            },
+                            {
                                 "key": "Content-Type",
                                 "value": "application/json"
                             }
@@ -4812,6 +5950,12 @@
                             {
                                 "key": "Accept",
                                 "value": "application/json"
+                            },
+                            {
+                                "key": "X-Tenant-Id",
+                                "value": "",
+                                "description": "Select an active clinic membership. Omit for default-clinic. Does not confer membership or bypass authorization.",
+                                "disabled": true
                             }
                         ],
                         "url": {
@@ -4839,6 +5983,12 @@
                             {
                                 "key": "Accept",
                                 "value": "application/json"
+                            },
+                            {
+                                "key": "X-Tenant-Id",
+                                "value": "",
+                                "description": "Select an active clinic membership. Omit for default-clinic. Does not confer membership or bypass authorization.",
+                                "disabled": true
                             },
                             {
                                 "key": "Content-Type",
@@ -4884,6 +6034,12 @@
                             {
                                 "key": "Accept",
                                 "value": "application/json"
+                            },
+                            {
+                                "key": "X-Tenant-Id",
+                                "value": "",
+                                "description": "Select an active clinic membership. Omit for default-clinic. Does not confer membership or bypass authorization.",
+                                "disabled": true
                             }
                         ],
                         "url": {
@@ -4938,6 +6094,12 @@
                                 "value": "application/json"
                             },
                             {
+                                "key": "X-Tenant-Id",
+                                "value": "",
+                                "description": "Select an active clinic membership. Omit for default-clinic. Does not confer membership or bypass authorization.",
+                                "disabled": true
+                            },
+                            {
                                 "key": "Content-Type",
                                 "value": "application/json"
                             }
@@ -4976,6 +6138,12 @@
                             {
                                 "key": "Accept",
                                 "value": "application/json"
+                            },
+                            {
+                                "key": "X-Tenant-Id",
+                                "value": "",
+                                "description": "Select an active clinic membership. Omit for default-clinic. Does not confer membership or bypass authorization.",
+                                "disabled": true
                             }
                         ],
                         "url": {
@@ -5023,6 +6191,12 @@
                             {
                                 "key": "Accept",
                                 "value": "application/json"
+                            },
+                            {
+                                "key": "X-Tenant-Id",
+                                "value": "",
+                                "description": "Select an active clinic membership. Omit for default-clinic. Does not confer membership or bypass authorization.",
+                                "disabled": true
                             }
                         ],
                         "url": {
@@ -5063,6 +6237,12 @@
                             {
                                 "key": "Accept",
                                 "value": "application/json"
+                            },
+                            {
+                                "key": "X-Tenant-Id",
+                                "value": "",
+                                "description": "Select an active clinic membership. Omit for default-clinic. Does not confer membership or bypass authorization.",
+                                "disabled": true
                             },
                             {
                                 "key": "Content-Type",
@@ -5108,6 +6288,12 @@
                             {
                                 "key": "Accept",
                                 "value": "application/json"
+                            },
+                            {
+                                "key": "X-Tenant-Id",
+                                "value": "",
+                                "description": "Select an active clinic membership. Omit for default-clinic. Does not confer membership or bypass authorization.",
+                                "disabled": true
                             }
                         ],
                         "url": {
@@ -5133,6 +6319,12 @@
                             {
                                 "key": "Accept",
                                 "value": "application/json"
+                            },
+                            {
+                                "key": "X-Tenant-Id",
+                                "value": "",
+                                "description": "Select an active clinic membership. Omit for default-clinic. Does not confer membership or bypass authorization.",
+                                "disabled": true
                             },
                             {
                                 "key": "Content-Type",
@@ -5171,6 +6363,12 @@
                             {
                                 "key": "Accept",
                                 "value": "application/json"
+                            },
+                            {
+                                "key": "X-Tenant-Id",
+                                "value": "",
+                                "description": "Select an active clinic membership. Omit for default-clinic. Does not confer membership or bypass authorization.",
+                                "disabled": true
                             }
                         ],
                         "url": {
@@ -5197,6 +6395,12 @@
                             {
                                 "key": "Accept",
                                 "value": "application/json"
+                            },
+                            {
+                                "key": "X-Tenant-Id",
+                                "value": "",
+                                "description": "Select an active clinic membership. Omit for default-clinic. Does not confer membership or bypass authorization.",
+                                "disabled": true
                             },
                             {
                                 "key": "Content-Type",
@@ -5238,6 +6442,12 @@
                                 "value": "application/json"
                             },
                             {
+                                "key": "X-Tenant-Id",
+                                "value": "",
+                                "description": "Select an active clinic membership. Omit for default-clinic. Does not confer membership or bypass authorization.",
+                                "disabled": true
+                            },
+                            {
                                 "key": "Content-Type",
                                 "value": "application/json"
                             }
@@ -5275,6 +6485,12 @@
                             {
                                 "key": "Accept",
                                 "value": "application/json"
+                            },
+                            {
+                                "key": "X-Tenant-Id",
+                                "value": "",
+                                "description": "Select an active clinic membership. Omit for default-clinic. Does not confer membership or bypass authorization.",
+                                "disabled": true
                             }
                         ],
                         "url": {
@@ -5306,6 +6522,12 @@
                             {
                                 "key": "Accept",
                                 "value": "application/json"
+                            },
+                            {
+                                "key": "X-Tenant-Id",
+                                "value": "",
+                                "description": "Select an active clinic membership. Omit for default-clinic. Does not confer membership or bypass authorization.",
+                                "disabled": true
                             }
                         ],
                         "url": {
@@ -5331,6 +6553,12 @@
                             {
                                 "key": "Accept",
                                 "value": "application/json"
+                            },
+                            {
+                                "key": "X-Tenant-Id",
+                                "value": "",
+                                "description": "Select an active clinic membership. Omit for default-clinic. Does not confer membership or bypass authorization.",
+                                "disabled": true
                             },
                             {
                                 "key": "Content-Type",
@@ -5369,6 +6597,12 @@
                             {
                                 "key": "Accept",
                                 "value": "application/json"
+                            },
+                            {
+                                "key": "X-Tenant-Id",
+                                "value": "",
+                                "description": "Select an active clinic membership. Omit for default-clinic. Does not confer membership or bypass authorization.",
+                                "disabled": true
                             }
                         ],
                         "url": {
@@ -5395,6 +6629,12 @@
                             {
                                 "key": "Accept",
                                 "value": "application/json"
+                            },
+                            {
+                                "key": "X-Tenant-Id",
+                                "value": "",
+                                "description": "Select an active clinic membership. Omit for default-clinic. Does not confer membership or bypass authorization.",
+                                "disabled": true
                             },
                             {
                                 "key": "Content-Type",
@@ -5436,6 +6676,12 @@
                                 "value": "application/json"
                             },
                             {
+                                "key": "X-Tenant-Id",
+                                "value": "",
+                                "description": "Select an active clinic membership. Omit for default-clinic. Does not confer membership or bypass authorization.",
+                                "disabled": true
+                            },
+                            {
                                 "key": "Content-Type",
                                 "value": "application/json"
                             }
@@ -5473,6 +6719,12 @@
                             {
                                 "key": "Accept",
                                 "value": "application/json"
+                            },
+                            {
+                                "key": "X-Tenant-Id",
+                                "value": "",
+                                "description": "Select an active clinic membership. Omit for default-clinic. Does not confer membership or bypass authorization.",
+                                "disabled": true
                             }
                         ],
                         "url": {
@@ -5499,6 +6751,12 @@
                             {
                                 "key": "Accept",
                                 "value": "application/json"
+                            },
+                            {
+                                "key": "X-Tenant-Id",
+                                "value": "",
+                                "description": "Select an active clinic membership. Omit for default-clinic. Does not confer membership or bypass authorization.",
+                                "disabled": true
                             }
                         ],
                         "url": {
@@ -5524,6 +6782,12 @@
                             {
                                 "key": "Accept",
                                 "value": "application/json"
+                            },
+                            {
+                                "key": "X-Tenant-Id",
+                                "value": "",
+                                "description": "Select an active clinic membership. Omit for default-clinic. Does not confer membership or bypass authorization.",
+                                "disabled": true
                             },
                             {
                                 "key": "Content-Type",
@@ -5564,6 +6828,12 @@
                             {
                                 "key": "Accept",
                                 "value": "application/json"
+                            },
+                            {
+                                "key": "X-Tenant-Id",
+                                "value": "",
+                                "description": "Select an active clinic membership. Omit for default-clinic. Does not confer membership or bypass authorization.",
+                                "disabled": true
                             },
                             {
                                 "key": "Content-Type",
@@ -5609,6 +6879,12 @@
                             {
                                 "key": "Accept",
                                 "value": "application/json"
+                            },
+                            {
+                                "key": "X-Tenant-Id",
+                                "value": "",
+                                "description": "Select an active clinic membership. Omit for default-clinic. Does not confer membership or bypass authorization.",
+                                "disabled": true
                             }
                         ],
                         "url": {
@@ -5695,6 +6971,12 @@
                             {
                                 "key": "Accept",
                                 "value": "application/json"
+                            },
+                            {
+                                "key": "X-Tenant-Id",
+                                "value": "",
+                                "description": "Select an active clinic membership. Omit for default-clinic. Does not confer membership or bypass authorization.",
+                                "disabled": true
                             }
                         ],
                         "url": {
@@ -5721,6 +7003,12 @@
                             {
                                 "key": "Accept",
                                 "value": "application/json"
+                            },
+                            {
+                                "key": "X-Tenant-Id",
+                                "value": "",
+                                "description": "Select an active clinic membership. Omit for default-clinic. Does not confer membership or bypass authorization.",
+                                "disabled": true
                             }
                         ],
                         "url": {
@@ -5900,6 +7188,21 @@
         },
         {
             "key": "estimate_id",
+            "value": "",
+            "type": "string"
+        },
+        {
+            "key": "association_id",
+            "value": "",
+            "type": "string"
+        },
+        {
+            "key": "claim_id",
+            "value": "",
+            "type": "string"
+        },
+        {
+            "key": "line_id",
             "value": "",
             "type": "string"
         },
