@@ -481,6 +481,8 @@ paths:
         - { name: patient, in: path, required: true, schema: { type: integer } }
         - { name: page, in: query, schema: { type: integer, minimum: 1 } }
         - { name: per_page, in: query, schema: { type: integer, minimum: 1, maximum: 100 } }
+        - { name: treatment_plan_id, in: query, schema: { type: integer, minimum: 1 }, description: Restrict results to estimates linked to this patient's plan. Requires treatment_plans.view. }
+        - { name: latest_only, in: query, schema: { type: boolean }, description: 'With treatment_plan_id, return only the newest immutable snapshot per plan item.' }
       responses:
         '200': { description: ApiEnvelope with newest-first data array and meta.pagination. Requires patients.view and insurance_estimates.view; reads are audited. }
         '403': { description: Permission denied. }
@@ -502,6 +504,33 @@ paths:
         '403': { description: Permission denied. }
         '404': { description: Patient or selected tenant scoped source not found. }
         '422': { description: Invalid input or non-applicable plan version. }
+  /api/treatment-plans/{treatment_plan}/items/{item}/insurance-estimates:
+    post:
+      tags: [Insurance Estimates]
+      operationId: createTreatmentPlanItemInsuranceEstimate
+      summary: Create an immutable provisional estimate from a treatment-plan item
+      description: Requires treatment_plans.view, patients.view, and insurance_estimates.create. Description and gross are derived from the locked item; service date and currency must be supplied. Procedure codes are not inferred. Only a selected association and benefit rule may be supplied. Does not change the plan or financial records.
+      parameters:
+        - { name: treatment_plan, in: path, required: true, schema: { type: integer } }
+        - { name: item, in: path, required: true, schema: { type: integer } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required: [service_date, currency]
+              properties:
+                association_id: { type: integer, nullable: true, minimum: 1 }
+                benefit_rule_id: { type: integer, nullable: true, minimum: 1, description: Explicitly selected rule; omitted means unresolved. }
+                service_date: { type: string, format: date, example: '2030-04-01' }
+                currency: { type: string, pattern: '^[A-Z]{3}$', example: JMD }
+      responses:
+        '201': { description: Standard envelope containing an immutable provisional estimate snapshot. }
+        '403': { description: Permission denied. }
+        '404': { description: Plan/item is not available in this patient and tenant scope. }
+        '422': { description: Invalid or unsupported request fields. }
   /api/patients/{patient}/insurance-estimates/{estimate}:
     get:
       tags: [Insurance Estimates]
@@ -3490,6 +3519,11 @@ components:
         patient_amount: { type: string, nullable: true }
         calculation: { type: object, additionalProperties: true }
         supersedes_id: { type: integer, nullable: true }
+        treatment_plan_item_id: { type: integer, nullable: true, readOnly: true }
+        provisional: { type: boolean, enum: [true], readOnly: true }
+        superseded: { type: boolean, readOnly: true }
+        stale: { type: boolean, readOnly: true }
+        stale_reason_codes: { type: array, items: { type: string }, readOnly: true }
         created_by_user_id: { type: integer, readOnly: true }
         recorded_at: { type: string, format: date-time, readOnly: true }
     AuditLog:

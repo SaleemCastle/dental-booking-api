@@ -9,6 +9,8 @@ use App\Models\InsuranceEstimate;
 use App\Models\InsurancePlanVersion;
 use App\Models\Patient;
 use App\Models\PatientInsurerAssociation;
+use App\Models\TreatmentPlan;
+use App\Models\TreatmentPlanItem;
 use App\Models\User;
 use App\Tenancy\TenantContext;
 use Illuminate\Support\Facades\DB;
@@ -19,7 +21,7 @@ class InsuranceEstimateWorkflow
 {
     public function __construct(private readonly TenantContext $context, private readonly AuditLogService $audit, private readonly EstimateCalculator $calculator) {}
 
-    public function create(Patient $patient, array $input, User $actor, ?InsuranceEstimate $supersedes = null): InsuranceEstimate
+    public function create(Patient $patient, array $input, User $actor, ?InsuranceEstimate $supersedes = null, ?TreatmentPlanItem $treatmentPlanItem = null): InsuranceEstimate
     {
         $this->context->requireId();
         $this->authorize($patient, $actor, 'create');
@@ -65,7 +67,12 @@ class InsuranceEstimateWorkflow
             unset($calculation['trace']);
         }
 
-        return DB::transaction(function () use ($patient, $association, $rule, $data, $gross, $calculation, $actor, $supersedes) {
+        if ($treatmentPlanItem !== null) {
+            $calculation['source_snapshot'] = ['type' => 'treatment_plan_item', 'treatment_plan_item_id' => $treatmentPlanItem->id,
+                'treatment_plan_id' => $treatmentPlanItem->treatment_plan_id, 'estimated_price' => (string) $treatmentPlanItem->estimated_price,
+                'treatment_name' => $treatmentPlanItem->treatment_name, 'source_updated_at' => $treatmentPlanItem->updated_at?->toISOString()];
+        }
+        return DB::transaction(function () use ($patient, $association, $rule, $data, $gross, $calculation, $actor, $supersedes, $treatmentPlanItem) {
             if ($supersedes !== null) {
                 InsuranceEstimate::whereKey($supersedes->id)->lockForUpdate()->firstOrFail();
                 abort_if(InsuranceEstimate::where('supersedes_id', $supersedes->id)->exists(), 409);
@@ -73,6 +80,7 @@ class InsuranceEstimateWorkflow
             $estimate = new InsuranceEstimate;
             $estimate->forceFill(['patient_id' => $patient->id, 'association_id' => $association?->id,
                 'benefit_rule_id' => $rule?->id, 'supersedes_id' => $supersedes?->id,
+                'treatment_plan_item_id' => $treatmentPlanItem?->id,
                 'service_date' => $data['service_date'], 'treatment_description' => trim($data['treatment_description']),
                 'procedure_code' => $data['procedure_code'] ?? null, 'code_system' => $data['code_system'] ?? null,
                 'gross_amount' => Money::decimal($gross), 'currency' => $data['currency'], 'status' => $calculation['status'],
@@ -84,10 +92,54 @@ class InsuranceEstimateWorkflow
         });
     }
 
+    public function createForTreatmentPlanItem(TreatmentPlan $plan, int $itemId, array $input, User $actor): InsuranceEstimate
+    {
+        $this->context->requireId();
+        abort_unless($actor->hasPermission('treatment_plans.view'), 403);
+        \Illuminate\Support\Facades\Gate::forUser($actor)->authorize('view', $plan);
+        foreach (array_diff(array_keys($input), ['association_id', 'benefit_rule_id', 'service_date', 'currency']) as $field) {
+            throw ValidationException::withMessages([$field => ['Only association, selected benefit, service date, and currency may be supplied.']]);
+        }
+        return DB::transaction(function () use ($plan, $itemId, $input, $actor) {
+            $item = TreatmentPlanItem::query()->lockForUpdate()->where('treatment_plan_id', $plan->id)->findOrFail($itemId);
+            $patient = Patient::query()->findOrFail($plan->patient_id);
+            abort_unless((int) $item->treatmentPlan->patient_id === (int) $patient->id, 404);
+            $data = Validator::make($input, [
+                'association_id' => ['sometimes', 'nullable', 'integer', 'min:1'],
+                'benefit_rule_id' => ['sometimes', 'nullable', 'integer', 'min:1'],
+                'service_date' => ['required', 'date_format:Y-m-d'],
+                'currency' => ['required', 'string', 'regex:/^[A-Z]{3}$/'],
+            ])->validate();
+            return $this->create($patient, [
+                'association_id' => $data['association_id'] ?? null,
+                'benefit_rule_id' => $data['benefit_rule_id'] ?? null,
+                'service_date' => $data['service_date'], 'treatment_description' => $item->treatment_name,
+                'gross_amount' => (string) $item->estimated_price, 'currency' => $data['currency'],
+            ], $actor, treatmentPlanItem: $item);
+        }, 3);
+    }
+
     public function listing(Patient $patient, User $actor, array $input)
     {
         $this->authorize($patient, $actor, 'view');
-        $page = InsuranceEstimate::where('patient_id', $patient->id)->orderByDesc('id')->paginate(Validator::make($input, ['page' => ['sometimes', 'integer', 'min:1'], 'per_page' => ['sometimes', 'integer', 'between:1,100']])->validate()['per_page'] ?? 15);
+        $data = Validator::make($input, ['page' => ['sometimes', 'integer', 'min:1'], 'per_page' => ['sometimes', 'integer', 'between:1,100'],
+            'treatment_plan_id' => ['sometimes', 'integer', 'min:1'], 'latest_only' => ['sometimes', 'boolean']])->validate();
+        $query = InsuranceEstimate::where('patient_id', $patient->id);
+        if (($data['latest_only'] ?? false) && ! isset($data['treatment_plan_id'])) {
+            throw ValidationException::withMessages(['latest_only' => ['The latest-only filter requires a treatment plan.']]);
+        }
+        if (isset($data['treatment_plan_id'])) {
+            abort_unless($actor->hasPermission('treatment_plans.view'), 403);
+            $plan = TreatmentPlan::query()->where('patient_id', $patient->id)->findOrFail($data['treatment_plan_id']);
+            \Illuminate\Support\Facades\Gate::forUser($actor)->authorize('view', $plan);
+            $items = $plan->items()->select('id');
+            $query->whereIn('treatment_plan_item_id', $items);
+            if ($data['latest_only'] ?? false) {
+                $query->whereIn('id', InsuranceEstimate::query()->selectRaw('MAX(id)')->where('patient_id', $patient->id)
+                    ->whereIn('treatment_plan_item_id', $plan->items()->select('id'))->groupBy('treatment_plan_item_id'));
+            }
+        }
+        $page = $query->orderByDesc('id')->paginate($data['per_page'] ?? 15);
         $this->audit->record('estimates_viewed', 'patient', $patient->id, $actor->id);
         return $page;
     }

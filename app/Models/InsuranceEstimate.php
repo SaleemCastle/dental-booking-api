@@ -14,4 +14,9 @@ class InsuranceEstimate extends Model
     protected $guarded = ['*'];
 
     protected $casts = ['service_date' => 'date', 'calculation' => 'array', 'recorded_at' => 'datetime'];
+
+    public function treatmentPlanItem()
+    {
+        return $this->belongsTo(TreatmentPlanItem::class);
+    }
 }

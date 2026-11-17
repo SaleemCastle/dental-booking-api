@@ -10,6 +10,8 @@ use App\Http\Resources\TreatmentPlanResource;
 use App\Models\Patient;
 use App\Models\TreatmentPlan;
 use App\Services\TreatmentPlanWorkflow;
+use App\Services\InsuranceEstimateWorkflow;
+use App\Http\Resources\InsuranceEstimateResource;
 use App\Support\ApiResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
@@ -63,6 +65,13 @@ class TreatmentPlanController extends Controller
         $item = $workflow->updateItem($treatmentPlan, $item, $request->validated(), $request->user());
 
         return ApiResponse::success(['treatmentPlanItem' => new TreatmentPlanItemResource($item)], 'Treatment plan item updated.')
+            ->header('Cache-Control', 'private, no-store');
+    }
+
+    public function createItemEstimate(Request $request, TreatmentPlan $treatmentPlan, int $item, InsuranceEstimateWorkflow $workflow)
+    {
+        $estimate = $workflow->createForTreatmentPlanItem($treatmentPlan, $item, $request->all(), $request->user());
+        return ApiResponse::success(['estimate' => new InsuranceEstimateResource($estimate)], 'Provisional coverage estimate created.', 201)
             ->header('Cache-Control', 'private, no-store');
     }
 
