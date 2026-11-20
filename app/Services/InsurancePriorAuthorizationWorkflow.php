@@ -302,10 +302,10 @@ class InsurancePriorAuthorizationWorkflow
         $row->updated_at = now('UTC');
         $row->save();
 
-        return $this->event($row,$from,$status,$eventType,$actor,$reason,$channel);
+        return $this->event($row, $from, $status, $eventType, $actor, $reason, $channel);
     }
 
-    private function event(InsurancePriorAuthorization $row,?string $from,string $to,string $type,User $actor,?string $reason = null,?string $channel = null): InsurancePriorAuthorizationEvent
+    private function event(InsurancePriorAuthorization $row, ?string $from, string $to, string $type, User $actor, ?string $reason = null, ?string $channel = null): InsurancePriorAuthorizationEvent
     {
         $event = new InsurancePriorAuthorizationEvent;
         $event->forceFill(['authorization_id' => $row->id, 'version' => $row->lock_version, 'from_status' => $from, 'to_status' => $to, 'event_type' => $type, 'reason' => $reason, 'communication_channel' => $channel, 'actor_id' => $actor->id, 'occurred_at' => now('UTC')])->save();

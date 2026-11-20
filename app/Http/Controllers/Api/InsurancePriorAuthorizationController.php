@@ -79,8 +79,8 @@ class InsurancePriorAuthorizationController extends Controller
         return $this->response(['evidence' => $this->evidence->listing($patient, $authorization, $r->user())]);
     }
 
-    private function response(mixed $data,int $status = 200)
+    private function response(mixed $data, int $status = 200)
     {
-        return ApiResponse::success($data,statusCode: $status)->header('Cache-Control','private, no-store');
+        return ApiResponse::success($data, statusCode: $status)->header('Cache-Control', 'private, no-store');
     }
 }

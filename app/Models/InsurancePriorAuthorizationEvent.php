@@ -21,7 +21,7 @@ class InsurancePriorAuthorizationEvent extends Model
             throw new \LogicException('Authorization history is append-only.');
         }
 
-return parent::save($options);
+        return parent::save($options);
     }
 
     public function delete()

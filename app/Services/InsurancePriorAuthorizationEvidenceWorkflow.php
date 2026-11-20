@@ -66,7 +66,7 @@ class InsurancePriorAuthorizationEvidenceWorkflow
                             }
                         }
 
-return $existing;
+                        return $existing;
                     }
                     $id = DB::table('insurance_prior_authorization_evidence')->insertGetId([...$values, 'command_key' => $data['command_key']]);
                     $this->audit->record('prior_authorization_evidence_linked', 'insurance_prior_authorization_evidence', $id, $actor->id);
@@ -130,13 +130,13 @@ return $existing;
         abort_unless($actor->isMemberOfCurrentTenant() && $actor->hasPermission('patients.view') && $actor->hasPermission('insurance_prior_authorizations.view'), 403);
         $patient = Patient::query()->findOrFail($patient->id);
         Gate::forUser($actor)->authorize('view', $patient);
-        InsurancePriorAuthorization::query()->where('patient_id',$patient->id)->findOrFail($authorization->id);
+        InsurancePriorAuthorization::query()->where('patient_id', $patient->id)->findOrFail($authorization->id);
 
         return $patient;
     }
 
-    private function ability(User $actor,string $action): void
+    private function ability(User $actor, string $action): void
     {
-        abort_unless($actor->isMemberOfCurrentTenant() && $actor->hasPermission('insurance_prior_authorizations.'.$action) && $actor->hasPermission('insurance_documents.view'),403);
+        abort_unless($actor->isMemberOfCurrentTenant() && $actor->hasPermission('insurance_prior_authorizations.'.$action) && $actor->hasPermission('insurance_documents.view'), 403);
     }
 }
