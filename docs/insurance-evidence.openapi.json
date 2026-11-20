@@ -1,0 +1,935 @@
+{
+  "openapi": "3.0.3",
+  "info": {
+    "title": "Insurance Evidence Protection Foundation",
+    "version": "1.0.0",
+    "description": "Extends the existing private document infrastructure. No claims submission/disclosure or insurance physical purge. Production scanner is unconfigured; new insurance uploads remain quarantined. Linking is disabled until documented activation gates pass. Patient/tenant ownership and dual clinical/insurance authorization are server-side. Existing clinical response shapes remain unchanged. New insurance uploads and links are disabled by default until the protected rollout is approved. Tenant-owned files require insurance_documents.tenant_view and tenant_upload in addition to ordinary insurance abilities."
+  },
+  "servers": [
+    {
+      "url": "http://localhost:8000"
+    }
+  ],
+  "security": [
+    {
+      "sanctumBearer": []
+    }
+  ],
+  "paths": {
+    "/api/insurance/documents": {
+      "get": {
+        "tags": [
+          "Insurance evidence"
+        ],
+        "summary": "List clean authorized tenant evidence",
+        "parameters": [
+          {
+            "name": "X-Tenant-Id",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "minimum": 1
+            }
+          },
+          {
+            "name": "per_page",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 100
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Existing ApiResponse envelope; new metadata uses data.document, links/holds expose IDs only; lists use data array and meta.pagination."
+          },
+          "401": {
+            "description": "Unauthenticated"
+          },
+          "403": {
+            "description": "Missing exact ability or purpose/target access"
+          },
+          "404": {
+            "description": "Foreign or mismatched owner/target; deleted document"
+          },
+          "409": {
+            "description": "DOCUMENT_RETENTION_BLOCKED, DOCUMENT_QUARANTINED, DOCUMENT_PURGE_IN_PROGRESS, DOCUMENT_VERSION_CONFLICT or DOCUMENT_EVIDENCE_NOT_ACTIVATED"
+          },
+          "422": {
+            "description": "Invalid/unsupported input; ownership, scanner decisions and storage facts are server-controlled"
+          },
+          "503": {
+            "description": "Private object storage unavailable; no success audit/pin or access restoration."
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "Insurance evidence"
+        ],
+        "summary": "Upload tenant evidence; quarantined until approved scanner",
+        "parameters": [
+          {
+            "name": "X-Tenant-Id",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": "Existing ApiResponse envelope; new metadata uses data.document, links/holds expose IDs only; lists use data array and meta.pagination."
+          },
+          "401": {
+            "description": "Unauthenticated"
+          },
+          "403": {
+            "description": "Missing exact ability or purpose/target access"
+          },
+          "404": {
+            "description": "Foreign or mismatched owner/target; deleted document"
+          },
+          "409": {
+            "description": "DOCUMENT_RETENTION_BLOCKED, DOCUMENT_QUARANTINED, DOCUMENT_PURGE_IN_PROGRESS, DOCUMENT_VERSION_CONFLICT or DOCUMENT_EVIDENCE_NOT_ACTIVATED"
+          },
+          "422": {
+            "description": "Invalid/unsupported input; ownership, scanner decisions and storage facts are server-controlled"
+          },
+          "503": {
+            "description": "Private object storage unavailable; no success audit/pin or access restoration."
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {
+                  "file": {
+                    "type": "string",
+                    "format": "binary"
+                  },
+                  "command_key": {
+                    "type": "string",
+                    "format": "uuid"
+                  },
+                  "provenance": {
+                    "type": "string",
+                    "maxLength": 500
+                  },
+                  "classification": {
+                    "type": "string",
+                    "enum": [
+                      "insurance",
+                      "mixed"
+                    ]
+                  }
+                },
+                "required": [
+                  "file",
+                  "command_key",
+                  "provenance"
+                ]
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/patients/{patient}/insurance-documents": {
+      "get": {
+        "tags": [
+          "Insurance evidence"
+        ],
+        "summary": "List clean authorized patient evidence",
+        "parameters": [
+          {
+            "name": "X-Tenant-Id",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "name": "patient",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "minimum": 1
+            }
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "minimum": 1
+            }
+          },
+          {
+            "name": "per_page",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 100
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Existing ApiResponse envelope; new metadata uses data.document, links/holds expose IDs only; lists use data array and meta.pagination."
+          },
+          "401": {
+            "description": "Unauthenticated"
+          },
+          "403": {
+            "description": "Missing exact ability or purpose/target access"
+          },
+          "404": {
+            "description": "Foreign or mismatched owner/target; deleted document"
+          },
+          "409": {
+            "description": "DOCUMENT_RETENTION_BLOCKED, DOCUMENT_QUARANTINED, DOCUMENT_PURGE_IN_PROGRESS, DOCUMENT_VERSION_CONFLICT or DOCUMENT_EVIDENCE_NOT_ACTIVATED"
+          },
+          "422": {
+            "description": "Invalid/unsupported input; ownership, scanner decisions and storage facts are server-controlled"
+          },
+          "503": {
+            "description": "Private object storage unavailable; no success audit/pin or access restoration."
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "Insurance evidence"
+        ],
+        "summary": "Upload patient evidence with explicit owner context",
+        "parameters": [
+          {
+            "name": "X-Tenant-Id",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "name": "patient",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "minimum": 1
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": "Existing ApiResponse envelope; new metadata uses data.document, links/holds expose IDs only; lists use data array and meta.pagination."
+          },
+          "401": {
+            "description": "Unauthenticated"
+          },
+          "403": {
+            "description": "Missing exact ability or purpose/target access"
+          },
+          "404": {
+            "description": "Foreign or mismatched owner/target; deleted document"
+          },
+          "409": {
+            "description": "DOCUMENT_RETENTION_BLOCKED, DOCUMENT_QUARANTINED, DOCUMENT_PURGE_IN_PROGRESS, DOCUMENT_VERSION_CONFLICT or DOCUMENT_EVIDENCE_NOT_ACTIVATED"
+          },
+          "422": {
+            "description": "Invalid/unsupported input; ownership, scanner decisions and storage facts are server-controlled"
+          },
+          "503": {
+            "description": "Private object storage unavailable; no success audit/pin or access restoration."
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {
+                  "file": {
+                    "type": "string",
+                    "format": "binary"
+                  },
+                  "command_key": {
+                    "type": "string",
+                    "format": "uuid"
+                  },
+                  "provenance": {
+                    "type": "string",
+                    "maxLength": 500
+                  },
+                  "classification": {
+                    "type": "string",
+                    "enum": [
+                      "insurance",
+                      "mixed"
+                    ]
+                  }
+                },
+                "required": [
+                  "file",
+                  "command_key",
+                  "provenance"
+                ]
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/insurance/documents/{document}": {
+      "get": {
+        "tags": [
+          "Insurance evidence"
+        ],
+        "summary": "Read authorized clean evidence metadata",
+        "parameters": [
+          {
+            "name": "X-Tenant-Id",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "name": "document",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "minimum": 1
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Existing ApiResponse envelope; new metadata uses data.document, links/holds expose IDs only; lists use data array and meta.pagination."
+          },
+          "401": {
+            "description": "Unauthenticated"
+          },
+          "403": {
+            "description": "Missing exact ability or purpose/target access"
+          },
+          "404": {
+            "description": "Foreign or mismatched owner/target; deleted document"
+          },
+          "409": {
+            "description": "DOCUMENT_RETENTION_BLOCKED, DOCUMENT_QUARANTINED, DOCUMENT_PURGE_IN_PROGRESS, DOCUMENT_VERSION_CONFLICT or DOCUMENT_EVIDENCE_NOT_ACTIVATED"
+          },
+          "422": {
+            "description": "Invalid/unsupported input; ownership, scanner decisions and storage facts are server-controlled"
+          },
+          "503": {
+            "description": "Private object storage unavailable; no success audit/pin or access restoration."
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "Insurance evidence"
+        ],
+        "summary": "Retention-protected deletion; insurance purge disabled",
+        "parameters": [
+          {
+            "name": "X-Tenant-Id",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "name": "document",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "minimum": 1
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Existing ApiResponse envelope; new metadata uses data.document, links/holds expose IDs only; lists use data array and meta.pagination."
+          },
+          "401": {
+            "description": "Unauthenticated"
+          },
+          "403": {
+            "description": "Missing exact ability or purpose/target access"
+          },
+          "404": {
+            "description": "Foreign or mismatched owner/target; deleted document"
+          },
+          "409": {
+            "description": "DOCUMENT_RETENTION_BLOCKED, DOCUMENT_QUARANTINED, DOCUMENT_PURGE_IN_PROGRESS, DOCUMENT_VERSION_CONFLICT or DOCUMENT_EVIDENCE_NOT_ACTIVATED"
+          },
+          "422": {
+            "description": "Invalid/unsupported input; ownership, scanner decisions and storage facts are server-controlled"
+          },
+          "503": {
+            "description": "Private object storage unavailable; no success audit/pin or access restoration."
+          }
+        }
+      }
+    },
+    "/api/insurance/documents/{document}/download": {
+      "get": {
+        "tags": [
+          "Insurance evidence"
+        ],
+        "summary": "Private audited content-verified stream",
+        "parameters": [
+          {
+            "name": "X-Tenant-Id",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "name": "document",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "minimum": 1
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Private no-store stream; nosniff and sandbox CSP; audited stream-open is not delivery proof.",
+            "content": {
+              "application/octet-stream": {
+                "schema": {
+                  "type": "string",
+                  "format": "binary"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthenticated"
+          },
+          "403": {
+            "description": "Missing exact ability or purpose/target access"
+          },
+          "404": {
+            "description": "Foreign or mismatched owner/target; deleted document"
+          },
+          "409": {
+            "description": "DOCUMENT_RETENTION_BLOCKED, DOCUMENT_QUARANTINED, DOCUMENT_PURGE_IN_PROGRESS, DOCUMENT_VERSION_CONFLICT or DOCUMENT_EVIDENCE_NOT_ACTIVATED"
+          },
+          "422": {
+            "description": "Invalid/unsupported input; ownership, scanner decisions and storage facts are server-controlled"
+          },
+          "503": {
+            "description": "Private object storage unavailable; no success audit/pin or access restoration."
+          }
+        }
+      }
+    },
+    "/api/insurance/documents/{document}/versions": {
+      "post": {
+        "tags": [
+          "Insurance evidence"
+        ],
+        "summary": "Append immutable replacement; expected_version is latest series version",
+        "parameters": [
+          {
+            "name": "X-Tenant-Id",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "name": "document",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "minimum": 1
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": "Existing ApiResponse envelope; new metadata uses data.document, links/holds expose IDs only; lists use data array and meta.pagination."
+          },
+          "401": {
+            "description": "Unauthenticated"
+          },
+          "403": {
+            "description": "Missing exact ability or purpose/target access"
+          },
+          "404": {
+            "description": "Foreign or mismatched owner/target; deleted document"
+          },
+          "409": {
+            "description": "DOCUMENT_RETENTION_BLOCKED, DOCUMENT_QUARANTINED, DOCUMENT_PURGE_IN_PROGRESS, DOCUMENT_VERSION_CONFLICT or DOCUMENT_EVIDENCE_NOT_ACTIVATED"
+          },
+          "422": {
+            "description": "Invalid/unsupported input; ownership, scanner decisions and storage facts are server-controlled"
+          },
+          "503": {
+            "description": "Private object storage unavailable; no success audit/pin or access restoration."
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {
+                  "file": {
+                    "type": "string",
+                    "format": "binary"
+                  },
+                  "command_key": {
+                    "type": "string",
+                    "format": "uuid"
+                  },
+                  "provenance": {
+                    "type": "string",
+                    "maxLength": 500
+                  },
+                  "classification": {
+                    "type": "string",
+                    "enum": [
+                      "insurance",
+                      "mixed"
+                    ]
+                  },
+                  "expected_version": {
+                    "type": "integer",
+                    "minimum": 1
+                  }
+                },
+                "required": [
+                  "file",
+                  "command_key",
+                  "provenance",
+                  "expected_version"
+                ]
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/insurance/documents/{document}/archive": {
+      "post": {
+        "tags": [
+          "Insurance evidence"
+        ],
+        "summary": "Archive authorized evidence without removing retention",
+        "parameters": [
+          {
+            "name": "X-Tenant-Id",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "name": "document",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "minimum": 1
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Existing ApiResponse envelope; new metadata uses data.document, links/holds expose IDs only; lists use data array and meta.pagination."
+          },
+          "401": {
+            "description": "Unauthenticated"
+          },
+          "403": {
+            "description": "Missing exact ability or purpose/target access"
+          },
+          "404": {
+            "description": "Foreign or mismatched owner/target; deleted document"
+          },
+          "409": {
+            "description": "DOCUMENT_RETENTION_BLOCKED, DOCUMENT_QUARANTINED, DOCUMENT_PURGE_IN_PROGRESS, DOCUMENT_VERSION_CONFLICT or DOCUMENT_EVIDENCE_NOT_ACTIVATED"
+          },
+          "422": {
+            "description": "Invalid/unsupported input; ownership, scanner decisions and storage facts are server-controlled"
+          },
+          "503": {
+            "description": "Private object storage unavailable; no success audit/pin or access restoration."
+          }
+        }
+      }
+    },
+    "/api/document-evidence/{document}/links": {
+      "post": {
+        "tags": [
+          "Insurance evidence"
+        ],
+        "summary": "Pin exact clean version to one same-owner typed target; disabled until approval",
+        "parameters": [
+          {
+            "name": "X-Tenant-Id",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "name": "document",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "minimum": 1
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": "Existing ApiResponse envelope; new metadata uses data.document, links/holds expose IDs only; lists use data array and meta.pagination."
+          },
+          "401": {
+            "description": "Unauthenticated"
+          },
+          "403": {
+            "description": "Missing exact ability or purpose/target access"
+          },
+          "404": {
+            "description": "Foreign or mismatched owner/target; deleted document"
+          },
+          "409": {
+            "description": "DOCUMENT_RETENTION_BLOCKED, DOCUMENT_QUARANTINED, DOCUMENT_PURGE_IN_PROGRESS, DOCUMENT_VERSION_CONFLICT or DOCUMENT_EVIDENCE_NOT_ACTIVATED"
+          },
+          "422": {
+            "description": "Invalid/unsupported input; ownership, scanner decisions and storage facts are server-controlled"
+          },
+          "503": {
+            "description": "Private object storage unavailable; no success audit/pin or access restoration."
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {
+                  "command_key": {
+                    "type": "string",
+                    "format": "uuid"
+                  },
+                  "patient_id": {
+                    "type": "integer",
+                    "minimum": 1
+                  },
+                  "plan_version_id": {
+                    "type": "integer",
+                    "minimum": 1
+                  }
+                },
+                "required": [
+                  "command_key"
+                ],
+                "oneOf": [
+                  {
+                    "required": [
+                      "patient_id"
+                    ],
+                    "not": {
+                      "required": [
+                        "plan_version_id"
+                      ]
+                    }
+                  },
+                  {
+                    "required": [
+                      "plan_version_id"
+                    ],
+                    "not": {
+                      "required": [
+                        "patient_id"
+                      ]
+                    }
+                  }
+                ]
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/document-evidence/{document}/holds": {
+      "post": {
+        "tags": [
+          "Insurance evidence"
+        ],
+        "summary": "Append protected series hold or explicit release",
+        "parameters": [
+          {
+            "name": "X-Tenant-Id",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "name": "document",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "minimum": 1
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": "Existing ApiResponse envelope; new metadata uses data.document, links/holds expose IDs only; lists use data array and meta.pagination."
+          },
+          "401": {
+            "description": "Unauthenticated"
+          },
+          "403": {
+            "description": "Missing exact ability or purpose/target access"
+          },
+          "404": {
+            "description": "Foreign or mismatched owner/target; deleted document"
+          },
+          "409": {
+            "description": "DOCUMENT_RETENTION_BLOCKED, DOCUMENT_QUARANTINED, DOCUMENT_PURGE_IN_PROGRESS, DOCUMENT_VERSION_CONFLICT or DOCUMENT_EVIDENCE_NOT_ACTIVATED"
+          },
+          "422": {
+            "description": "Invalid/unsupported input; ownership, scanner decisions and storage facts are server-controlled"
+          },
+          "503": {
+            "description": "Private object storage unavailable; no success audit/pin or access restoration."
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {
+                  "command_key": {
+                    "type": "string",
+                    "format": "uuid"
+                  },
+                  "reason": {
+                    "type": "string",
+                    "maxLength": 2000
+                  },
+                  "release_of_id": {
+                    "type": "integer",
+                    "minimum": 1
+                  }
+                },
+                "required": [
+                  "command_key",
+                  "reason"
+                ]
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/document-evidence/{document}/quarantine": {
+      "post": {
+        "tags": [
+          "Insurance evidence"
+        ],
+        "summary": "Quarantine irreversibly until separately approved release workflow",
+        "parameters": [
+          {
+            "name": "X-Tenant-Id",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "name": "document",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "minimum": 1
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Existing ApiResponse envelope; new metadata uses data.document, links/holds expose IDs only; lists use data array and meta.pagination."
+          },
+          "401": {
+            "description": "Unauthenticated"
+          },
+          "403": {
+            "description": "Missing exact ability or purpose/target access"
+          },
+          "404": {
+            "description": "Foreign or mismatched owner/target; deleted document"
+          },
+          "409": {
+            "description": "DOCUMENT_RETENTION_BLOCKED, DOCUMENT_QUARANTINED, DOCUMENT_PURGE_IN_PROGRESS, DOCUMENT_VERSION_CONFLICT or DOCUMENT_EVIDENCE_NOT_ACTIVATED"
+          },
+          "422": {
+            "description": "Invalid/unsupported input; ownership, scanner decisions and storage facts are server-controlled"
+          },
+          "503": {
+            "description": "Private object storage unavailable; no success audit/pin or access restoration."
+          }
+        }
+      }
+    },
+    "/api/patients/{patient}/documents/{document}/versions": {
+      "post": {
+        "tags": [
+          "Insurance evidence"
+        ],
+        "summary": "Append an immutable clinical version using existing clinical write authority; does not grant insurance use",
+        "parameters": [
+          {
+            "name": "X-Tenant-Id",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "name": "document",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "minimum": 1
+            }
+          },
+          {
+            "name": "patient",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "minimum": 1
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": "Existing ApiResponse envelope; new metadata uses data.document, links/holds expose IDs only; lists use data array and meta.pagination."
+          },
+          "401": {
+            "description": "Unauthenticated"
+          },
+          "403": {
+            "description": "Missing exact ability or purpose/target access"
+          },
+          "404": {
+            "description": "Foreign or mismatched owner/target; deleted document"
+          },
+          "409": {
+            "description": "DOCUMENT_RETENTION_BLOCKED, DOCUMENT_QUARANTINED, DOCUMENT_PURGE_IN_PROGRESS, DOCUMENT_VERSION_CONFLICT or DOCUMENT_EVIDENCE_NOT_ACTIVATED"
+          },
+          "422": {
+            "description": "Invalid/unsupported input; ownership, scanner decisions and storage facts are server-controlled"
+          },
+          "503": {
+            "description": "Private object storage unavailable; no success audit/pin or access restoration."
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {
+                  "file": {
+                    "type": "string",
+                    "format": "binary"
+                  },
+                  "command_key": {
+                    "type": "string",
+                    "format": "uuid"
+                  },
+                  "provenance": {
+                    "type": "string",
+                    "maxLength": 500
+                  },
+                  "expected_version": {
+                    "type": "integer",
+                    "minimum": 1
+                  }
+                },
+                "required": [
+                  "file",
+                  "command_key",
+                  "provenance",
+                  "expected_version"
+                ]
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "securitySchemes": {
+      "sanctumBearer": {
+        "type": "http",
+        "scheme": "bearer"
+      }
+    }
+  }
+}

@@ -1,0 +1,1451 @@
+{
+  "openapi": "3.0.3",
+  "info": {
+    "title": "Insurance benefit rules and limits (P4-M2-B)",
+    "version": "1.0.0",
+    "description": "Additive manual recording contract. Synthetic examples only; no insurer rules are seeded. Limits and dates are reported facts, not calculated entitlements. See insurance-benefits.md."
+  },
+  "servers": [
+    {
+      "url": "http://localhost:8000"
+    }
+  ],
+  "security": [
+    {
+      "sanctumBearer": []
+    }
+  ],
+  "paths": {
+    "/api/insurance/plan-versions/{version}/benefits": {
+      "get": {
+        "tags": [
+          "Insurance benefits"
+        ],
+        "operationId": "planBenefits",
+        "summary": "List benefit history",
+        "description": "All history in data array, descending record ID, with meta.pagination. No current benefit resolver; follow supersedes_id for correction lineage. List order does not establish service-date applicability. Requires exact insurance_catalog.view. Same-tenant parent and same-patient association required. Sensitive access and changes are audited. Source is reported provenance, never insurer confirmation. Published/reviewed/withdrawn plan versions are immutable. No evidence activation or billing effects.",
+        "parameters": [
+          {
+            "name": "version",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "minimum": 1
+            }
+          },
+          {
+            "name": "X-Tenant-Id",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 1
+            }
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "default": 1
+            }
+          },
+          {
+            "name": "per_page",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 100,
+              "default": 15
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "All history in data array, descending record ID, with meta.pagination. No current benefit resolver; follow supersedes_id for correction lineage. List order does not establish service-date applicability. Cache-Control: private, no-store. Monetary output uses two-decimal strings.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/ApiEnvelope"
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "data": {
+                          "type": "array",
+                          "items": {
+                            "$ref": "#/components/schemas/Benefit"
+                          }
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthenticated",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiEnvelope"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Missing exact permission or patient authority",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiEnvelope"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Foreign, absent, or mismatched parent/revision/benefit",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiEnvelope"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Stale version, frozen/inactive plan or already-corrected predecessor",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiEnvelope"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Invalid, contradictory or unsupported field. Existing validation error envelope.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiEnvelope"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "Insurance benefits"
+        ],
+        "operationId": "planRecordBenefit",
+        "summary": "Record or explicitly correct benefit",
+        "description": "Append-only record in data.benefit. Requires exact insurance_catalog.view plus insurance_catalog.manage. Same-tenant parent and same-patient association required. Sensitive access and changes are audited. Source is reported provenance, never insurer confirmation. Published/reviewed/withdrawn plan versions are immutable. No evidence activation or billing effects.",
+        "parameters": [
+          {
+            "name": "version",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "minimum": 1
+            }
+          },
+          {
+            "name": "X-Tenant-Id",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 1
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": "Append-only record in data.benefit. Cache-Control: private, no-store. Monetary output uses two-decimal strings.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/ApiEnvelope"
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "data": {
+                          "type": "object",
+                          "required": [
+                            "benefit"
+                          ],
+                          "properties": {
+                            "benefit": {
+                              "$ref": "#/components/schemas/Benefit"
+                            }
+                          }
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthenticated",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiEnvelope"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Missing exact permission or patient authority",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiEnvelope"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Foreign, absent, or mismatched parent/revision/benefit",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiEnvelope"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Stale version, frozen/inactive plan or already-corrected predecessor",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiEnvelope"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Invalid, contradictory or unsupported field. Existing validation error envelope.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiEnvelope"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PlanBenefitInput"
+              },
+              "examples": {
+                "unknown": {
+                  "summary": "Provider-only unknown facts; synthetic example",
+                  "value": {
+                    "source": "insurer_plan",
+                    "scope": "all",
+                    "coverage": "unknown",
+                    "benefit_type": "unknown",
+                    "observed_at": "2020-01-02T15:00:00Z",
+                    "provenance": "Synthetic source report",
+                    "reason": "Record unknown benefit",
+                    "expected_version": 1
+                  }
+                },
+                "procedureLimits": {
+                  "summary": "Synthetic values only; no insurer rule implied",
+                  "value": {
+                    "source": "insurer_plan",
+                    "scope": "procedure",
+                    "procedure_code": "SYN-001",
+                    "code_system": "Synthetic example",
+                    "coverage": "covered",
+                    "benefit_type": "fixed",
+                    "amount": "50.00",
+                    "currency": "JMD",
+                    "annual_limit": "500.00",
+                    "visit_limit": "75.00",
+                    "procedure_limit": "50.00",
+                    "waiting_period_days": 90,
+                    "prior_authorization_required": true,
+                    "observed_at": "2020-01-02T15:00:00Z",
+                    "provenance": "Synthetic supplied report",
+                    "reason": "Record reported values",
+                    "expected_version": 1
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/insurance/plan-versions/{version}/benefits/{benefit}/details": {
+      "get": {
+        "tags": [
+          "Insurance benefits"
+        ],
+        "operationId": "planBenefitDetails",
+        "summary": "Reveal benefit source details",
+        "description": "Private provenance/reference/reason in data.details. Requires exact insurance_catalog.view plus insurance_catalog.manage. Same-tenant parent and same-patient association required. Sensitive access and changes are audited. Source is reported provenance, never insurer confirmation. Published/reviewed/withdrawn plan versions are immutable. No evidence activation or billing effects.",
+        "parameters": [
+          {
+            "name": "version",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "minimum": 1
+            }
+          },
+          {
+            "name": "benefit",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "minimum": 1
+            }
+          },
+          {
+            "name": "X-Tenant-Id",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 1
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Private provenance/reference/reason in data.details. Cache-Control: private, no-store. Monetary output uses two-decimal strings.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/ApiEnvelope"
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "data": {
+                          "type": "object",
+                          "required": [
+                            "details"
+                          ],
+                          "properties": {
+                            "details": {
+                              "$ref": "#/components/schemas/Details"
+                            }
+                          }
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthenticated",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiEnvelope"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Missing exact permission or patient authority",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiEnvelope"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Foreign, absent, or mismatched parent/revision/benefit",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiEnvelope"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Stale version, frozen/inactive plan or already-corrected predecessor",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiEnvelope"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Invalid, contradictory or unsupported field. Existing validation error envelope.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiEnvelope"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/patients/{patient}/insurance-associations/{association}/benefits": {
+      "get": {
+        "tags": [
+          "Insurance benefits"
+        ],
+        "operationId": "patientBenefits",
+        "summary": "List benefit history",
+        "description": "All history in data array, descending record ID, with meta.pagination. No current benefit resolver; follow supersedes_id for correction lineage. List order does not establish service-date applicability. Requires exact patient_insurance.view and patient view authority. Same-tenant parent and same-patient association required. Sensitive access and changes are audited. Source is reported provenance, never insurer confirmation. Published/reviewed/withdrawn plan versions are immutable. No evidence activation or billing effects.",
+        "parameters": [
+          {
+            "name": "patient",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "minimum": 1
+            }
+          },
+          {
+            "name": "association",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "minimum": 1
+            }
+          },
+          {
+            "name": "X-Tenant-Id",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 1
+            }
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "default": 1
+            }
+          },
+          {
+            "name": "per_page",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 100,
+              "default": 15
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "All history in data array, descending record ID, with meta.pagination. No current benefit resolver; follow supersedes_id for correction lineage. List order does not establish service-date applicability. Cache-Control: private, no-store. Monetary output uses two-decimal strings.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/ApiEnvelope"
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "data": {
+                          "type": "array",
+                          "items": {
+                            "$ref": "#/components/schemas/Benefit"
+                          }
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthenticated",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiEnvelope"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Missing exact permission or patient authority",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiEnvelope"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Foreign, absent, or mismatched parent/revision/benefit",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiEnvelope"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Stale version, frozen/inactive plan or already-corrected predecessor",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiEnvelope"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Invalid, contradictory or unsupported field. Existing validation error envelope.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiEnvelope"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "Insurance benefits"
+        ],
+        "operationId": "patientRecordBenefit",
+        "summary": "Record or explicitly correct benefit",
+        "description": "Append-only record in data.benefit. Requires exact patient_insurance.view and patient view authority plus patient_insurance.manage. Same-tenant parent and same-patient association required. Sensitive access and changes are audited. Source is reported provenance, never insurer confirmation. Published/reviewed/withdrawn plan versions are immutable. No evidence activation or billing effects.",
+        "parameters": [
+          {
+            "name": "patient",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "minimum": 1
+            }
+          },
+          {
+            "name": "association",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "minimum": 1
+            }
+          },
+          {
+            "name": "X-Tenant-Id",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 1
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": "Append-only record in data.benefit. Cache-Control: private, no-store. Monetary output uses two-decimal strings.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/ApiEnvelope"
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "data": {
+                          "type": "object",
+                          "required": [
+                            "benefit"
+                          ],
+                          "properties": {
+                            "benefit": {
+                              "$ref": "#/components/schemas/Benefit"
+                            }
+                          }
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthenticated",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiEnvelope"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Missing exact permission or patient authority",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiEnvelope"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Foreign, absent, or mismatched parent/revision/benefit",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiEnvelope"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Stale version, frozen/inactive plan or already-corrected predecessor",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiEnvelope"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Invalid, contradictory or unsupported field. Existing validation error envelope.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiEnvelope"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PatientBenefitInput"
+              },
+              "examples": {
+                "unknown": {
+                  "summary": "Provider-only unknown facts; synthetic example",
+                  "value": {
+                    "source": "staff_observation",
+                    "scope": "all",
+                    "coverage": "unknown",
+                    "benefit_type": "unknown",
+                    "observed_at": "2020-01-02T15:00:00Z",
+                    "provenance": "Synthetic source report",
+                    "reason": "Record unknown benefit"
+                  }
+                },
+                "procedureLimits": {
+                  "summary": "Synthetic values only; no insurer rule implied",
+                  "value": {
+                    "source": "patient_reported",
+                    "scope": "procedure",
+                    "procedure_code": "SYN-001",
+                    "code_system": "Synthetic example",
+                    "coverage": "covered",
+                    "benefit_type": "fixed",
+                    "amount": "50.00",
+                    "currency": "JMD",
+                    "annual_limit": "500.00",
+                    "visit_limit": "75.00",
+                    "procedure_limit": "50.00",
+                    "waiting_period_days": 90,
+                    "prior_authorization_required": true,
+                    "observed_at": "2020-01-02T15:00:00Z",
+                    "provenance": "Synthetic supplied report",
+                    "reason": "Record reported values"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/patients/{patient}/insurance-associations/{association}/benefits/{benefit}/details": {
+      "get": {
+        "tags": [
+          "Insurance benefits"
+        ],
+        "operationId": "patientBenefitDetails",
+        "summary": "Reveal benefit source details",
+        "description": "Private provenance/reference/reason in data.details. Requires exact patient_insurance.view and patient view authority plus patient_insurance.reveal. Same-tenant parent and same-patient association required. Sensitive access and changes are audited. Source is reported provenance, never insurer confirmation. Published/reviewed/withdrawn plan versions are immutable. No evidence activation or billing effects.",
+        "parameters": [
+          {
+            "name": "patient",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "minimum": 1
+            }
+          },
+          {
+            "name": "association",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "minimum": 1
+            }
+          },
+          {
+            "name": "benefit",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "minimum": 1
+            }
+          },
+          {
+            "name": "X-Tenant-Id",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 1
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Private provenance/reference/reason in data.details. Cache-Control: private, no-store. Monetary output uses two-decimal strings.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/ApiEnvelope"
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "data": {
+                          "type": "object",
+                          "required": [
+                            "details"
+                          ],
+                          "properties": {
+                            "details": {
+                              "$ref": "#/components/schemas/Details"
+                            }
+                          }
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthenticated",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiEnvelope"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Missing exact permission or patient authority",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiEnvelope"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Foreign, absent, or mismatched parent/revision/benefit",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiEnvelope"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Stale version, frozen/inactive plan or already-corrected predecessor",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiEnvelope"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Invalid, contradictory or unsupported field. Existing validation error envelope.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiEnvelope"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "securitySchemes": {
+      "sanctumBearer": {
+        "type": "http",
+        "scheme": "bearer"
+      }
+    },
+    "schemas": {
+      "PatientBenefitInput": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "source",
+          "scope",
+          "coverage",
+          "benefit_type",
+          "observed_at",
+          "provenance",
+          "reason"
+        ],
+        "properties": {
+          "source": {
+            "type": "string",
+            "enum": [
+              "patient_reported",
+              "staff_observation"
+            ],
+            "example": "staff_observation"
+          },
+          "scope": {
+            "type": "string",
+            "enum": [
+              "all",
+              "category",
+              "procedure"
+            ],
+            "example": "all"
+          },
+          "category": {
+            "type": "string",
+            "nullable": true,
+            "maxLength": 255
+          },
+          "procedure_code": {
+            "type": "string",
+            "nullable": true,
+            "maxLength": 100
+          },
+          "code_system": {
+            "type": "string",
+            "nullable": true,
+            "maxLength": 100
+          },
+          "coverage": {
+            "type": "string",
+            "enum": [
+              "covered",
+              "excluded",
+              "unknown",
+              "unspecified"
+            ],
+            "example": "unknown"
+          },
+          "benefit_type": {
+            "type": "string",
+            "enum": [
+              "percentage",
+              "fixed",
+              "unknown",
+              "unspecified"
+            ],
+            "example": "unknown"
+          },
+          "percentage": {
+            "type": "string",
+            "nullable": true,
+            "pattern": "^\\d{1,3}(\\.\\d{1,2})?$",
+            "description": "0 through 100 inclusive; only percentage benefits."
+          },
+          "currency": {
+            "type": "string",
+            "nullable": true,
+            "pattern": "^[A-Z]{3}$"
+          },
+          "waiting_period_days": {
+            "type": "integer",
+            "nullable": true,
+            "minimum": 0,
+            "maximum": 2147483647
+          },
+          "prior_authorization_required": {
+            "type": "boolean",
+            "nullable": true,
+            "description": "null means unspecified, not false."
+          },
+          "service_from": {
+            "type": "string",
+            "nullable": true,
+            "format": "date"
+          },
+          "service_to": {
+            "type": "string",
+            "nullable": true,
+            "format": "date"
+          },
+          "observed_at": {
+            "type": "string",
+            "format": "date-time",
+            "example": "2020-01-02T15:00:00Z",
+            "description": "Offset-qualified source timestamp, no later than now; stored in UTC."
+          },
+          "provenance": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 2000,
+            "example": "Synthetic staff report; authenticity not established"
+          },
+          "reference": {
+            "type": "string",
+            "nullable": true,
+            "maxLength": 255
+          },
+          "reason": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 2000,
+            "example": "Record supplied information"
+          },
+          "supersedes_id": {
+            "type": "integer",
+            "nullable": true,
+            "minimum": 1,
+            "description": "Explicit correction of the current tip in this same parent. Full replacement payload; omitted optional facts become null. A second correction of the same predecessor returns 409."
+          },
+          "policy_revision_id": {
+            "type": "integer",
+            "nullable": true,
+            "minimum": 1,
+            "description": "Optional exact revision of this same patient association. Provider-only records need no policy."
+          },
+          "amount": {
+            "type": "string",
+            "nullable": true,
+            "pattern": "^\\d{1,12}(\\.\\d{1,2})?$",
+            "description": "Nonnegative monetary amount, at most two decimal places. Currency required. Null is unknown, zero is explicit zero. Limits are reported caps, not remaining balances."
+          },
+          "annual_limit": {
+            "type": "string",
+            "nullable": true,
+            "pattern": "^\\d{1,12}(\\.\\d{1,2})?$",
+            "description": "Nonnegative monetary amount, at most two decimal places. Currency required. Null is unknown, zero is explicit zero. Limits are reported caps, not remaining balances."
+          },
+          "visit_limit": {
+            "type": "string",
+            "nullable": true,
+            "pattern": "^\\d{1,12}(\\.\\d{1,2})?$",
+            "description": "Nonnegative monetary amount, at most two decimal places. Currency required. Null is unknown, zero is explicit zero. Limits are reported caps, not remaining balances."
+          },
+          "procedure_limit": {
+            "type": "string",
+            "nullable": true,
+            "pattern": "^\\d{1,12}(\\.\\d{1,2})?$",
+            "description": "Nonnegative monetary amount, at most two decimal places. Currency required. Null is unknown, zero is explicit zero. Limits are reported caps, not remaining balances."
+          }
+        },
+        "description": "Target: all has no target fields; category requires category only; procedure requires code_system and procedure_code only. Percentage needs percentage only; fixed needs amount only; unknown/unspecified forbid both. Numeric benefit types require covered coverage. Procedure_limit requires procedure scope. service_to must not precede service_from. No automatic source confirmation, validity, calculation, consumption or financial posting."
+      },
+      "PlanBenefitInput": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "source",
+          "scope",
+          "coverage",
+          "benefit_type",
+          "observed_at",
+          "provenance",
+          "reason",
+          "expected_version"
+        ],
+        "properties": {
+          "source": {
+            "type": "string",
+            "enum": [
+              "insurer_plan"
+            ]
+          },
+          "scope": {
+            "type": "string",
+            "enum": [
+              "all",
+              "category",
+              "procedure"
+            ],
+            "example": "all"
+          },
+          "category": {
+            "type": "string",
+            "nullable": true,
+            "maxLength": 255
+          },
+          "procedure_code": {
+            "type": "string",
+            "nullable": true,
+            "maxLength": 100
+          },
+          "code_system": {
+            "type": "string",
+            "nullable": true,
+            "maxLength": 100
+          },
+          "coverage": {
+            "type": "string",
+            "enum": [
+              "covered",
+              "excluded",
+              "unknown",
+              "unspecified"
+            ],
+            "example": "unknown"
+          },
+          "benefit_type": {
+            "type": "string",
+            "enum": [
+              "percentage",
+              "fixed",
+              "unknown",
+              "unspecified"
+            ],
+            "example": "unknown"
+          },
+          "percentage": {
+            "type": "string",
+            "nullable": true,
+            "pattern": "^\\d{1,3}(\\.\\d{1,2})?$",
+            "description": "0 through 100 inclusive; only percentage benefits."
+          },
+          "currency": {
+            "type": "string",
+            "nullable": true,
+            "pattern": "^[A-Z]{3}$"
+          },
+          "waiting_period_days": {
+            "type": "integer",
+            "nullable": true,
+            "minimum": 0,
+            "maximum": 2147483647
+          },
+          "prior_authorization_required": {
+            "type": "boolean",
+            "nullable": true,
+            "description": "null means unspecified, not false."
+          },
+          "service_from": {
+            "type": "string",
+            "nullable": true,
+            "format": "date"
+          },
+          "service_to": {
+            "type": "string",
+            "nullable": true,
+            "format": "date"
+          },
+          "observed_at": {
+            "type": "string",
+            "format": "date-time",
+            "example": "2020-01-02T15:00:00Z",
+            "description": "Offset-qualified source timestamp, no later than now; stored in UTC."
+          },
+          "provenance": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 2000,
+            "example": "Synthetic staff report; authenticity not established"
+          },
+          "reference": {
+            "type": "string",
+            "nullable": true,
+            "maxLength": 255
+          },
+          "reason": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 2000,
+            "example": "Record supplied information"
+          },
+          "supersedes_id": {
+            "type": "integer",
+            "nullable": true,
+            "minimum": 1,
+            "description": "Explicit correction of the current tip in this same parent. Full replacement payload; omitted optional facts become null. A second correction of the same predecessor returns 409."
+          },
+          "amount": {
+            "type": "string",
+            "nullable": true,
+            "pattern": "^\\d{1,12}(\\.\\d{1,2})?$",
+            "description": "Nonnegative monetary amount, at most two decimal places. Currency required. Null is unknown, zero is explicit zero. Limits are reported caps, not remaining balances."
+          },
+          "annual_limit": {
+            "type": "string",
+            "nullable": true,
+            "pattern": "^\\d{1,12}(\\.\\d{1,2})?$",
+            "description": "Nonnegative monetary amount, at most two decimal places. Currency required. Null is unknown, zero is explicit zero. Limits are reported caps, not remaining balances."
+          },
+          "visit_limit": {
+            "type": "string",
+            "nullable": true,
+            "pattern": "^\\d{1,12}(\\.\\d{1,2})?$",
+            "description": "Nonnegative monetary amount, at most two decimal places. Currency required. Null is unknown, zero is explicit zero. Limits are reported caps, not remaining balances."
+          },
+          "procedure_limit": {
+            "type": "string",
+            "nullable": true,
+            "pattern": "^\\d{1,12}(\\.\\d{1,2})?$",
+            "description": "Nonnegative monetary amount, at most two decimal places. Currency required. Null is unknown, zero is explicit zero. Limits are reported caps, not remaining balances."
+          },
+          "expected_version": {
+            "type": "integer",
+            "minimum": 1,
+            "description": "Current catalog lock_version. Each rule write increments it and tracks the actor as editor. Only active draft versions accept rules. Currency must match the plan. Read version again before review/publish."
+          }
+        },
+        "description": "Target: all has no target fields; category requires category only; procedure requires code_system and procedure_code only. Percentage needs percentage only; fixed needs amount only; unknown/unspecified forbid both. Numeric benefit types require covered coverage. Procedure_limit requires procedure scope. service_to must not precede service_from. No automatic source confirmation, validity, calculation, consumption or financial posting."
+      },
+      "Benefit": {
+        "type": "object",
+        "properties": {
+          "source": {
+            "type": "string",
+            "enum": [
+              "insurer_plan",
+              "patient_reported",
+              "staff_observation"
+            ]
+          },
+          "scope": {
+            "type": "string",
+            "enum": [
+              "all",
+              "category",
+              "procedure"
+            ],
+            "example": "all"
+          },
+          "category": {
+            "type": "string",
+            "nullable": true,
+            "maxLength": 255
+          },
+          "procedure_code": {
+            "type": "string",
+            "nullable": true,
+            "maxLength": 100
+          },
+          "code_system": {
+            "type": "string",
+            "nullable": true,
+            "maxLength": 100
+          },
+          "coverage": {
+            "type": "string",
+            "enum": [
+              "covered",
+              "excluded",
+              "unknown",
+              "unspecified"
+            ],
+            "example": "unknown"
+          },
+          "benefit_type": {
+            "type": "string",
+            "enum": [
+              "percentage",
+              "fixed",
+              "unknown",
+              "unspecified"
+            ],
+            "example": "unknown"
+          },
+          "percentage": {
+            "type": "string",
+            "nullable": true,
+            "pattern": "^\\d{1,3}(\\.\\d{1,2})?$",
+            "description": "0 through 100 inclusive; only percentage benefits."
+          },
+          "currency": {
+            "type": "string",
+            "nullable": true,
+            "pattern": "^[A-Z]{3}$"
+          },
+          "waiting_period_days": {
+            "type": "integer",
+            "nullable": true,
+            "minimum": 0,
+            "maximum": 2147483647
+          },
+          "prior_authorization_required": {
+            "type": "boolean",
+            "nullable": true,
+            "description": "null means unspecified, not false."
+          },
+          "service_from": {
+            "type": "string",
+            "nullable": true,
+            "format": "date"
+          },
+          "service_to": {
+            "type": "string",
+            "nullable": true,
+            "format": "date"
+          },
+          "observed_at": {
+            "type": "string",
+            "format": "date-time",
+            "example": "2020-01-02T15:00:00Z",
+            "description": "Offset-qualified source timestamp, no later than now; stored in UTC."
+          },
+          "supersedes_id": {
+            "type": "integer",
+            "nullable": true,
+            "minimum": 1,
+            "description": "Explicit correction of the current tip in this same parent. Full replacement payload; omitted optional facts become null. A second correction of the same predecessor returns 409."
+          },
+          "policy_revision_id": {
+            "type": "integer",
+            "nullable": true,
+            "minimum": 1,
+            "description": "Optional exact revision of this same patient association. Provider-only records need no policy."
+          },
+          "amount": {
+            "type": "string",
+            "nullable": true,
+            "pattern": "^\\d{1,12}(\\.\\d{1,2})?$",
+            "description": "Nonnegative monetary amount, at most two decimal places. Currency required. Null is unknown, zero is explicit zero. Limits are reported caps, not remaining balances."
+          },
+          "annual_limit": {
+            "type": "string",
+            "nullable": true,
+            "pattern": "^\\d{1,12}(\\.\\d{1,2})?$",
+            "description": "Nonnegative monetary amount, at most two decimal places. Currency required. Null is unknown, zero is explicit zero. Limits are reported caps, not remaining balances."
+          },
+          "visit_limit": {
+            "type": "string",
+            "nullable": true,
+            "pattern": "^\\d{1,12}(\\.\\d{1,2})?$",
+            "description": "Nonnegative monetary amount, at most two decimal places. Currency required. Null is unknown, zero is explicit zero. Limits are reported caps, not remaining balances."
+          },
+          "procedure_limit": {
+            "type": "string",
+            "nullable": true,
+            "pattern": "^\\d{1,12}(\\.\\d{1,2})?$",
+            "description": "Nonnegative monetary amount, at most two decimal places. Currency required. Null is unknown, zero is explicit zero. Limits are reported caps, not remaining balances."
+          },
+          "id": {
+            "type": "integer",
+            "nullable": true,
+            "minimum": 1
+          },
+          "plan_version_id": {
+            "type": "integer",
+            "nullable": true,
+            "minimum": 1
+          },
+          "association_id": {
+            "type": "integer",
+            "nullable": true,
+            "minimum": 1
+          },
+          "association_revision_id": {
+            "type": "integer",
+            "nullable": true,
+            "minimum": 1
+          },
+          "actor_id": {
+            "type": "integer",
+            "nullable": true,
+            "minimum": 1
+          },
+          "revision": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "confirmation": {
+            "type": "string",
+            "enum": [
+              "unconfirmed"
+            ]
+          },
+          "has_reference": {
+            "type": "boolean"
+          },
+          "recorded_at": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "source",
+          "scope",
+          "category",
+          "procedure_code",
+          "code_system",
+          "coverage",
+          "benefit_type",
+          "percentage",
+          "currency",
+          "waiting_period_days",
+          "prior_authorization_required",
+          "service_from",
+          "service_to",
+          "observed_at",
+          "supersedes_id",
+          "policy_revision_id",
+          "amount",
+          "annual_limit",
+          "visit_limit",
+          "procedure_limit",
+          "id",
+          "plan_version_id",
+          "association_id",
+          "association_revision_id",
+          "actor_id",
+          "revision",
+          "confirmation",
+          "has_reference",
+          "recorded_at"
+        ]
+      },
+      "ApiEnvelope": {
+        "type": "object",
+        "required": [
+          "success",
+          "statusCode",
+          "message",
+          "code",
+          "data",
+          "errors",
+          "meta",
+          "requestId"
+        ],
+        "properties": {
+          "success": {
+            "type": "boolean"
+          },
+          "statusCode": {
+            "type": "integer"
+          },
+          "message": {
+            "type": "string"
+          },
+          "code": {
+            "type": "string",
+            "nullable": true
+          },
+          "data": {},
+          "errors": {
+            "type": "object",
+            "nullable": true
+          },
+          "meta": {
+            "type": "object",
+            "nullable": true
+          },
+          "requestId": {
+            "type": "string",
+            "nullable": true
+          }
+        }
+      },
+      "Details": {
+        "type": "object",
+        "required": [
+          "provenance",
+          "reference",
+          "reason"
+        ],
+        "properties": {
+          "provenance": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 2000,
+            "example": "Synthetic staff report; authenticity not established"
+          },
+          "reference": {
+            "type": "string",
+            "nullable": true,
+            "maxLength": 255
+          },
+          "reason": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 2000,
+            "example": "Record supplied information"
+          }
+        }
+      }
+    }
+  }
+}

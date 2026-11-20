@@ -2,8 +2,10 @@
 
 namespace App\Services;
 
+use App\Documents\DocumentProtection;
 use App\Documents\DocumentStorage;
 use App\Documents\DocumentUpload;
+use App\Exceptions\DocumentProtectionConflict;
 use App\Models\Appointment;
 use App\Models\ClinicalNote;
 use App\Models\Patient;
@@ -25,6 +27,7 @@ class PatientDocumentWorkflow
         private readonly DocumentStorage $storage,
         private readonly AuditLogService $auditLogs,
         private readonly TenantContext $context,
+        private readonly DocumentProtection $protection,
     ) {}
 
     public function upload(Patient $patient, array $input, User $actor): PatientDocument
@@ -52,10 +55,11 @@ class PatientDocumentWorkflow
             $this->storage->put($document->storage_key, $file);
 
             // No transaction retry around external side effects.
-            return DB::transaction(function () use ($document, $actor): PatientDocument {
+            return DB::transaction(function () use ($document, $actor, $file): PatientDocument {
                 Patient::query()->lockForUpdate()->findOrFail($document->patient_id);
                 $this->validateLinks($document, true);
                 $document->save();
+                $this->protection->register($document, $file);
                 $this->auditLogs->record('uploaded', 'patient_documents', $document->id, $actor->id);
 
                 return $document;
@@ -74,13 +78,15 @@ class PatientDocumentWorkflow
         }
     }
 
-    public function archive(Patient $patient, PatientDocument $document, User $actor): PatientDocument
+    public function archive(?Patient $patient, PatientDocument $document, User $actor): PatientDocument
     {
         $this->context->requireId();
         Gate::forUser($actor)->authorize('archive', $document);
 
         return DB::transaction(function () use ($patient, $document, $actor): PatientDocument {
             $document = $this->find($patient, $document, true);
+            Gate::forUser($actor)->authorize('archive', $document);
+            $this->protection->assertReadable($document);
             if ($document->archived_at === null) {
                 $document->forceFill(['archived_at' => now('UTC'), 'archived_by_user_id' => $actor->id])->save();
                 $this->auditLogs->record('archived', 'patient_documents', $document->id, $actor->id);
@@ -90,50 +96,74 @@ class PatientDocumentWorkflow
         });
     }
 
-    public function delete(Patient $patient, PatientDocument $document, User $actor): void
+    public function delete(?Patient $patient, PatientDocument $document, User $actor): void
     {
         $this->context->requireId();
         Gate::forUser($actor)->authorize('delete', $document);
-        // Commit the access revocation and its audit BEFORE touching object storage.
-        // If S3 is down or a process dies, a repeated DELETE safely retries the purge.
-        $document = DB::transaction(function () use ($patient, $document, $actor): PatientDocument {
-            $document = $this->find($patient, $document, true, true);
-            if (! $document->trashed()) {
-                $document->forceFill(['deleted_by_user_id' => $actor->id, 'deleted_at' => now('UTC')])->save();
-                $this->auditLogs->record('deleted', 'patient_documents', $document->id, $actor->id);
-            }
+        $this->protection->seriesFence($document, function () use ($patient, $document, $actor): void {
+            $document = DB::transaction(function () use ($patient, $document, $actor): PatientDocument {
+                $document = $this->find($patient, $document, true, true);
+                Gate::forUser($actor)->authorize('delete', $document);
+                $this->protection->assertDeletable($document);
+                if ($document->purged_at !== null) {
+                    return $document;
+                }
+                if (! $document->trashed()) {
+                    $document->forceFill(['deleted_by_user_id' => $actor->id, 'deleted_at' => now('UTC')])->save();
+                    $this->auditLogs->record('deleted', 'patient_documents', $document->id, $actor->id);
+                }
+                $state = DB::table('document_protections')->where('version_id', $this->protection->version($document)->id)->value('purge_state');
+                if ($state !== 'purge_in_progress') {
+                    $this->protection->state($document, 'purge_in_progress');
+                    $this->auditLogs->record('purge_started', 'patient_documents', $document->id, $actor->id);
+                }
 
-            return $document;
-        });
-        if ($document->purged_at !== null) {
-            return;
-        }
-        try {
-            $this->storage->delete($document);
-        } catch (FilesystemException) {
-            throw new ServiceUnavailableHttpException;
-        }
-        DB::transaction(function () use ($patient, $document, $actor): void {
-            $document = $this->find($patient, $document, true, true);
-            if ($document->purged_at === null) {
-                $document->forceFill(['purged_at' => now('UTC')])->save();
-                $this->auditLogs->record('purged', 'patient_documents', $document->id, $actor->id);
+                return $document;
+            });
+            if ($document->purged_at !== null) {
+                return;
             }
+            try {
+                // No database transaction/retry spans external deletion. The session fence
+                // excludes hold/link/deleters; committed purge_state rejects late references.
+                $this->storage->delete($document);
+            } catch (Throwable $error) {
+                DB::transaction(function () use ($document, $actor): void {
+                    $document = $this->protection->lock($document);
+                    $this->protection->state($document, 'purge_failed');
+                    $this->auditLogs->record('purge_failed', 'patient_documents', $document->id, $actor->id);
+                });
+                if ($error instanceof FilesystemException) {
+                    throw new ServiceUnavailableHttpException;
+                }
+                throw $error;
+            }
+            DB::transaction(function () use ($patient, $document, $actor): void {
+                $document = $this->find($patient, $document, true, true);
+                $document->forceFill(['purged_at' => now('UTC')])->save();
+                $this->protection->state($document, 'purged');
+                $this->auditLogs->record('purged', 'patient_documents', $document->id, $actor->id);
+            });
         });
     }
 
-    public function metadata(Patient $patient, PatientDocument $document, User $actor): PatientDocument
+    public function metadata(?Patient $patient, PatientDocument $document, User $actor): PatientDocument
     {
         $this->context->requireId();
         Gate::forUser($actor)->authorize('view', $document);
-        $document = $this->find($patient, $document);
-        $this->auditLogs->record('viewed', 'patient_documents', $document->id, $actor->id);
 
-        return $document;
+        return DB::transaction(function () use ($patient, $document, $actor): PatientDocument {
+            $document = $this->find($patient, $document, true);
+            Gate::forUser($actor)->authorize('view', $document);
+            $this->protection->assertReadable($document);
+            $this->auditLogs->record('viewed', 'patient_documents', $document->id, $actor->id);
+
+            return $document;
+        });
     }
 
     /** @return array{PatientDocument, resource} */
-    public function download(Patient $patient, PatientDocument $document, User $actor): array
+    public function download(?Patient $patient, PatientDocument $document, User $actor): array
     {
         $this->context->requireId();
         Gate::forUser($actor)->authorize('download', $document);
@@ -141,13 +171,18 @@ class PatientDocumentWorkflow
         try {
             return DB::transaction(function () use ($patient, $document, $actor, &$stream): array {
                 $document = $this->find($patient, $document, true);
-                $stream = $this->storage->read($document);
+                Gate::forUser($actor)->authorize('download', $document);
+                $this->protection->assertReadable($document);
+                $stream = $this->protection->verifiedStream($document, $this->storage->read($document));
                 // A download event means authorized stream opened, not proof of receipt.
                 $this->auditLogs->record('downloaded', 'patient_documents', $document->id, $actor->id);
 
                 return [$document, $stream];
             });
         } catch (Throwable $error) {
+            if ($error instanceof DocumentProtectionConflict && $error->apiCode === 'DOCUMENT_QUARANTINED') {
+                $this->protection->quarantineCorruptVersion($document, $actor);
+            }
             if (is_resource($stream)) {
                 fclose($stream);
             }
@@ -158,18 +193,20 @@ class PatientDocumentWorkflow
         }
     }
 
-    private function find(Patient $patient, PatientDocument $document, bool $lock = false, bool $withDeleted = false): PatientDocument
+    private function find(?Patient $patient, PatientDocument $document, bool $lock = false, bool $withDeleted = false): PatientDocument
     {
-        Patient::query()->findOrFail($patient->id);
-        $query = PatientDocument::query()->where('patient_id', $patient->id);
-        if ($withDeleted) {
-            $query->withTrashed();
+        if ($patient !== null) {
+            Patient::query()->findOrFail($patient->id);
         }
         if ($lock) {
-            $query->lockForUpdate();
-        }
+            $document = $this->protection->lock($document);
+            abort_unless($document->patient_id === $patient?->id && ($withDeleted || ! $document->trashed()), 404);
 
-        return $query->findOrFail($document->id);
+            return $document;
+        }
+        $query = PatientDocument::query()->where('patient_id', $patient?->id);
+
+        return ($withDeleted ? $query->withTrashed() : $query)->findOrFail($document->id);
     }
 
     private function validateLinks(PatientDocument $document, bool $lock = false): void

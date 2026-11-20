@@ -18,6 +18,10 @@ class FilesystemDocumentStorage implements DocumentStorage
 
     public function put(string $key, UploadedFile $file): void
     {
+        $this->assertCanonicalKey($key);
+        if (PatientDocument::withoutGlobalScopes()->where('storage_key', $key)->exists()) {
+            throw new LogicException('Accepted document object keys are write-once.');
+        }
         $stream = fopen($file->getRealPath(), 'rb');
         if ($stream === false) {
             throw new ServiceUnavailableHttpException;
@@ -43,8 +47,17 @@ class FilesystemDocumentStorage implements DocumentStorage
 
     public function delete(PatientDocument $document): void
     {
+        $this->assertCanonicalKey($document->storage_key);
+        app(DocumentProtection::class)->assertStoragePurge($document);
         if (! $this->disk($document->disk)->delete($document->storage_key)) {
             throw new ServiceUnavailableHttpException;
+        }
+    }
+
+    private function assertCanonicalKey(string $key): void
+    {
+        if ($key === '' || (new \League\Flysystem\WhitespacePathNormalizer)->normalizePath($key) !== $key) {
+            throw new LogicException('Document object keys must be canonical.');
         }
     }
 

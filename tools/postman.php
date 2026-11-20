@@ -123,6 +123,21 @@ class PostmanExport
             'url' => ['raw' => $rawUrl, 'host' => ['{{base_url}}'], 'path' => explode('/', ltrim($urlPath, '/')), 'query' => $query],
             'description' => trim(($operation['description'] ?? '')."\n\n".strtoupper($method).' '.$path."\n".'Domain writes require allow_writes=true. Missing required variables skip requests rather than selecting real records automatically.'),
         ];
+        foreach (array_merge($definition['parameters'] ?? [], $operation['parameters'] ?? []) as $parameter) {
+            $parameter = $this->expand($parameter);
+            if (($parameter['in'] ?? '') !== 'header') {
+                continue;
+            }
+            $schema = $this->expand($parameter['schema'] ?? []);
+            $value = $parameter['name'] === 'Idempotency-Key'
+                ? 'postman-claim-submit-001'
+                : ($schema['example'] ?? $schema['default'] ?? '');
+            $request['header'][] = [
+                'key' => $parameter['name'], 'value' => (string) $value,
+                'description' => $parameter['description'] ?? '',
+                'disabled' => ! ($parameter['required'] ?? false),
+            ];
+        }
         if (($operation['security'] ?? null) === [] || $path === '/logout') {
             $request['auth'] = ['type' => 'noauth'];
         }
@@ -156,6 +171,14 @@ class PostmanExport
 
     private function body(string $path, string $method, array $operation): ?array
     {
+        if ($method === 'delete') {
+            $requestBody = $this->expand($operation['requestBody'] ?? []);
+            if (! isset($requestBody['content']['application/json']['schema'])) {
+                return null;
+            }
+
+            return $this->sample($this->expand($requestBody['content']['application/json']['schema']));
+        }
         if (! in_array($method, ['post', 'put', 'patch'], true)) {
             return null;
         }
@@ -233,7 +256,7 @@ class PostmanExport
         if (str_ends_with($path, '/cancel')) {
             return ['cancellation_reason' => 'Patient requested cancellation.'];
         }
-        if ($method !== 'post' && (str_ends_with($path, '}') || str_ends_with($path, '/update')) && ! str_ends_with($path, '/roles')) {
+        if (in_array($method, ['put', 'patch'], true) && (str_ends_with($path, '}') || str_ends_with($path, '/update')) && ! str_ends_with($path, '/roles')) {
             $field = match (explode('/', $path)[2] ?? '') {
                 'patients' => 'notes', 'appointments', 'treatments', 'tasks', 'roles' => 'description',
                 'clinical-notes' => 'note_text', 'dentists' => 'specialization',

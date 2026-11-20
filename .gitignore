@@ -18,6 +18,22 @@ yarn-error.log
 /.idea
 /.vscode
 /docs/*
+!/docs/architecture/
+/docs/architecture/*
+!/docs/architecture/P4-M3-A-insurance-estimation-gap-analysis.md
+!/docs/architecture/P4-M3-B-coverage-estimate-workflow-gap-analysis.md
+!/docs/architecture/P4-M4-A-claims-domain-gap-analysis.md
+!/docs/insurance-claims.md
+!/docs/insurance-estimates.md
+!/docs/insurance-benefits.md
+!/docs/insurance-benefits.openapi.json
+!/docs/manual-insurance-eligibility.md
+!/docs/insurance-evidence.md
+!/docs/insurance-evidence.openapi.json
+!/docs/patient-insurance.md
+!/docs/patient-insurance.openapi.json
+!/docs/insurance-catalog.md
+!/docs/insurance-catalog.openapi.json
 !/docs/multi-tenancy.md
 !/docs/tenant-operations.md
 !/docs/dental-charting.md
@@ -37,8 +53,16 @@ yarn-error.log
 !/docs/postman.md
 !/docs/postman/
 /docs/postman/*
+!/docs/postman/insurance-benefits.postman_collection.json
+!/docs/postman/insurance-benefits.postman_environment.json
+!/docs/postman/patient-insurance.postman_collection.json
+!/docs/postman/patient-insurance.postman_environment.json
 !/docs/postman/dental-booking.postman_collection.json
 !/docs/postman/local.postman_environment.json
+!/docs/postman/insurance-evidence.postman_collection.json
+!/docs/postman/insurance-evidence.postman_environment.json
+!/docs/postman/insurance-catalog.postman_collection.json
+!/docs/postman/insurance-catalog.postman_environment.json
 
 # Local environment files
 .env.*
@@ -58,3 +82,7 @@ Thumbs.db
 
 # Private captures used only by opt-in merchant sandbox tests
 /storage/app/handypay-sandbox/
+
+# P4-M4-B review documentation
+!/docs/architecture/P4-M4-B-prior-authorizations-gap-analysis.md
+!/docs/prior-authorizations.md

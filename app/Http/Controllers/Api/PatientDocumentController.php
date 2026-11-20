@@ -18,12 +18,15 @@ class PatientDocumentController extends Controller
     public function index(Request $request, Patient $patient, AuditLogService $auditLogs)
     {
         $this->authorize('viewAny', PatientDocument::class);
+        if (! app(\App\Documents\DocumentProtection::class)->clinicalRead($request->user())) {
+            $this->authorize('view', $patient);
+        }
         $data = $request->validate([
             'status' => ['sometimes', Rule::in(['active', 'archived', 'all'])],
             'page' => ['sometimes', 'integer', 'min:1'],
             'per_page' => ['sometimes', 'integer', 'min:1', 'max:100'],
         ]);
-        $query = $patient->documents();
+        $query = app(\App\Documents\DocumentProtection::class)->visible($patient->documents()->getQuery(), $request->user(), $patient);
         $status = $data['status'] ?? 'active';
         if ($status === 'active') {
             $query->whereNull('archived_at');

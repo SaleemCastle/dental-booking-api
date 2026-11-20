@@ -30,6 +30,7 @@ trait BelongsToTenant
                 throw ValidationException::withMessages(['assignee_id' => ['The assignee must be a member of the current clinic.']]);
             }
             $attributionColumns = match ($model->getTable()) {
+                'insurance_plan_versions' => ['created_by_user_id', 'last_edited_by_user_id', 'reviewed_by_user_id', 'published_by_user_id'],
                 'clinical_notes' => ['author_user_id', 'updated_by_user_id', 'deleted_by_user_id'],
                 'dental_chart_revisions' => ['author_user_id'],
                 'patient' => ['archived_by_user_id'],
@@ -60,6 +61,8 @@ trait BelongsToTenant
     private static function tenantRelationships(): array
     {
         return [
+            'insurance_plans' => ['insurer_id' => 'insurers'],
+            'insurance_plan_versions' => ['insurance_plan_id' => 'insurance_plans'],
             'patient_contacts' => ['patient_id' => 'patient'],
             'clinic_notifications' => ['patient_id' => 'patient', 'appointment_id' => 'appointment', 'task_id' => 'tasks', 'invoice_id' => 'invoices', 'payment_id' => 'payments', 'payment_link_id' => 'payment_links', 'configuration_id' => 'communication_configurations'],
             'notification_deliveries' => ['notification_id' => 'clinic_notifications', 'patient_contact_id' => 'patient_contacts'],
@@ -79,6 +82,7 @@ trait BelongsToTenant
             'tasks' => ['patient_id' => 'patient', 'appointment_id' => 'appointment'],
             'treatment_plans' => ['patient_id' => 'patient'],
             'treatment_plan_items' => ['treatment_plan_id' => 'treatment_plans', 'treatment_id' => 'treatments', 'dentist_id' => 'dentist'],
+            'insurance_estimates' => ['patient_id' => 'patient', 'association_id' => 'patient_insurer_associations', 'benefit_rule_id' => 'insurance_benefit_rules', 'supersedes_id' => 'insurance_estimates', 'treatment_plan_item_id' => 'treatment_plan_items'],
         ];
     }
 }

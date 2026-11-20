@@ -1,0 +1,942 @@
+{
+    "openapi":  "3.0.3",
+    "info":  {
+                 "title":  "Optional Patient Insurance Information",
+                 "version":  "1.0.0",
+                 "description":  "M1-B: insurance never blocks registration, patient updates, booking, check-in or treatment. Provider-only associations are separate from optional encrypted policy revisions and manual external check observations. No insurer/card-reader API, benefit calculation, responsibility allocation, claims, settlement, evidence activation or external disclosure. Uses exact patient_insurance.view/manage/reveal capabilities plus patient access, existing Sanctum and tenant context. Ordinary identifiers are masked; cleartext requires a separate audited reveal. Free-text provider names remain unverified and never create catalog entries."
+             },
+    "servers":  [
+                    {
+                        "url":  "http://localhost:8000"
+                    }
+                ],
+    "security":  [
+                     {
+                         "sanctumBearer":  [
+
+                                           ]
+                     }
+                 ],
+    "paths":  {
+                  "/api/patients/{patient}/insurance-associations":  {
+                                                                         "get":  {
+                                                                                     "tags":  [
+                                                                                                  "Patient insurance"
+                                                                                              ],
+                                                                                     "summary":  "List optional patient-insurer associations",
+                                                                                     "parameters":  [
+                                                                                                        {
+                                                                                                            "name":  "X-Tenant-Id",
+                                                                                                            "in":  "header",
+                                                                                                            "required":  false,
+                                                                                                            "schema":  {
+                                                                                                                           "type":  "integer",
+                                                                                                                           "minimum":  1
+                                                                                                                       }
+                                                                                                        },
+                                                                                                        {
+                                                                                                            "name":  "patient",
+                                                                                                            "in":  "path",
+                                                                                                            "required":  true,
+                                                                                                            "schema":  {
+                                                                                                                           "type":  "integer",
+                                                                                                                           "minimum":  1
+                                                                                                                       }
+                                                                                                        },
+                                                                                                        {
+                                                                                                            "name":  "page",
+                                                                                                            "in":  "query",
+                                                                                                            "schema":  {
+                                                                                                                           "type":  "integer",
+                                                                                                                           "minimum":  1
+                                                                                                                       }
+                                                                                                        },
+                                                                                                        {
+                                                                                                            "name":  "per_page",
+                                                                                                            "in":  "query",
+                                                                                                            "schema":  {
+                                                                                                                           "type":  "integer",
+                                                                                                                           "minimum":  1,
+                                                                                                                           "maximum":  100
+                                                                                                                       }
+                                                                                                        }
+                                                                                                    ],
+                                                                                     "responses":  {
+                                                                                                       "200":  {
+                                                                                                                   "description":  "Existing ApiResponse envelope. Association uses data.association; revisions use data.revision with masked identifiers; observations use data.check; lists use data array and meta.pagination. Every successful response is private and no-store."
+                                                                                                               },
+                                                                                                       "401":  {
+                                                                                                                   "description":  "Unauthenticated"
+                                                                                                               },
+                                                                                                       "403":  {
+                                                                                                                   "description":  "Missing exact insurance capability, patient authority, or catalog authority"
+                                                                                                               },
+                                                                                                       "404":  {
+                                                                                                                   "description":  "Foreign or mismatched patient, association, insurer, plan or revision"
+                                                                                                               },
+                                                                                                       "409":  {
+                                                                                                                   "description":  "Stale expected version; reload before revising"
+                                                                                                               },
+                                                                                                       "422":  {
+                                                                                                                   "description":  "Invalid or unsupported insurance-specific input; ordinary patient/treatment operations are unaffected"
+                                                                                                               }
+                                                                                                   }
+                                                                                 },
+                                                                         "post":  {
+                                                                                      "tags":  [
+                                                                                                   "Patient insurance"
+                                                                                               ],
+                                                                                      "summary":  "Record provider only; no policy or published plan required",
+                                                                                      "parameters":  [
+                                                                                                         {
+                                                                                                             "name":  "X-Tenant-Id",
+                                                                                                             "in":  "header",
+                                                                                                             "required":  false,
+                                                                                                             "schema":  {
+                                                                                                                            "type":  "integer",
+                                                                                                                            "minimum":  1
+                                                                                                                        }
+                                                                                                         },
+                                                                                                         {
+                                                                                                             "name":  "patient",
+                                                                                                             "in":  "path",
+                                                                                                             "required":  true,
+                                                                                                             "schema":  {
+                                                                                                                            "type":  "integer",
+                                                                                                                            "minimum":  1
+                                                                                                                        }
+                                                                                                         }
+                                                                                                     ],
+                                                                                      "responses":  {
+                                                                                                        "201":  {
+                                                                                                                    "description":  "Existing ApiResponse envelope. Association uses data.association; revisions use data.revision with masked identifiers; observations use data.check; lists use data array and meta.pagination. Every successful response is private and no-store."
+                                                                                                                },
+                                                                                                        "401":  {
+                                                                                                                    "description":  "Unauthenticated"
+                                                                                                                },
+                                                                                                        "403":  {
+                                                                                                                    "description":  "Missing exact insurance capability, patient authority, or catalog authority"
+                                                                                                                },
+                                                                                                        "404":  {
+                                                                                                                    "description":  "Foreign or mismatched patient, association, insurer, plan or revision"
+                                                                                                                },
+                                                                                                        "409":  {
+                                                                                                                    "description":  "Stale expected version; reload before revising"
+                                                                                                                },
+                                                                                                        "422":  {
+                                                                                                                    "description":  "Invalid or unsupported insurance-specific input; ordinary patient/treatment operations are unaffected"
+                                                                                                                }
+                                                                                                    },
+                                                                                      "requestBody":  {
+                                                                                                          "required":  true,
+                                                                                                          "content":  {
+                                                                                                                          "application/json":  {
+                                                                                                                                                   "schema":  {
+                                                                                                                                                                  "type":  "object",
+                                                                                                                                                                  "additionalProperties":  false,
+                                                                                                                                                                  "properties":  {
+                                                                                                                                                                                     "insurer_id":  {
+                                                                                                                                                                                                        "type":  "integer",
+                                                                                                                                                                                                        "nullable":  true,
+                                                                                                                                                                                                        "minimum":  1
+                                                                                                                                                                                                    },
+                                                                                                                                                                                     "unverified_insurer_name":  {
+                                                                                                                                                                                                                     "type":  "string",
+                                                                                                                                                                                                                     "nullable":  true,
+                                                                                                                                                                                                                     "maxLength":  255
+                                                                                                                                                                                                                 },
+                                                                                                                                                                                     "coverage_priority":  {
+                                                                                                                                                                                                               "type":  "integer",
+                                                                                                                                                                                                               "nullable":  true,
+                                                                                                                                                                                                               "minimum":  1
+                                                                                                                                                                                                           }
+                                                                                                                                                                                 },
+                                                                                                                                                                  "oneOf":  [
+                                                                                                                                                                                {
+                                                                                                                                                                                    "properties":  {
+                                                                                                                                                                                                       "insurer_id":  {
+                                                                                                                                                                                                                          "minimum":  1,
+                                                                                                                                                                                                                          "type":  "integer",
+                                                                                                                                                                                                                          "nullable":  false
+                                                                                                                                                                                                                      }
+                                                                                                                                                                                                   },
+                                                                                                                                                                                    "required":  [
+                                                                                                                                                                                                     "insurer_id"
+                                                                                                                                                                                                 ]
+                                                                                                                                                                                },
+                                                                                                                                                                                {
+                                                                                                                                                                                    "properties":  {
+                                                                                                                                                                                                       "unverified_insurer_name":  {
+                                                                                                                                                                                                                                       "maxLength":  255,
+                                                                                                                                                                                                                                       "pattern":  "\\S",
+                                                                                                                                                                                                                                       "minLength":  1,
+                                                                                                                                                                                                                                       "type":  "string",
+                                                                                                                                                                                                                                       "nullable":  false
+                                                                                                                                                                                                                                   }
+                                                                                                                                                                                                   },
+                                                                                                                                                                                    "required":  [
+                                                                                                                                                                                                     "unverified_insurer_name"
+                                                                                                                                                                                                 ]
+                                                                                                                                                                                }
+                                                                                                                                                                            ]
+                                                                                                                                                              }
+                                                                                                                                               }
+                                                                                                                      }
+                                                                                                      }
+                                                                                  }
+                                                                     },
+                  "/api/patients/{patient}/insurance-associations/{association}":  {
+                                                                                       "get":  {
+                                                                                                   "tags":  [
+                                                                                                                "Patient insurance"
+                                                                                                            ],
+                                                                                                   "summary":  "Read current provider information",
+                                                                                                   "parameters":  [
+                                                                                                                      {
+                                                                                                                          "name":  "X-Tenant-Id",
+                                                                                                                          "in":  "header",
+                                                                                                                          "required":  false,
+                                                                                                                          "schema":  {
+                                                                                                                                         "type":  "integer",
+                                                                                                                                         "minimum":  1
+                                                                                                                                     }
+                                                                                                                      },
+                                                                                                                      {
+                                                                                                                          "name":  "patient",
+                                                                                                                          "in":  "path",
+                                                                                                                          "required":  true,
+                                                                                                                          "schema":  {
+                                                                                                                                         "type":  "integer",
+                                                                                                                                         "minimum":  1
+                                                                                                                                     }
+                                                                                                                      },
+                                                                                                                      {
+                                                                                                                          "name":  "association",
+                                                                                                                          "in":  "path",
+                                                                                                                          "required":  true,
+                                                                                                                          "schema":  {
+                                                                                                                                         "type":  "integer",
+                                                                                                                                         "minimum":  1
+                                                                                                                                     }
+                                                                                                                      }
+                                                                                                                  ],
+                                                                                                   "responses":  {
+                                                                                                                     "200":  {
+                                                                                                                                 "description":  "Existing ApiResponse envelope. Association uses data.association; revisions use data.revision with masked identifiers; observations use data.check; lists use data array and meta.pagination. Every successful response is private and no-store."
+                                                                                                                             },
+                                                                                                                     "401":  {
+                                                                                                                                 "description":  "Unauthenticated"
+                                                                                                                             },
+                                                                                                                     "403":  {
+                                                                                                                                 "description":  "Missing exact insurance capability, patient authority, or catalog authority"
+                                                                                                                             },
+                                                                                                                     "404":  {
+                                                                                                                                 "description":  "Foreign or mismatched patient, association, insurer, plan or revision"
+                                                                                                                             },
+                                                                                                                     "409":  {
+                                                                                                                                 "description":  "Stale expected version; reload before revising"
+                                                                                                                             },
+                                                                                                                     "422":  {
+                                                                                                                                 "description":  "Invalid or unsupported insurance-specific input; ordinary patient/treatment operations are unaffected"
+                                                                                                                             }
+                                                                                                                 }
+                                                                                               },
+                                                                                       "patch":  {
+                                                                                                     "tags":  [
+                                                                                                                  "Patient insurance"
+                                                                                                              ],
+                                                                                                     "summary":  "Append provider or priority correction",
+                                                                                                     "parameters":  [
+                                                                                                                        {
+                                                                                                                            "name":  "X-Tenant-Id",
+                                                                                                                            "in":  "header",
+                                                                                                                            "required":  false,
+                                                                                                                            "schema":  {
+                                                                                                                                           "type":  "integer",
+                                                                                                                                           "minimum":  1
+                                                                                                                                       }
+                                                                                                                        },
+                                                                                                                        {
+                                                                                                                            "name":  "patient",
+                                                                                                                            "in":  "path",
+                                                                                                                            "required":  true,
+                                                                                                                            "schema":  {
+                                                                                                                                           "type":  "integer",
+                                                                                                                                           "minimum":  1
+                                                                                                                                       }
+                                                                                                                        },
+                                                                                                                        {
+                                                                                                                            "name":  "association",
+                                                                                                                            "in":  "path",
+                                                                                                                            "required":  true,
+                                                                                                                            "schema":  {
+                                                                                                                                           "type":  "integer",
+                                                                                                                                           "minimum":  1
+                                                                                                                                       }
+                                                                                                                        }
+                                                                                                                    ],
+                                                                                                     "responses":  {
+                                                                                                                       "200":  {
+                                                                                                                                   "description":  "Existing ApiResponse envelope. Association uses data.association; revisions use data.revision with masked identifiers; observations use data.check; lists use data array and meta.pagination. Every successful response is private and no-store."
+                                                                                                                               },
+                                                                                                                       "401":  {
+                                                                                                                                   "description":  "Unauthenticated"
+                                                                                                                               },
+                                                                                                                       "403":  {
+                                                                                                                                   "description":  "Missing exact insurance capability, patient authority, or catalog authority"
+                                                                                                                               },
+                                                                                                                       "404":  {
+                                                                                                                                   "description":  "Foreign or mismatched patient, association, insurer, plan or revision"
+                                                                                                                               },
+                                                                                                                       "409":  {
+                                                                                                                                   "description":  "Stale expected version; reload before revising"
+                                                                                                                               },
+                                                                                                                       "422":  {
+                                                                                                                                   "description":  "Invalid or unsupported insurance-specific input; ordinary patient/treatment operations are unaffected"
+                                                                                                                               }
+                                                                                                                   },
+                                                                                                     "requestBody":  {
+                                                                                                                         "required":  true,
+                                                                                                                         "content":  {
+                                                                                                                                         "application/json":  {
+                                                                                                                                                                  "schema":  {
+                                                                                                                                                                                 "type":  "object",
+                                                                                                                                                                                 "additionalProperties":  false,
+                                                                                                                                                                                 "properties":  {
+                                                                                                                                                                                                    "insurer_id":  {
+                                                                                                                                                                                                                       "type":  "integer",
+                                                                                                                                                                                                                       "nullable":  true,
+                                                                                                                                                                                                                       "minimum":  1
+                                                                                                                                                                                                                   },
+                                                                                                                                                                                                    "unverified_insurer_name":  {
+                                                                                                                                                                                                                                    "type":  "string",
+                                                                                                                                                                                                                                    "nullable":  true,
+                                                                                                                                                                                                                                    "maxLength":  255
+                                                                                                                                                                                                                                },
+                                                                                                                                                                                                    "coverage_priority":  {
+                                                                                                                                                                                                                              "type":  "integer",
+                                                                                                                                                                                                                              "nullable":  true,
+                                                                                                                                                                                                                              "minimum":  1
+                                                                                                                                                                                                                          },
+                                                                                                                                                                                                    "active":  {
+                                                                                                                                                                                                                   "type":  "boolean"
+                                                                                                                                                                                                               },
+                                                                                                                                                                                                    "expected_version":  {
+                                                                                                                                                                                                                             "type":  "integer",
+                                                                                                                                                                                                                             "minimum":  1
+                                                                                                                                                                                                                         },
+                                                                                                                                                                                                    "reason":  {
+                                                                                                                                                                                                                   "type":  "string",
+                                                                                                                                                                                                                   "maxLength":  2000
+                                                                                                                                                                                                               }
+                                                                                                                                                                                                },
+                                                                                                                                                                                 "required":  [
+                                                                                                                                                                                                  "expected_version",
+                                                                                                                                                                                                  "reason"
+                                                                                                                                                                                              ]
+                                                                                                                                                                             }
+                                                                                                                                                              }
+                                                                                                                                     }
+                                                                                                                     }
+                                                                                                 }
+                                                                                   },
+                  "/api/patients/{patient}/insurance-associations/{association}/history":  {
+                                                                                               "get":  {
+                                                                                                           "tags":  [
+                                                                                                                        "Patient insurance"
+                                                                                                                    ],
+                                                                                                           "summary":  "Read immutable provider and priority history",
+                                                                                                           "parameters":  [
+                                                                                                                              {
+                                                                                                                                  "name":  "X-Tenant-Id",
+                                                                                                                                  "in":  "header",
+                                                                                                                                  "required":  false,
+                                                                                                                                  "schema":  {
+                                                                                                                                                 "type":  "integer",
+                                                                                                                                                 "minimum":  1
+                                                                                                                                             }
+                                                                                                                              },
+                                                                                                                              {
+                                                                                                                                  "name":  "patient",
+                                                                                                                                  "in":  "path",
+                                                                                                                                  "required":  true,
+                                                                                                                                  "schema":  {
+                                                                                                                                                 "type":  "integer",
+                                                                                                                                                 "minimum":  1
+                                                                                                                                             }
+                                                                                                                              },
+                                                                                                                              {
+                                                                                                                                  "name":  "association",
+                                                                                                                                  "in":  "path",
+                                                                                                                                  "required":  true,
+                                                                                                                                  "schema":  {
+                                                                                                                                                 "type":  "integer",
+                                                                                                                                                 "minimum":  1
+                                                                                                                                             }
+                                                                                                                              },
+                                                                                                                              {
+                                                                                                                                  "name":  "page",
+                                                                                                                                  "in":  "query",
+                                                                                                                                  "schema":  {
+                                                                                                                                                 "type":  "integer",
+                                                                                                                                                 "minimum":  1
+                                                                                                                                             }
+                                                                                                                              },
+                                                                                                                              {
+                                                                                                                                  "name":  "per_page",
+                                                                                                                                  "in":  "query",
+                                                                                                                                  "schema":  {
+                                                                                                                                                 "type":  "integer",
+                                                                                                                                                 "minimum":  1,
+                                                                                                                                                 "maximum":  100
+                                                                                                                                             }
+                                                                                                                              }
+                                                                                                                          ],
+                                                                                                           "responses":  {
+                                                                                                                             "200":  {
+                                                                                                                                         "description":  "Existing ApiResponse envelope. Association uses data.association; revisions use data.revision with masked identifiers; observations use data.check; lists use data array and meta.pagination. Every successful response is private and no-store."
+                                                                                                                                     },
+                                                                                                                             "401":  {
+                                                                                                                                         "description":  "Unauthenticated"
+                                                                                                                                     },
+                                                                                                                             "403":  {
+                                                                                                                                         "description":  "Missing exact insurance capability, patient authority, or catalog authority"
+                                                                                                                                     },
+                                                                                                                             "404":  {
+                                                                                                                                         "description":  "Foreign or mismatched patient, association, insurer, plan or revision"
+                                                                                                                                     },
+                                                                                                                             "409":  {
+                                                                                                                                         "description":  "Stale expected version; reload before revising"
+                                                                                                                                     },
+                                                                                                                             "422":  {
+                                                                                                                                         "description":  "Invalid or unsupported insurance-specific input; ordinary patient/treatment operations are unaffected"
+                                                                                                                                     }
+                                                                                                                         }
+                                                                                                       }
+                                                                                           },
+                  "/api/patients/{patient}/insurance-associations/{association}/policy-revisions":  {
+                                                                                                        "get":  {
+                                                                                                                    "tags":  [
+                                                                                                                                 "Patient insurance"
+                                                                                                                             ],
+                                                                                                                    "summary":  "Read masked optional policy history",
+                                                                                                                    "parameters":  [
+                                                                                                                                       {
+                                                                                                                                           "name":  "X-Tenant-Id",
+                                                                                                                                           "in":  "header",
+                                                                                                                                           "required":  false,
+                                                                                                                                           "schema":  {
+                                                                                                                                                          "type":  "integer",
+                                                                                                                                                          "minimum":  1
+                                                                                                                                                      }
+                                                                                                                                       },
+                                                                                                                                       {
+                                                                                                                                           "name":  "patient",
+                                                                                                                                           "in":  "path",
+                                                                                                                                           "required":  true,
+                                                                                                                                           "schema":  {
+                                                                                                                                                          "type":  "integer",
+                                                                                                                                                          "minimum":  1
+                                                                                                                                                      }
+                                                                                                                                       },
+                                                                                                                                       {
+                                                                                                                                           "name":  "association",
+                                                                                                                                           "in":  "path",
+                                                                                                                                           "required":  true,
+                                                                                                                                           "schema":  {
+                                                                                                                                                          "type":  "integer",
+                                                                                                                                                          "minimum":  1
+                                                                                                                                                      }
+                                                                                                                                       },
+                                                                                                                                       {
+                                                                                                                                           "name":  "page",
+                                                                                                                                           "in":  "query",
+                                                                                                                                           "schema":  {
+                                                                                                                                                          "type":  "integer",
+                                                                                                                                                          "minimum":  1
+                                                                                                                                                      }
+                                                                                                                                       },
+                                                                                                                                       {
+                                                                                                                                           "name":  "per_page",
+                                                                                                                                           "in":  "query",
+                                                                                                                                           "schema":  {
+                                                                                                                                                          "type":  "integer",
+                                                                                                                                                          "minimum":  1,
+                                                                                                                                                          "maximum":  100
+                                                                                                                                                      }
+                                                                                                                                       }
+                                                                                                                                   ],
+                                                                                                                    "responses":  {
+                                                                                                                                      "200":  {
+                                                                                                                                                  "description":  "Existing ApiResponse envelope. Association uses data.association; revisions use data.revision with masked identifiers; observations use data.check; lists use data array and meta.pagination. Every successful response is private and no-store."
+                                                                                                                                              },
+                                                                                                                                      "401":  {
+                                                                                                                                                  "description":  "Unauthenticated"
+                                                                                                                                              },
+                                                                                                                                      "403":  {
+                                                                                                                                                  "description":  "Missing exact insurance capability, patient authority, or catalog authority"
+                                                                                                                                              },
+                                                                                                                                      "404":  {
+                                                                                                                                                  "description":  "Foreign or mismatched patient, association, insurer, plan or revision"
+                                                                                                                                              },
+                                                                                                                                      "409":  {
+                                                                                                                                                  "description":  "Stale expected version; reload before revising"
+                                                                                                                                              },
+                                                                                                                                      "422":  {
+                                                                                                                                                  "description":  "Invalid or unsupported insurance-specific input; ordinary patient/treatment operations are unaffected"
+                                                                                                                                              }
+                                                                                                                                  }
+                                                                                                                },
+                                                                                                        "post":  {
+                                                                                                                     "tags":  [
+                                                                                                                                  "Patient insurance"
+                                                                                                                              ],
+                                                                                                                     "summary":  "Progressively complete optional policy information",
+                                                                                                                     "parameters":  [
+                                                                                                                                        {
+                                                                                                                                            "name":  "X-Tenant-Id",
+                                                                                                                                            "in":  "header",
+                                                                                                                                            "required":  false,
+                                                                                                                                            "schema":  {
+                                                                                                                                                           "type":  "integer",
+                                                                                                                                                           "minimum":  1
+                                                                                                                                                       }
+                                                                                                                                        },
+                                                                                                                                        {
+                                                                                                                                            "name":  "patient",
+                                                                                                                                            "in":  "path",
+                                                                                                                                            "required":  true,
+                                                                                                                                            "schema":  {
+                                                                                                                                                           "type":  "integer",
+                                                                                                                                                           "minimum":  1
+                                                                                                                                                       }
+                                                                                                                                        },
+                                                                                                                                        {
+                                                                                                                                            "name":  "association",
+                                                                                                                                            "in":  "path",
+                                                                                                                                            "required":  true,
+                                                                                                                                            "schema":  {
+                                                                                                                                                           "type":  "integer",
+                                                                                                                                                           "minimum":  1
+                                                                                                                                                       }
+                                                                                                                                        }
+                                                                                                                                    ],
+                                                                                                                     "responses":  {
+                                                                                                                                       "201":  {
+                                                                                                                                                   "description":  "Existing ApiResponse envelope. Association uses data.association; revisions use data.revision with masked identifiers; observations use data.check; lists use data array and meta.pagination. Every successful response is private and no-store."
+                                                                                                                                               },
+                                                                                                                                       "401":  {
+                                                                                                                                                   "description":  "Unauthenticated"
+                                                                                                                                               },
+                                                                                                                                       "403":  {
+                                                                                                                                                   "description":  "Missing exact insurance capability, patient authority, or catalog authority"
+                                                                                                                                               },
+                                                                                                                                       "404":  {
+                                                                                                                                                   "description":  "Foreign or mismatched patient, association, insurer, plan or revision"
+                                                                                                                                               },
+                                                                                                                                       "409":  {
+                                                                                                                                                   "description":  "Stale expected version; reload before revising"
+                                                                                                                                               },
+                                                                                                                                       "422":  {
+                                                                                                                                                   "description":  "Invalid or unsupported insurance-specific input; ordinary patient/treatment operations are unaffected"
+                                                                                                                                               }
+                                                                                                                                   },
+                                                                                                                     "requestBody":  {
+                                                                                                                                         "required":  true,
+                                                                                                                                         "content":  {
+                                                                                                                                                         "application/json":  {
+                                                                                                                                                                                  "schema":  {
+                                                                                                                                                                                                 "type":  "object",
+                                                                                                                                                                                                 "additionalProperties":  false,
+                                                                                                                                                                                                 "properties":  {
+                                                                                                                                                                                                                    "policy_number":  {
+                                                                                                                                                                                                                                          "type":  "string",
+                                                                                                                                                                                                                                          "nullable":  true,
+                                                                                                                                                                                                                                          "maxLength":  255
+                                                                                                                                                                                                                                      },
+                                                                                                                                                                                                                    "membership_id":  {
+                                                                                                                                                                                                                                          "type":  "string",
+                                                                                                                                                                                                                                          "nullable":  true,
+                                                                                                                                                                                                                                          "maxLength":  255
+                                                                                                                                                                                                                                      },
+                                                                                                                                                                                                                    "subscriber_name":  {
+                                                                                                                                                                                                                                            "type":  "string",
+                                                                                                                                                                                                                                            "nullable":  true,
+                                                                                                                                                                                                                                            "maxLength":  255
+                                                                                                                                                                                                                                        },
+                                                                                                                                                                                                                    "relationship":  {
+                                                                                                                                                                                                                                         "type":  "string",
+                                                                                                                                                                                                                                         "nullable":  true,
+                                                                                                                                                                                                                                         "enum":  [
+                                                                                                                                                                                                                                                      "self",
+                                                                                                                                                                                                                                                      "spouse",
+                                                                                                                                                                                                                                                      "child",
+                                                                                                                                                                                                                                                      "other"
+                                                                                                                                                                                                                                                  ]
+                                                                                                                                                                                                                                     },
+                                                                                                                                                                                                                    "plan_id":  {
+                                                                                                                                                                                                                                    "type":  "integer",
+                                                                                                                                                                                                                                    "nullable":  true,
+                                                                                                                                                                                                                                    "minimum":  1
+                                                                                                                                                                                                                                },
+                                                                                                                                                                                                                    "effective_date":  {
+                                                                                                                                                                                                                                           "type":  "string",
+                                                                                                                                                                                                                                           "format":  "date",
+                                                                                                                                                                                                                                           "nullable":  true
+                                                                                                                                                                                                                                       },
+                                                                                                                                                                                                                    "expiry_date":  {
+                                                                                                                                                                                                                                        "type":  "string",
+                                                                                                                                                                                                                                        "format":  "date",
+                                                                                                                                                                                                                                        "nullable":  true
+                                                                                                                                                                                                                                    },
+                                                                                                                                                                                                                    "expected_version":  {
+                                                                                                                                                                                                                                             "type":  "integer",
+                                                                                                                                                                                                                                             "minimum":  0
+                                                                                                                                                                                                                                         },
+                                                                                                                                                                                                                    "reason":  {
+                                                                                                                                                                                                                                   "type":  "string",
+                                                                                                                                                                                                                                   "maxLength":  2000
+                                                                                                                                                                                                                               }
+                                                                                                                                                                                                                },
+                                                                                                                                                                                                 "required":  [
+                                                                                                                                                                                                                  "expected_version",
+                                                                                                                                                                                                                  "reason"
+                                                                                                                                                                                                              ]
+                                                                                                                                                                                             }
+                                                                                                                                                                              }
+                                                                                                                                                     }
+                                                                                                                                     }
+                                                                                                                 }
+                                                                                                    },
+                  "/api/patients/{patient}/insurance-associations/{association}/policy-revisions/{revision}/identifiers":  {
+                                                                                                                               "get":  {
+                                                                                                                                           "tags":  [
+                                                                                                                                                        "Patient insurance"
+                                                                                                                                                    ],
+                                                                                                                                           "summary":  "Reveal exact revision identifiers with dedicated capability and audit",
+                                                                                                                                           "parameters":  [
+                                                                                                                                                              {
+                                                                                                                                                                  "name":  "X-Tenant-Id",
+                                                                                                                                                                  "in":  "header",
+                                                                                                                                                                  "required":  false,
+                                                                                                                                                                  "schema":  {
+                                                                                                                                                                                 "type":  "integer",
+                                                                                                                                                                                 "minimum":  1
+                                                                                                                                                                             }
+                                                                                                                                                              },
+                                                                                                                                                              {
+                                                                                                                                                                  "name":  "patient",
+                                                                                                                                                                  "in":  "path",
+                                                                                                                                                                  "required":  true,
+                                                                                                                                                                  "schema":  {
+                                                                                                                                                                                 "type":  "integer",
+                                                                                                                                                                                 "minimum":  1
+                                                                                                                                                                             }
+                                                                                                                                                              },
+                                                                                                                                                              {
+                                                                                                                                                                  "name":  "association",
+                                                                                                                                                                  "in":  "path",
+                                                                                                                                                                  "required":  true,
+                                                                                                                                                                  "schema":  {
+                                                                                                                                                                                 "type":  "integer",
+                                                                                                                                                                                 "minimum":  1
+                                                                                                                                                                             }
+                                                                                                                                                              },
+                                                                                                                                                              {
+                                                                                                                                                                  "name":  "revision",
+                                                                                                                                                                  "in":  "path",
+                                                                                                                                                                  "required":  true,
+                                                                                                                                                                  "schema":  {
+                                                                                                                                                                                 "type":  "integer",
+                                                                                                                                                                                 "minimum":  1
+                                                                                                                                                                             }
+                                                                                                                                                              }
+                                                                                                                                                          ],
+                                                                                                                                           "responses":  {
+                                                                                                                                                             "200":  {
+                                                                                                                                                                         "description":  "Existing ApiResponse envelope. Association uses data.association; revisions use data.revision with masked identifiers; observations use data.check; lists use data array and meta.pagination. Every successful response is private and no-store."
+                                                                                                                                                                     },
+                                                                                                                                                             "401":  {
+                                                                                                                                                                         "description":  "Unauthenticated"
+                                                                                                                                                                     },
+                                                                                                                                                             "403":  {
+                                                                                                                                                                         "description":  "Missing exact insurance capability, patient authority, or catalog authority"
+                                                                                                                                                                     },
+                                                                                                                                                             "404":  {
+                                                                                                                                                                         "description":  "Foreign or mismatched patient, association, insurer, plan or revision"
+                                                                                                                                                                     },
+                                                                                                                                                             "409":  {
+                                                                                                                                                                         "description":  "Stale expected version; reload before revising"
+                                                                                                                                                                     },
+                                                                                                                                                             "422":  {
+                                                                                                                                                                         "description":  "Invalid or unsupported insurance-specific input; ordinary patient/treatment operations are unaffected"
+                                                                                                                                                                     }
+                                                                                                                                                         }
+                                                                                                                                       }
+                                                                                                                           },
+                  "/api/patients/{patient}/insurance-associations/{association}/checks":  {
+                                                                                              "get":  {
+                                                                                                          "tags":  [
+                                                                                                                       "Patient insurance"
+                                                                                                                   ],
+                                                                                                          "summary":  "Read staff-recorded external observations; no financial implications",
+                                                                                                          "parameters":  [
+                                                                                                                             {
+                                                                                                                                 "name":  "X-Tenant-Id",
+                                                                                                                                 "in":  "header",
+                                                                                                                                 "required":  false,
+                                                                                                                                 "schema":  {
+                                                                                                                                                "type":  "integer",
+                                                                                                                                                "minimum":  1
+                                                                                                                                            }
+                                                                                                                             },
+                                                                                                                             {
+                                                                                                                                 "name":  "patient",
+                                                                                                                                 "in":  "path",
+                                                                                                                                 "required":  true,
+                                                                                                                                 "schema":  {
+                                                                                                                                                "type":  "integer",
+                                                                                                                                                "minimum":  1
+                                                                                                                                            }
+                                                                                                                             },
+                                                                                                                             {
+                                                                                                                                 "name":  "association",
+                                                                                                                                 "in":  "path",
+                                                                                                                                 "required":  true,
+                                                                                                                                 "schema":  {
+                                                                                                                                                "type":  "integer",
+                                                                                                                                                "minimum":  1
+                                                                                                                                            }
+                                                                                                                             },
+                                                                                                                             {
+                                                                                                                                 "name":  "page",
+                                                                                                                                 "in":  "query",
+                                                                                                                                 "schema":  {
+                                                                                                                                                "type":  "integer",
+                                                                                                                                                "minimum":  1
+                                                                                                                                            }
+                                                                                                                             },
+                                                                                                                             {
+                                                                                                                                 "name":  "per_page",
+                                                                                                                                 "in":  "query",
+                                                                                                                                 "schema":  {
+                                                                                                                                                "type":  "integer",
+                                                                                                                                                "minimum":  1,
+                                                                                                                                                "maximum":  100
+                                                                                                                                            }
+                                                                                                                             }
+                                                                                                                         ],
+                                                                                                          "responses":  {
+                                                                                                                            "200":  {
+                                                                                                                                        "description":  "Existing ApiResponse envelope. Association uses data.association; revisions use data.revision with masked identifiers; observations use data.check; lists use data array and meta.pagination. Every successful response is private and no-store."
+                                                                                                                                    },
+                                                                                                                            "401":  {
+                                                                                                                                        "description":  "Unauthenticated"
+                                                                                                                                    },
+                                                                                                                            "403":  {
+                                                                                                                                        "description":  "Missing exact insurance capability, patient authority, or catalog authority"
+                                                                                                                                    },
+                                                                                                                            "404":  {
+                                                                                                                                        "description":  "Foreign or mismatched patient, association, insurer, plan or revision"
+                                                                                                                                    },
+                                                                                                                            "409":  {
+                                                                                                                                        "description":  "Stale expected version; reload before revising"
+                                                                                                                                    },
+                                                                                                                            "422":  {
+                                                                                                                                        "description":  "Invalid or unsupported insurance-specific input; ordinary patient/treatment operations are unaffected"
+                                                                                                                                    }
+                                                                                                                        }
+                                                                                                      },
+                                                                                              "post":  {
+                                                                                                           "tags":  [
+                                                                                                                        "Patient insurance"
+                                                                                                                    ],
+                                                                                                           "summary":  "Record a manual external card or insurer-system check without requiring a policy",
+                                                                                                           "parameters":  [
+                                                                                                                              {
+                                                                                                                                  "name":  "X-Tenant-Id",
+                                                                                                                                  "in":  "header",
+                                                                                                                                  "required":  false,
+                                                                                                                                  "schema":  {
+                                                                                                                                                 "type":  "integer",
+                                                                                                                                                 "minimum":  1
+                                                                                                                                             }
+                                                                                                                              },
+                                                                                                                              {
+                                                                                                                                  "name":  "patient",
+                                                                                                                                  "in":  "path",
+                                                                                                                                  "required":  true,
+                                                                                                                                  "schema":  {
+                                                                                                                                                 "type":  "integer",
+                                                                                                                                                 "minimum":  1
+                                                                                                                                             }
+                                                                                                                              },
+                                                                                                                              {
+                                                                                                                                  "name":  "association",
+                                                                                                                                  "in":  "path",
+                                                                                                                                  "required":  true,
+                                                                                                                                  "schema":  {
+                                                                                                                                                 "type":  "integer",
+                                                                                                                                                 "minimum":  1
+                                                                                                                                             }
+                                                                                                                              }
+                                                                                                                          ],
+                                                                                                           "responses":  {
+                                                                                                                             "201":  {
+                                                                                                                                         "description":  "Existing ApiResponse envelope. Association uses data.association; revisions use data.revision with masked identifiers; observations use data.check; lists use data array and meta.pagination. Every successful response is private and no-store."
+                                                                                                                                     },
+                                                                                                                             "401":  {
+                                                                                                                                         "description":  "Unauthenticated"
+                                                                                                                                     },
+                                                                                                                             "403":  {
+                                                                                                                                         "description":  "Missing exact insurance capability, patient authority, or catalog authority"
+                                                                                                                                     },
+                                                                                                                             "404":  {
+                                                                                                                                         "description":  "Foreign or mismatched patient, association, insurer, plan or revision"
+                                                                                                                                     },
+                                                                                                                             "409":  {
+                                                                                                                                         "description":  "Stale expected version; reload before revising"
+                                                                                                                                     },
+                                                                                                                             "422":  {
+                                                                                                                                         "description":  "Invalid or unsupported insurance-specific input; ordinary patient/treatment operations are unaffected"
+                                                                                                                                     }
+                                                                                                                         },
+                                                                                                           "requestBody":  {
+                                                                                                                               "required":  true,
+                                                                                                                               "content":  {
+                                                                                                                                               "application/json":  {
+                                                                                                                                                                        "schema":  {
+                                                                                                                                                                                       "type":  "object",
+                                                                                                                                                                                       "additionalProperties":  false,
+                                                                                                                                                                                       "properties":  {
+                                                                                                                                                                                                          "outcome":  {
+                                                                                                                                                                                                                          "type":  "string",
+                                                                                                                                                                                                                          "enum":  [
+                                                                                                                                                                                                                                       "unknown",
+                                                                                                                                                                                                                                       "active",
+                                                                                                                                                                                                                                       "inactive",
+                                                                                                                                                                                                                                       "unable_to_verify"
+                                                                                                                                                                                                                                   ]
+                                                                                                                                                                                                                      },
+                                                                                                                                                                                                          "channel":  {
+                                                                                                                                                                                                                          "type":  "string",
+                                                                                                                                                                                                                          "enum":  [
+                                                                                                                                                                                                                                       "external_card",
+                                                                                                                                                                                                                                       "external_portal",
+                                                                                                                                                                                                                                       "telephone",
+                                                                                                                                                                                                                                       "paper",
+                                                                                                                                                                                                                                       "other"
+                                                                                                                                                                                                                                   ]
+                                                                                                                                                                                                                      },
+                                                                                                                                                                                                          "checked_at":  {
+                                                                                                                                                                                                                             "type":  "string",
+                                                                                                                                                                                                                             "format":  "date-time"
+                                                                                                                                                                                                                         },
+                                                                                                                                                                                                          "provenance":  {
+                                                                                                                                                                                                                             "type":  "string",
+                                                                                                                                                                                                                             "maxLength":  2000
+                                                                                                                                                                                                                         },
+                                                                                                                                                                                                          "reference":  {
+                                                                                                                                                                                                                            "type":  "string",
+                                                                                                                                                                                                                            "nullable":  true,
+                                                                                                                                                                                                                            "maxLength":  255
+                                                                                                                                                                                                                        },
+                                                                                                                                                                                                          "policy_revision_id":  {
+                                                                                                                                                                                                                                     "type":  "integer",
+                                                                                                                                                                                                                                     "nullable":  true,
+                                                                                                                                                                                                                                     "minimum":  1
+                                                                                                                                                                                                                                 },
+                                                                                                                                                                                                          "service_date":  {
+                                                                                                                                                                                                                               "type":  "string",
+                                                                                                                                                                                                                               "format":  "date",
+                                                                                                                                                                                                                               "nullable":  true
+                                                                                                                                                                                                                           }
+                                                                                                                                                                                                      },
+                                                                                                                                                                                       "required":  [
+                                                                                                                                                                                                        "outcome",
+                                                                                                                                                                                                        "channel",
+                                                                                                                                                                                                        "checked_at",
+                                                                                                                                                                                                        "provenance"
+                                                                                                                                                                                                    ]
+                                                                                                                                                                                   }
+                                                                                                                                                                    }
+                                                                                                                                           }
+                                                                                                                           }
+                                                                                                       }
+                                                                                          },
+                  "/api/patients/{patient}/insurance-associations/{association}/checks/{check}/details":  {
+                                                                                                              "get":  {
+                                                                                                                          "tags":  [
+                                                                                                                                       "Patient insurance"
+                                                                                                                                   ],
+                                                                                                                          "summary":  "Reveal private provenance/reference with dedicated capability and audit",
+                                                                                                                          "parameters":  [
+                                                                                                                                             {
+                                                                                                                                                 "name":  "X-Tenant-Id",
+                                                                                                                                                 "in":  "header",
+                                                                                                                                                 "required":  false,
+                                                                                                                                                 "schema":  {
+                                                                                                                                                                "type":  "integer",
+                                                                                                                                                                "minimum":  1
+                                                                                                                                                            }
+                                                                                                                                             },
+                                                                                                                                             {
+                                                                                                                                                 "name":  "patient",
+                                                                                                                                                 "in":  "path",
+                                                                                                                                                 "required":  true,
+                                                                                                                                                 "schema":  {
+                                                                                                                                                                "type":  "integer",
+                                                                                                                                                                "minimum":  1
+                                                                                                                                                            }
+                                                                                                                                             },
+                                                                                                                                             {
+                                                                                                                                                 "name":  "association",
+                                                                                                                                                 "in":  "path",
+                                                                                                                                                 "required":  true,
+                                                                                                                                                 "schema":  {
+                                                                                                                                                                "type":  "integer",
+                                                                                                                                                                "minimum":  1
+                                                                                                                                                            }
+                                                                                                                                             },
+                                                                                                                                             {
+                                                                                                                                                 "name":  "check",
+                                                                                                                                                 "in":  "path",
+                                                                                                                                                 "required":  true,
+                                                                                                                                                 "schema":  {
+                                                                                                                                                                "type":  "integer",
+                                                                                                                                                                "minimum":  1
+                                                                                                                                                            }
+                                                                                                                                             }
+                                                                                                                                         ],
+                                                                                                                          "responses":  {
+                                                                                                                                            "200":  {
+                                                                                                                                                        "description":  "Existing ApiResponse envelope. Association uses data.association; revisions use data.revision with masked identifiers; observations use data.check; lists use data array and meta.pagination. Every successful response is private and no-store."
+                                                                                                                                                    },
+                                                                                                                                            "401":  {
+                                                                                                                                                        "description":  "Unauthenticated"
+                                                                                                                                                    },
+                                                                                                                                            "403":  {
+                                                                                                                                                        "description":  "Missing exact insurance capability, patient authority, or catalog authority"
+                                                                                                                                                    },
+                                                                                                                                            "404":  {
+                                                                                                                                                        "description":  "Foreign or mismatched patient, association, insurer, plan or revision"
+                                                                                                                                                    },
+                                                                                                                                            "409":  {
+                                                                                                                                                        "description":  "Stale expected version; reload before revising"
+                                                                                                                                                    },
+                                                                                                                                            "422":  {
+                                                                                                                                                        "description":  "Invalid or unsupported insurance-specific input; ordinary patient/treatment operations are unaffected"
+                                                                                                                                                    }
+                                                                                                                                        }
+                                                                                                                      }
+                                                                                                          }
+              },
+    "components":  {
+                       "securitySchemes":  {
+                                               "sanctumBearer":  {
+                                                                     "type":  "http",
+                                                                     "scheme":  "bearer"
+                                                                 }
+                                           }
+                   }
+}

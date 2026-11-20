@@ -62,6 +62,96 @@ Route::middleware('auth:sanctum')->get('tenants', function (Request $request) {
 Route::middleware('auth:sanctum')->delete('auth/token', [TokenController::class, 'destroy']);
 
 Route::middleware(['auth:sanctum', 'tenant'])->group(function () {
+    Route::get('patients/{patient}/insurance-claims', [\App\Http\Controllers\Api\InsuranceClaimController::class, 'index'])->whereNumber('patient');
+    Route::post('patients/{patient}/insurance-claims', [\App\Http\Controllers\Api\InsuranceClaimController::class, 'store'])->whereNumber('patient');
+    Route::get('patients/{patient}/insurance-claims/{claim}', [\App\Http\Controllers\Api\InsuranceClaimController::class, 'show'])->whereNumber('patient')->whereNumber('claim');
+    Route::patch('patients/{patient}/insurance-claims/{claim}', [\App\Http\Controllers\Api\InsuranceClaimController::class, 'update'])->whereNumber('patient')->whereNumber('claim');
+    Route::post('patients/{patient}/insurance-claims/{claim}/lines', [\App\Http\Controllers\Api\InsuranceClaimController::class, 'addLine'])->whereNumber('patient')->whereNumber('claim');
+    Route::patch('patients/{patient}/insurance-claims/{claim}/lines/{line}', [\App\Http\Controllers\Api\InsuranceClaimController::class, 'updateLine'])->whereNumber('patient')->whereNumber('claim')->whereNumber('line');
+    Route::delete('patients/{patient}/insurance-claims/{claim}/lines/{line}', [\App\Http\Controllers\Api\InsuranceClaimController::class, 'removeLine'])->whereNumber('patient')->whereNumber('claim')->whereNumber('line');
+    Route::post('patients/{patient}/insurance-claims/{claim}/readiness', [\App\Http\Controllers\Api\InsuranceClaimController::class, 'validateReadiness'])->whereNumber('patient')->whereNumber('claim');
+    Route::post('patients/{patient}/insurance-claims/{claim}/cancel', [\App\Http\Controllers\Api\InsuranceClaimController::class, 'cancel'])->whereNumber('patient')->whereNumber('claim');
+    Route::post('patients/{patient}/insurance-claims/{claim}/submissions', [\App\Http\Controllers\Api\InsuranceClaimController::class, 'submit'])->whereNumber('patient')->whereNumber('claim');
+    Route::get('patients/{patient}/insurance-claims/{claim}/submissions', [\App\Http\Controllers\Api\InsuranceClaimController::class, 'submissions'])->whereNumber('patient')->whereNumber('claim');
+    Route::get('patients/{patient}/insurance-claims/{claim}/events', [\App\Http\Controllers\Api\InsuranceClaimController::class, 'events'])->whereNumber('patient')->whereNumber('claim');
+    Route::controller(\App\Http\Controllers\Api\InsurancePriorAuthorizationController::class)->prefix('patients/{patient}/insurance-prior-authorizations')->whereNumber('patient')->group(function () {
+        Route::get('', 'index');
+        Route::post('', 'store');
+        Route::get('{authorization}', 'show')->whereNumber('authorization');
+        Route::patch('{authorization}', 'update')->whereNumber('authorization');
+        Route::post('{authorization}/requests', 'request')->whereNumber('authorization');
+        Route::post('{authorization}/decisions', 'decision')->whereNumber('authorization');
+        Route::post('{authorization}/claim', 'linkClaim')->whereNumber('authorization');
+        Route::post('{authorization}/expire', 'expire')->whereNumber('authorization');
+        Route::post('{authorization}/cancel', 'cancel')->whereNumber('authorization');
+        Route::get('{authorization}/history', 'history')->whereNumber('authorization');
+        Route::post('{authorization}/evidence', 'linkEvidence')->whereNumber('authorization');
+        Route::get('{authorization}/evidence', 'evidence')->whereNumber('authorization');
+    });
+    Route::get('patients/{patient}/insurance-estimates', [\App\Http\Controllers\Api\InsuranceEstimateController::class, 'index'])->whereNumber('patient');
+    Route::post('patients/{patient}/insurance-estimates', [\App\Http\Controllers\Api\InsuranceEstimateController::class, 'store'])->whereNumber('patient');
+    Route::get('patients/{patient}/insurance-estimates/{estimate}', [\App\Http\Controllers\Api\InsuranceEstimateController::class, 'show'])->whereNumber('patient')->whereNumber('estimate');
+    Route::post('patients/{patient}/insurance-estimates/{estimate}/supersede', [\App\Http\Controllers\Api\InsuranceEstimateController::class, 'supersede'])->whereNumber('patient')->whereNumber('estimate');
+    Route::post('treatment-plans/{treatment_plan}/items/{item}/insurance-estimates', [TreatmentPlanController::class, 'createItemEstimate'])->whereNumber('treatment_plan')->whereNumber('item');
+    Route::controller(\App\Http\Controllers\Api\InsuranceBenefitController::class)->group(function () {
+        Route::get('insurance/plan-versions/{version}/benefits', 'planIndex')->whereNumber('version');
+        Route::post('insurance/plan-versions/{version}/benefits', 'planStore')->whereNumber('version');
+        Route::get('insurance/plan-versions/{version}/benefits/{benefit}/details', 'planDetails')->whereNumber('version')->whereNumber('benefit');
+        Route::get('patients/{patient}/insurance-associations/{association}/benefits', 'patientIndex')->whereNumber('patient')->whereNumber('association');
+        Route::post('patients/{patient}/insurance-associations/{association}/benefits', 'patientStore')->whereNumber('patient')->whereNumber('association');
+        Route::get('patients/{patient}/insurance-associations/{association}/benefits/{benefit}/details', 'patientDetails')->whereNumber('patient')->whereNumber('association')->whereNumber('benefit');
+    });
+
+    Route::controller(\App\Http\Controllers\Api\InsuranceDocumentController::class)->group(function () {
+        Route::get('insurance/documents', 'index');
+        Route::post('insurance/documents', 'store');
+        Route::get('patients/{patient}/insurance-documents', 'index')->whereNumber('patient');
+        Route::post('patients/{patient}/insurance-documents', 'store')->whereNumber('patient');
+        Route::get('insurance/documents/{document}', 'show')->whereNumber('document');
+        Route::get('insurance/documents/{document}/download', 'download')->whereNumber('document');
+        Route::post('patients/{patient}/documents/{document}/versions', 'clinicalVersion')->whereNumber('patient')->whereNumber('document');
+        Route::post('insurance/documents/{document}/versions', 'version')->whereNumber('document');
+        Route::post('insurance/documents/{document}/archive', 'archive')->whereNumber('document');
+        Route::delete('insurance/documents/{document}', 'destroy')->whereNumber('document')->withTrashed();
+        Route::post('document-evidence/{document}/links', 'link')->whereNumber('document')->withTrashed();
+        Route::post('document-evidence/{document}/holds', 'hold')->whereNumber('document')->withTrashed();
+        Route::post('document-evidence/{document}/quarantine', 'quarantine')->whereNumber('document');
+    });
+
+    Route::prefix('patients/{patient}/insurance-associations')->whereNumber('patient')->controller(\App\Http\Controllers\Api\PatientInsuranceController::class)->group(function () {
+        Route::get('', 'index');
+        Route::post('', 'store');
+        Route::get('{association}', 'show')->whereNumber('association');
+        Route::patch('{association}', 'update')->whereNumber('association');
+        Route::get('{association}/history', 'history')->whereNumber('association');
+        Route::get('{association}/policy-revisions', 'policies')->whereNumber('association');
+        Route::post('{association}/policy-revisions', 'revisePolicy')->whereNumber('association');
+        Route::get('{association}/policy-revisions/{revision}/identifiers', 'identifiers')->whereNumber('association')->whereNumber('revision');
+        Route::get('{association}/checks', 'checks')->whereNumber('association');
+        Route::post('{association}/checks', 'recordCheck')->whereNumber('association');
+        Route::get('{association}/checks/{check}/details', 'checkDetails')->whereNumber('association')->whereNumber('check');
+    });
+
+    Route::prefix('insurance')->controller(\App\Http\Controllers\Api\InsuranceCatalogController::class)->group(function () {
+        Route::get('insurers', 'indexInsurers');
+        Route::post('insurers', 'storeInsurer');
+        Route::get('insurers/{insurer}', 'showInsurer')->whereNumber('insurer');
+        Route::patch('insurers/{insurer}', 'updateInsurer')->whereNumber('insurer');
+        Route::delete('insurers/{insurer}', 'archiveInsurer')->whereNumber('insurer');
+        Route::get('insurers/{insurer}/plans', 'indexPlans')->whereNumber('insurer');
+        Route::post('insurers/{insurer}/plans', 'storePlan')->whereNumber('insurer');
+        Route::get('plans/{plan}', 'showPlan')->whereNumber('plan');
+        Route::patch('plans/{plan}', 'updatePlan')->whereNumber('plan');
+        Route::delete('plans/{plan}', 'archivePlan')->whereNumber('plan');
+        Route::get('plans/{plan}/versions', 'indexVersions')->whereNumber('plan');
+        Route::post('plans/{plan}/versions', 'storeVersion')->whereNumber('plan');
+        Route::get('plan-versions/{version}', 'showVersion')->whereNumber('version');
+        Route::patch('plan-versions/{version}', 'updateVersion')->whereNumber('version');
+        Route::delete('plan-versions/{version}', 'withdrawVersion')->whereNumber('version');
+        Route::post('plan-versions/{version}/review', 'reviewVersion')->whereNumber('version');
+        Route::post('plan-versions/{version}/publish', 'publishVersion')->whereNumber('version');
+    });
+
     Route::get('/user', function (Request $request, TenantContext $context) {
         return ApiResponse::success(
             data: array_merge($request->user()->loadMissing('roles.permissions')->toArray(), [
