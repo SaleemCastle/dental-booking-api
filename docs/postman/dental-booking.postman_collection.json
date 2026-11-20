@@ -1550,6 +1550,469 @@
             ]
         },
         {
+            "name": "Insurance Prior Authorizations",
+            "item": [
+                {
+                    "name": "GET List a patient's prior authorizations",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/api/patients/{{patient_id}}/insurance-prior-authorizations?page=&per_page=",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "patients",
+                                "{{patient_id}}",
+                                "insurance-prior-authorizations"
+                            ],
+                            "query": [
+                                {
+                                    "key": "status",
+                                    "value": "draft",
+                                    "disabled": true,
+                                    "description": "Optional filter; enable its checkbox to send it."
+                                },
+                                {
+                                    "key": "page",
+                                    "value": "",
+                                    "disabled": false,
+                                    "description": "Optional filter; enable its checkbox to send it."
+                                },
+                                {
+                                    "key": "per_page",
+                                    "value": "",
+                                    "disabled": false,
+                                    "description": "Optional filter; enable its checkbox to send it."
+                                }
+                            ]
+                        },
+                        "description": "Requires patients.view and insurance_prior_authorizations.view. Patient and tenant scoped; private no-store and audited.\n\nGET /api/patients/{patient}/insurance-prior-authorizations\nDomain writes require allow_writes=true. Missing required variables skip requests rather than selecting real records automatically."
+                    },
+                    "response": []
+                },
+                {
+                    "name": "POST Create a draft prior authorization request",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            },
+                            {
+                                "key": "Idempotency-Key",
+                                "value": "postman-claim-submit-001",
+                                "description": "",
+                                "disabled": false
+                            },
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/api/patients/{{patient_id}}/insurance-prior-authorizations",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "patients",
+                                "{{patient_id}}",
+                                "insurance-prior-authorizations"
+                            ],
+                            "query": []
+                        },
+                        "description": "Requires insurance_prior_authorizations.manage. Association is required; policy revision, claim, treatment plan item, and estimate are optional. No insurer reference is generated.\n\nPOST /api/patients/{patient}/insurance-prior-authorizations\nDomain writes require allow_writes=true. Missing required variables skip requests rather than selecting real records automatically.",
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"association_id\": \"{{association_id}}\",\n    \"request_date\": \"Postman test data\",\n    \"treatment_description\": \"Postman test data\",\n    \"requested_amount\": \"Postman test data\",\n    \"currency\": \"Postman test data\"\n}\n",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        }
+                    },
+                    "response": []
+                },
+                {
+                    "name": "GET Retrieve a prior authorization",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/api/patients/{{patient_id}}/insurance-prior-authorizations/{{authorization_id}}",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "patients",
+                                "{{patient_id}}",
+                                "insurance-prior-authorizations",
+                                "{{authorization_id}}"
+                            ],
+                            "query": []
+                        },
+                        "description": "GET /api/patients/{patient}/insurance-prior-authorizations/{authorization}\nDomain writes require allow_writes=true. Missing required variables skip requests rather than selecting real records automatically."
+                    },
+                    "response": []
+                },
+                {
+                    "name": "PATCH Update a draft authorization",
+                    "request": {
+                        "method": "PATCH",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            },
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/api/patients/{{patient_id}}/insurance-prior-authorizations/{{authorization_id}}",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "patients",
+                                "{{patient_id}}",
+                                "insurance-prior-authorizations",
+                                "{{authorization_id}}"
+                            ],
+                            "query": []
+                        },
+                        "description": "Requires insurance_prior_authorizations.manage and expected_version. Only draft records can change.\n\nPATCH /api/patients/{patient}/insurance-prior-authorizations/{authorization}\nDomain writes require allow_writes=true. Missing required variables skip requests rather than selecting real records automatically.",
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"notes\": \"Postman updated test data\"\n}\n",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        }
+                    },
+                    "response": []
+                },
+                {
+                    "name": "POST Record that clinic staff sent a request",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            },
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/api/patients/{{patient_id}}/insurance-prior-authorizations/{{authorization_id}}/requests",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "patients",
+                                "{{patient_id}}",
+                                "insurance-prior-authorizations",
+                                "{{authorization_id}}",
+                                "requests"
+                            ],
+                            "query": []
+                        },
+                        "description": "This staff record does not prove insurer receipt. Requires insurance_prior_authorizations.manage.\n\nPOST /api/patients/{patient}/insurance-prior-authorizations/{authorization}/requests\nDomain writes require allow_writes=true. Missing required variables skip requests rather than selecting real records automatically.",
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"expected_version\": 1,\n    \"communication_channel\": \"phone\",\n    \"source_provenance\": \"Postman test data\"\n}\n",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        }
+                    },
+                    "response": []
+                },
+                {
+                    "name": "POST Record a staff-entered insurer acknowledgment or decision",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            },
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/api/patients/{{patient_id}}/insurance-prior-authorizations/{{authorization_id}}/decisions",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "patients",
+                                "{{patient_id}}",
+                                "insurance-prior-authorizations",
+                                "{{authorization_id}}",
+                                "decisions"
+                            ],
+                            "query": []
+                        },
+                        "description": "Requires insurance_prior_authorizations.decide. Staff-entered provenance is retained; no direct insurer verification or approval is implied. Unknown authorized values remain null.\n\nPOST /api/patients/{patient}/insurance-prior-authorizations/{authorization}/decisions\nDomain writes require allow_writes=true. Missing required variables skip requests rather than selecting real records automatically.",
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"expected_version\": 1,\n    \"decision_type\": \"acknowledged\",\n    \"communication_channel\": \"phone\",\n    \"decision_at\": \"Postman test data\",\n    \"source_provenance\": \"Postman test data\"\n}\n",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        }
+                    },
+                    "response": []
+                },
+                {
+                    "name": "POST Associate an authorization with a claim",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            },
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/api/patients/{{patient_id}}/insurance-prior-authorizations/{{authorization_id}}/claim",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "patients",
+                                "{{patient_id}}",
+                                "insurance-prior-authorizations",
+                                "{{authorization_id}}",
+                                "claim"
+                            ],
+                            "query": []
+                        },
+                        "description": "Requires insurance_prior_authorizations.manage. Claim must belong to same tenant, patient and insurance association. Claim status and submission remain unchanged.\n\nPOST /api/patients/{patient}/insurance-prior-authorizations/{authorization}/claim\nDomain writes require allow_writes=true. Missing required variables skip requests rather than selecting real records automatically.",
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"claim_id\": \"{{claim_id}}\"\n}\n",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        }
+                    },
+                    "response": []
+                },
+                {
+                    "name": "GET Retrieve immutable authorization lifecycle history",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/api/patients/{{patient_id}}/insurance-prior-authorizations/{{authorization_id}}/history",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "patients",
+                                "{{patient_id}}",
+                                "insurance-prior-authorizations",
+                                "{{authorization_id}}",
+                                "history"
+                            ],
+                            "query": []
+                        },
+                        "description": "GET /api/patients/{patient}/insurance-prior-authorizations/{authorization}/history\nDomain writes require allow_writes=true. Missing required variables skip requests rather than selecting real records automatically."
+                    },
+                    "response": []
+                },
+                {
+                    "name": "POST Record expiry after explicit insurer validity date",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/api/patients/{{patient_id}}/insurance-prior-authorizations/{{authorization_id}}/expire",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "patients",
+                                "{{patient_id}}",
+                                "insurance-prior-authorizations",
+                                "{{authorization_id}}",
+                                "expire"
+                            ],
+                            "query": []
+                        },
+                        "description": "Requires insurance_prior_authorizations.manage. A past valid_through date from a recorded decision is mandatory.\n\nPOST /api/patients/{patient}/insurance-prior-authorizations/{authorization}/expire\nDomain writes require allow_writes=true. Missing required variables skip requests rather than selecting real records automatically."
+                    },
+                    "response": []
+                },
+                {
+                    "name": "POST Cancel a draft or pending authorization",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            },
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/api/patients/{{patient_id}}/insurance-prior-authorizations/{{authorization_id}}/cancel",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "patients",
+                                "{{patient_id}}",
+                                "insurance-prior-authorizations",
+                                "{{authorization_id}}",
+                                "cancel"
+                            ],
+                            "query": []
+                        },
+                        "description": "POST /api/patients/{patient}/insurance-prior-authorizations/{authorization}/cancel\nDomain writes require allow_writes=true. Missing required variables skip requests rather than selecting real records automatically.",
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"cancellation_reason\": \"Patient requested cancellation.\"\n}\n",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        }
+                    },
+                    "response": []
+                },
+                {
+                    "name": "GET Retrieve typed evidence associations",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/api/patients/{{patient_id}}/insurance-prior-authorizations/{{authorization_id}}/evidence",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "patients",
+                                "{{patient_id}}",
+                                "insurance-prior-authorizations",
+                                "{{authorization_id}}",
+                                "evidence"
+                            ],
+                            "query": []
+                        },
+                        "description": "Requires insurance_prior_authorizations.view, insurance_prior_authorizations.evidence, and insurance_documents.view. Does not return document bytes.\n\nGET /api/patients/{patient}/insurance-prior-authorizations/{authorization}/evidence\nDomain writes require allow_writes=true. Missing required variables skip requests rather than selecting real records automatically."
+                    },
+                    "response": []
+                },
+                {
+                    "name": "POST Link an immutable document version as supporting evidence",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            },
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/api/patients/{{patient_id}}/insurance-prior-authorizations/{{authorization_id}}/evidence",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "patients",
+                                "{{patient_id}}",
+                                "insurance-prior-authorizations",
+                                "{{authorization_id}}",
+                                "evidence"
+                            ],
+                            "query": []
+                        },
+                        "description": "Requires insurance_prior_authorizations.evidence and insurance_documents.view. Linking remains disabled by the existing insurance_evidence.linking_enabled setting; quarantined or non-clean versions are never referenceable.\n\nPOST /api/patients/{patient}/insurance-prior-authorizations/{authorization}/evidence\nDomain writes require allow_writes=true. Missing required variables skip requests rather than selecting real records automatically.",
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"document_id\": \"{{document_id}}\",\n    \"target_type\": \"authorization\",\n    \"target_id\": \"{{target_id}}\",\n    \"command_key\": \"Postman test data\"\n}\n",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        }
+                    },
+                    "response": []
+                }
+            ]
+        },
+        {
             "name": "Insurance Claims",
             "item": [
                 {
@@ -7197,7 +7660,17 @@
             "type": "string"
         },
         {
+            "key": "authorization_id",
+            "value": "",
+            "type": "string"
+        },
+        {
             "key": "claim_id",
+            "value": "",
+            "type": "string"
+        },
+        {
+            "key": "target_id",
             "value": "",
             "type": "string"
         },

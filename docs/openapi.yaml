@@ -562,6 +562,100 @@ paths:
         '403': { description: Permission denied. }
         '404': { description: Estimate does not belong to this patient and tenant. }
         '409': { description: Estimate already has a successor. }
+  /api/patients/{patient}/insurance-prior-authorizations:
+    get:
+      tags: [Insurance Prior Authorizations]
+      summary: List a patient's prior authorizations
+      description: Requires patients.view and insurance_prior_authorizations.view. Patient and tenant scoped; private no-store and audited.
+      parameters:
+        - { name: patient, in: path, required: true, schema: { type: integer } }
+        - { name: status, in: query, schema: { type: string, enum: [draft, requested, pending, approved, partially_approved, denied, cancelled, expired] } }
+        - { name: page, in: query, schema: { type: integer, minimum: 1 } }
+        - { name: per_page, in: query, schema: { type: integer, minimum: 1, maximum: 100 } }
+      responses:
+        '200': { description: Standard ApiEnvelope with paginated authorization records. }
+        '403': { description: Explicit permission required. }
+        '404': { description: Patient is outside current tenant. }
+    post:
+      tags: [Insurance Prior Authorizations]
+      summary: Create a draft prior authorization request
+      description: Requires insurance_prior_authorizations.manage. Association is required; policy revision, claim, treatment plan item, and estimate are optional. No insurer reference is generated.
+      parameters: [{ name: patient, in: path, required: true, schema: { type: integer } }, { name: Idempotency-Key, in: header, required: true, schema: { type: string, format: uuid } }]
+      requestBody:
+        required: true
+        content: { application/json: { schema: { $ref: '#/components/schemas/PriorAuthorizationCreateInput' } } }
+      responses: { '201': { description: Draft authorization created. }, '403': { description: Permission denied. }, '422': { description: Invalid lineage or exact money input. } }
+  /api/patients/{patient}/insurance-prior-authorizations/{authorization}:
+    get:
+      tags: [Insurance Prior Authorizations]
+      summary: Retrieve a prior authorization
+      parameters: [{ name: patient, in: path, required: true, schema: { type: integer } }, { name: authorization, in: path, required: true, schema: { type: integer } }]
+      responses: { '200': { description: 'Authorization, manual decisions and append-only history. Insurer identifiers are never returned.' }, '404': { description: 'Foreign patient or authorization.' } }
+    patch:
+      tags: [Insurance Prior Authorizations]
+      summary: Update a draft authorization
+      description: Requires insurance_prior_authorizations.manage and expected_version. Only draft records can change.
+      parameters: [{ name: patient, in: path, required: true, schema: { type: integer } }, { name: authorization, in: path, required: true, schema: { type: integer } }]
+      requestBody: { required: true, content: { application/json: { schema: { $ref: '#/components/schemas/PriorAuthorizationUpdateInput' } } } }
+      responses: { '200': { description: Updated draft with incremented history version. }, '409': { description: Stale version or non-draft. } }
+  /api/patients/{patient}/insurance-prior-authorizations/{authorization}/requests:
+    post:
+      tags: [Insurance Prior Authorizations]
+      summary: Record that clinic staff sent a request
+      description: This staff record does not prove insurer receipt. Requires insurance_prior_authorizations.manage.
+      parameters: [{ name: patient, in: path, required: true, schema: { type: integer } }, { name: authorization, in: path, required: true, schema: { type: integer } }]
+      requestBody: { required: true, content: { application/json: { schema: { $ref: '#/components/schemas/PriorAuthorizationRequestInput' } } } }
+      responses: { '200': { description: Status becomes requested with immutable event. }, '409': { description: Invalid state or version. } }
+  /api/patients/{patient}/insurance-prior-authorizations/{authorization}/decisions:
+    post:
+      tags: [Insurance Prior Authorizations]
+      summary: Record a staff-entered insurer acknowledgment or decision
+      description: Requires insurance_prior_authorizations.decide. Staff-entered provenance is retained; no direct insurer verification or approval is implied. Unknown authorized values remain null.
+      parameters: [{ name: patient, in: path, required: true, schema: { type: integer } }, { name: authorization, in: path, required: true, schema: { type: integer } }]
+      requestBody: { required: true, content: { application/json: { schema: { $ref: '#/components/schemas/PriorAuthorizationDecisionInput' } } } }
+      responses: { '200': { description: Immutable decision appended to history. }, '409': { description: Request is not in requested or pending state. } }
+  /api/patients/{patient}/insurance-prior-authorizations/{authorization}/claim:
+    post:
+      tags: [Insurance Prior Authorizations]
+      summary: Associate an authorization with a claim
+      description: Requires insurance_prior_authorizations.manage. Claim must belong to same tenant, patient and insurance association. Claim status and submission remain unchanged.
+      parameters: [{ name: patient, in: path, required: true, schema: { type: integer } }, { name: authorization, in: path, required: true, schema: { type: integer } }]
+      requestBody: { required: true, content: { application/json: { schema: { type: object, required: [claim_id], additionalProperties: false, properties: { claim_id: { type: integer, minimum: 1 } } } } } }
+      responses: { '200': { description: Claim link appended to authorization history. }, '422': { description: Patient or association mismatch. } }
+  /api/patients/{patient}/insurance-prior-authorizations/{authorization}/history:
+    get:
+      tags: [Insurance Prior Authorizations]
+      summary: Retrieve immutable authorization lifecycle history
+      parameters: [{ name: patient, in: path, required: true, schema: { type: integer } }, { name: authorization, in: path, required: true, schema: { type: integer } }]
+      responses: { '200': { description: Ordered append-only lifecycle events. } }
+  /api/patients/{patient}/insurance-prior-authorizations/{authorization}/expire:
+    post:
+      tags: [Insurance Prior Authorizations]
+      summary: Record expiry after explicit insurer validity date
+      description: Requires insurance_prior_authorizations.manage. A past valid_through date from a recorded decision is mandatory.
+      parameters: [{ name: patient, in: path, required: true, schema: { type: integer } }, { name: authorization, in: path, required: true, schema: { type: integer } }]
+      responses: { '200': { description: Expiry event appended. }, '409': { description: No past explicit validity date. } }
+  /api/patients/{patient}/insurance-prior-authorizations/{authorization}/cancel:
+    post:
+      tags: [Insurance Prior Authorizations]
+      summary: Cancel a draft or pending authorization
+      parameters: [{ name: patient, in: path, required: true, schema: { type: integer } }, { name: authorization, in: path, required: true, schema: { type: integer } }]
+      requestBody: { required: true, content: { application/json: { schema: { type: object, required: [expected_version, reason], additionalProperties: false, properties: { expected_version: { type: integer, minimum: 1 }, reason: { type: string, minLength: 1, maxLength: 2000 } } } } } }
+      responses: { '200': { description: Cancellation event appended. }, '409': { description: Authorization is terminal or version is stale. } }
+  /api/patients/{patient}/insurance-prior-authorizations/{authorization}/evidence:
+    get:
+      tags: [Insurance Prior Authorizations]
+      summary: Retrieve typed evidence associations
+      description: Requires insurance_prior_authorizations.view, insurance_prior_authorizations.evidence, and insurance_documents.view. Does not return document bytes.
+      parameters: [{ name: patient, in: path, required: true, schema: { type: integer } }, { name: authorization, in: path, required: true, schema: { type: integer } }]
+      responses: { '200': { description: Audited evidence version associations. } }
+    post:
+      tags: [Insurance Prior Authorizations]
+      summary: Link an immutable document version as supporting evidence
+      description: Requires insurance_prior_authorizations.evidence and insurance_documents.view. Linking remains disabled by the existing insurance_evidence.linking_enabled setting; quarantined or non-clean versions are never referenceable.
+      parameters: [{ name: patient, in: path, required: true, schema: { type: integer } }, { name: authorization, in: path, required: true, schema: { type: integer } }]
+      requestBody: { required: true, content: { application/json: { schema: { $ref: '#/components/schemas/PriorAuthorizationEvidenceInput' } } } }
+      responses: { '201': { description: Immutable evidence link created. }, '409': { description: Evidence linking is not activated or version is protected. } }
   /api/patients/{patient}/insurance-claims:
     get:
       tags: [Insurance Claims]
@@ -3393,6 +3487,71 @@ components:
                     properties:
                       clinicalNote: { $ref: "#/components/schemas/ClinicalNote" }
   schemas:
+    PriorAuthorizationCreateInput:
+      type: object
+      additionalProperties: false
+      required: [association_id, request_date, treatment_description, requested_amount, currency]
+      properties:
+        association_id: { type: integer, minimum: 1 }
+        policy_revision_id: { type: integer, nullable: true, minimum: 1 }
+        claim_id: { type: integer, nullable: true, minimum: 1 }
+        treatment_plan_item_id: { type: integer, nullable: true, minimum: 1 }
+        estimate_id: { type: integer, nullable: true, minimum: 1 }
+        request_date: { type: string, format: date }
+        treatment_description: { type: string, minLength: 1, maxLength: 4000 }
+        procedure_details: { type: object, additionalProperties: true }
+        requested_amount: { type: string, pattern: '^(0|[1-9][0-9]{0,11})(\.[0-9]{1,2})?$' }
+        currency: { type: string, pattern: '^[A-Z]{3}$' }
+    PriorAuthorizationUpdateInput:
+      type: object
+      additionalProperties: false
+      required: [expected_version]
+      properties:
+        expected_version: { type: integer, minimum: 1 }
+        policy_revision_id: { type: integer, nullable: true, minimum: 1 }
+        claim_id: { type: integer, nullable: true, minimum: 1 }
+        treatment_plan_item_id: { type: integer, nullable: true, minimum: 1 }
+        estimate_id: { type: integer, nullable: true, minimum: 1 }
+        request_date: { type: string, format: date }
+        treatment_description: { type: string, minLength: 1, maxLength: 4000 }
+        procedure_details: { type: object, additionalProperties: true }
+        requested_amount: { type: string, pattern: '^(0|[1-9][0-9]{0,11})(\.[0-9]{1,2})?$' }
+        currency: { type: string, pattern: '^[A-Z]{3}$' }
+    PriorAuthorizationRequestInput:
+      type: object
+      additionalProperties: false
+      required: [expected_version, communication_channel, source_provenance]
+      properties:
+        expected_version: { type: integer, minimum: 1 }
+        communication_channel: { type: string, enum: [phone, portal, email, fax, paper, other] }
+        source_provenance: { type: string, minLength: 1, maxLength: 2000, description: Clinic staff recorded request source; not proof of insurer receipt. }
+    PriorAuthorizationDecisionInput:
+      type: object
+      additionalProperties: false
+      required: [expected_version, decision_type, communication_channel, decision_at, source_provenance]
+      properties:
+        expected_version: { type: integer, minimum: 1 }
+        decision_type: { type: string, enum: [acknowledged, approved, partially_approved, denied, additional_information_requested] }
+        insurer_reference: { type: string, nullable: true, maxLength: 200, writeOnly: true }
+        authorized_amount: { type: string, nullable: true, pattern: '^(0|[1-9][0-9]{0,11})(\.[0-9]{1,2})?$' }
+        currency: { type: string, nullable: true, pattern: '^[A-Z]{3}$' }
+        authorized_scope: { type: string, nullable: true, maxLength: 4000 }
+        valid_from: { type: string, format: date, nullable: true }
+        valid_through: { type: string, format: date, nullable: true }
+        communication_channel: { type: string, enum: [phone, portal, email, fax, paper, other] }
+        decision_at: { type: string, format: date-time }
+        source_provenance: { type: string, minLength: 1, maxLength: 2000 }
+        corrects_decision_id: { type: integer, minimum: 1, description: Optional latest decision to correct; prior decision remains immutable. }
+        correction_reason: { type: string, minLength: 1, maxLength: 2000 }
+    PriorAuthorizationEvidenceInput:
+      type: object
+      additionalProperties: false
+      required: [document_id, target_type, target_id, command_key]
+      properties:
+        document_id: { type: integer, minimum: 1 }
+        target_type: { type: string, enum: [authorization, decision, claim, submission] }
+        target_id: { type: integer, minimum: 1 }
+        command_key: { type: string, format: uuid }
     InsuranceClaimDraftInput:
       type: object
       additionalProperties: false
