@@ -165,7 +165,7 @@ class PostmanExportTest extends TestCase
         $this->assertArrayNotHasKey('consent_acknowledged', $send);
         $this->assertArrayNotHasKey('confirmation_token', $send);
         $this->assertSame($send, $this->bodyFor('POST', '/api/conversation-threads/{{thread_id}}/confirmations'));
-        $this->assertSame(['internal_send' => null, 'internal_receive' => null, 'patient_send' => false],
+        $this->assertSame(['internal_view' => null, 'internal_send' => null, 'patient_view' => false, 'patient_send' => false, 'settings_manage' => null, 'history_view' => null],
             $this->bodyFor('PUT', '/api/users/{{user_id}}/messaging-permissions'));
     }
 
@@ -181,6 +181,22 @@ class PostmanExportTest extends TestCase
             $this->assertArrayNotHasKey($field, $consent);
         }
         $this->assertArrayHasKey('authority_reference', $this->bodyFor('POST', '/api/patients/{{patient_id}}/operational-notice-bases'));
+    }
+
+    public function test_governance_examples_keep_policy_and_actions_distinct_from_patient_sends(): void
+    {
+        $policy = $this->bodyFor('PUT', '/api/communication-governance/policy');
+        $this->assertNull($policy['retention_days']);
+        $this->assertNull($policy['archive_after_days']);
+        $this->assertFalse($policy['escalation_enabled']);
+        foreach (['handoff', 'escalate', 'redact', 'archive', 'hold', 'resolve', 'export'] as $action) {
+            $body = $this->bodyFor('POST', '/api/conversation-threads/{{thread_id}}/'.$action);
+            $this->assertArrayHasKey('reason', $body);
+            $this->assertArrayNotHasKey('body', $body);
+            $this->assertArrayNotHasKey('consent_acknowledged', $body);
+        }
+        $this->assertSame('{{recipient_user_id}}', $this->bodyFor('POST', '/api/conversation-threads/{{thread_id}}/handoff')['user_id']);
+        $this->assertArrayNotHasKey('body', $this->requestFor('POST', '/api/users/{{user_id}}/communication-access/deactivate'));
     }
 
     private function requests(): array

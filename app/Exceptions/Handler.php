@@ -32,7 +32,8 @@ class Handler extends ExceptionHandler
         'api_key',
         'webhook_secret',
         'credentials',
-        'file', 'reason', 'provenance', 'source_provenance', 'policy_number', 'membership_id', 'subscriber_name', 'reference', 'insurer_reference', 'authorized_scope',
+        'body', 'message_text', 'reason', 'evidence', 'acknowledged_text', 'confirmation_token',
+        'file', 'provenance', 'source_provenance', 'policy_number', 'membership_id', 'subscriber_name', 'reference', 'insurer_reference', 'authorized_scope',
     ];
 
     /**
@@ -43,7 +44,8 @@ class Handler extends ExceptionHandler
         $this->dontReport[] = ProviderException::class;
         $this->dontReport[] = ConsentBlocked::class;
         $this->reportable(function (Throwable $e) {
-            if (request()->is('api/insurance/plan-versions/*/benefits*', 'api/patients/*/insurance-associations*', 'api/insurance/documents*', 'api/document-evidence*', 'api/patients/*/insurance-documents*', 'api/patients/*/documents*', 'api/patients/*/insurance-prior-authorizations*')) {
+            if ($this->sensitiveRequest(request())) {
+                // SQL/transport exceptions can embed message bodies, policy evidence or tokens.
                 return false;
             }
         });
@@ -143,7 +145,7 @@ class Handler extends ExceptionHandler
 
         Log::error('Unhandled API exception.', [
             'request_id' => $request->attributes->get('request_id'),
-            ...($request->is('api/insurance/plan-versions/*/benefits*', 'api/patients/*/insurance-associations*', 'api/insurance/documents*', 'api/document-evidence*', 'api/patients/*/insurance-documents*', 'api/patients/*/documents*', 'api/patients/*/insurance-prior-authorizations*') ? ['exception_class' => $e::class] : ['exception' => $e]),
+            ...($this->sensitiveRequest($request) ? ['exception_class' => $e::class] : ['exception' => $e]),
         ]);
 
         return ApiResponse::error(
@@ -169,6 +171,20 @@ class Handler extends ExceptionHandler
             || $request->is('logout')
             || $request->is('register')
             || $request->is('sanctum/csrf-cookie');
+    }
+
+    private function sensitiveCommunication(Request $request): bool
+    {
+        return $request->is('api/conversation-threads*', 'api/communication-governance*', 'api/*/communications',
+            'api/*/communication-consents*', 'api/*/messaging-preferences', 'api/*/messaging-permissions', 'api/*/communication-access/*', 'api/*/operational-notice-bases');
+    }
+
+    private function sensitiveRequest(Request $request): bool
+    {
+        return $this->sensitiveCommunication($request)
+            || $request->is('api/insurance/plan-versions/*/benefits*', 'api/patients/*/insurance-associations*',
+                'api/insurance/documents*', 'api/document-evidence*', 'api/patients/*/insurance-documents*',
+                'api/patients/*/documents*', 'api/patients/*/insurance-prior-authorizations*');
     }
 
     private function httpMessage(int $statusCode): string

@@ -492,6 +492,7 @@ class HandyPayReconciliationTest extends TestCase
         $actor = User::factory()->create();
         $role = Role::firstOrCreate(['slug' => Role::BILLING], ['name' => 'Billing']);
         $actor->roles()->attach($role);
+        $role->permissions()->syncWithoutDetaching([\App\Models\Permission::firstOrCreate(['slug' => 'messaging.history.view'], ['name' => 'View communication history'])->id]);
         Sanctum::actingAs($actor);
 
         return $actor;

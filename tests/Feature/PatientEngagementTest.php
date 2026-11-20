@@ -266,6 +266,7 @@ class PatientEngagementTest extends TestCase
         $actor = User::factory()->create();
         $role = Role::firstOrCreate(['slug' => Role::ADMIN], ['name' => 'Admin']);
         $actor->roles()->attach($role);
+        $role->permissions()->syncWithoutDetaching([\App\Models\Permission::firstOrCreate(['slug' => 'messaging.history.view'], ['name' => 'View communication history'])->id]);
         $events = array_fill_keys(['appointment.confirmed', 'appointment.reminder', 'appointment.cancelled', 'appointment.rescheduled', 'task.reminder'], ['channels' => ['email', 'sms']]);
         $events['appointment.reminder']['minutes_before'] = [1440, 60];
         app(CommunicationConfigurationService::class)->configure(['channels' => [

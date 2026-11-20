@@ -6,6 +6,7 @@ use App\Models\CommunicationConsent;
 use App\Models\CommunicationConsentDecision;
 use App\Models\DentalChartRevision;
 use App\Models\OperationalNoticeBasis;
+use App\Models\Role;
 use App\Models\User;
 use App\Tenancy\TenantContext;
 use Illuminate\Auth\Access\AuthorizationException;
@@ -30,6 +31,9 @@ class UserWorkflow
 
     public function update(User $user, array $data, User $actor): User
     {
+        // Profile/password changes must not provide a route around communication permissions.
+        abort_unless($actor->id === $user->id || $actor->hasRole(Role::ADMIN), 403);
+
         return DB::transaction(function () use ($user, $data, $actor) {
             $current = User::forCurrentTenant()->lockForUpdate()->findOrFail($user->id);
             if ($current->is_platform_operator && $current->id !== $actor->id) {
@@ -51,7 +55,9 @@ class UserWorkflow
 
     public function delete(User $user, User $actor): void
     {
+        abort_unless($actor->hasRole(Role::ADMIN), 403);
         DB::transaction(function () use ($user, $actor) {
+            app(MessagingService::class)->lockTenant();
             $current = User::forCurrentTenant()->lockForUpdate()->findOrFail($user->id);
             if ($current->is_platform_operator) {
                 throw new AuthorizationException('Platform operators cannot be deleted through clinic administration.');
@@ -61,6 +67,7 @@ class UserWorkflow
                     'user' => ['Reassign this clinic member\'s tasks before removing their membership.'],
                 ]);
             }
+            app(CommunicationGovernanceService::class)->deactivate($current, $actor);
             $current->roles()->detach();
             $current->tenants()->detach(app(TenantContext::class)->id());
             $hasOtherClinics = $current->tenants()->exists();
@@ -70,10 +77,16 @@ class UserWorkflow
             $hasConsentHistory = CommunicationConsent::withoutGlobalScope('tenant')->where('captured_by', $current->id)->exists()
                 || CommunicationConsentDecision::withoutGlobalScope('tenant')->where('actor_id', $current->id)->exists()
                 || OperationalNoticeBasis::withoutGlobalScope('tenant')->where('captured_by', $current->id)->exists();
-            if (! $hasOtherClinics && ! $hasChartHistory && ! $hasConsentHistory) {
+            $hasMessagingHistory = \App\Models\ConversationParticipant::withoutGlobalScope('tenant')->where('user_id', $current->id)->exists()
+                || \App\Models\CommunicationGovernancePolicy::withoutGlobalScope('tenant')->where('recorded_by', $current->id)->exists()
+                || \App\Models\ConversationGovernanceEvent::withoutGlobalScope('tenant')->where(fn ($query) => $query->where('actor_id', $current->id)->orWhere('subject_user_id', $current->id))->exists();
+            $retainActor = $current->id === $actor->id;
+            // An override without retained history can be removed with the final membership.
+            \App\Models\MessagingUserPermission::where('user_id', $current->id)->delete();
+            if (! $hasOtherClinics && ! $hasChartHistory && ! $hasConsentHistory && ! $hasMessagingHistory && ! $retainActor) {
                 $current->delete();
             }
-            $this->auditLogs->record($hasOtherClinics || $hasChartHistory || $hasConsentHistory ? 'membership_removed' : 'deleted', 'users', $current->id, $actor->id);
+            $this->auditLogs->record($hasOtherClinics || $hasChartHistory || $hasConsentHistory || $hasMessagingHistory || $retainActor ? 'membership_removed' : 'deleted', 'users', $current->id, $actor->id);
         }, 3);
     }
 

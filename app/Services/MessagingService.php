@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Models\ConversationGovernanceEvent;
 use App\Models\ConversationMessage;
 use App\Models\ConversationThread;
 use App\Models\MessageConfirmation;
@@ -17,26 +18,38 @@ use Illuminate\Validation\ValidationException;
 
 final class MessagingService
 {
+    public const PERMISSION_FIELDS = ['internal_send', 'internal_receive', 'patient_send', 'internal_view', 'patient_view',
+        'settings_manage', 'history_view', 'assign', 'escalate', 'supervise', 'archive', 'redact', 'export'];
+
     public function permitted(User $user, string $permission): bool
     {
+        $permission = $permission === 'internal_receive' ? 'internal_view' : $permission;
+        if (! in_array($permission, self::PERMISSION_FIELDS, true)) {
+            return false;
+        }
         if (! $user->isMemberOfCurrentTenant() || $user->hasRole('patient') || ! $user->roles()->exists()) {
             return false;
         }
-        if ($permission === 'patient_send' && $user->hasRole(Role::ADMIN)) {
+        if (in_array($permission, ['patient_send', 'patient_view'], true) && $user->hasRole(Role::ADMIN)) {
             return false;
         }
-        $override = MessagingUserPermission::where('user_id', $user->id)->first()?->getAttribute($permission);
+        $settings = MessagingUserPermission::where('user_id', $user->id)->first();
+        $override = $settings?->getAttribute($permission);
+        if ($permission === 'internal_view' && $override === null) {
+            $override = $settings?->internal_receive;
+        }
 
-        return $override ?? $user->hasPermission('messaging.'.str_replace('_', '.', $permission));
+        return $override ?? ($user->hasPermission('messaging.'.str_replace('_', '.', $permission))
+            || ($permission === 'internal_view' && $user->hasPermission('messaging.internal.receive')));
     }
 
     public function visible(User $user)
     {
-        $query = ConversationThread::whereHas('participants', fn ($q) => $q->where('user_id', $user->id));
-        if (! $this->permitted($user, 'internal_receive') && ! $this->permitted($user, 'internal_send')) {
+        $query = ConversationThread::whereHas('participants', fn ($q) => $q->active()->where('user_id', $user->id));
+        if (! $this->permitted($user, 'internal_view')) {
             $query->whereNotNull('patient_id');
         }
-        if (! $this->permitted($user, 'patient_send')) {
+        if (! $this->permitted($user, 'patient_view')) {
             $query->whereNull('patient_id');
         }
 
@@ -54,14 +67,14 @@ final class MessagingService
             $this->lockTenant();
             $patient = isset($data['patient_id']) ? Patient::active()->findOrFail($data['patient_id']) : null;
             abort_unless($this->permitted($actor, $patient ? 'patient_send' : 'internal_send'), 403);
+            abort_unless($this->permitted($actor, $patient ? 'patient_view' : 'internal_view'), 403);
             $ids = array_values(array_unique([$actor->id, ...($data['user_ids'] ?? [])]));
             $users = User::forCurrentTenant()->whereIn('id', $ids)->get();
             if ($users->count() !== count($ids) || (! $patient && count($ids) < 2)) {
                 throw ValidationException::withMessages(['user_ids' => 'Select eligible clinic participants.']);
             }
             foreach ($users as $user) {
-                abort_unless($this->permitted($user, $patient ? 'patient_send' : 'internal_receive')
-                    || ($user->id === $actor->id && ! $patient && $this->permitted($user, 'internal_send')), 403);
+                abort_unless($this->permitted($user, $patient ? 'patient_view' : 'internal_view'), 403);
                 // Admin-to-staff broadcasts have no admin recipients; staff cannot target admins.
                 abort_if($user->id !== $actor->id && $user->hasRole(Role::ADMIN), 403);
             }
@@ -79,9 +92,10 @@ final class MessagingService
             if ($patient) {
                 $thread->participants()->create(['patient_id' => $patient->id]);
             }
+            app(CommunicationGovernanceService::class)->state($thread);
             app(AuditLogService::class)->record('created', 'conversation_threads', $thread->id, $actor->id);
 
-            return $thread->load('participants');
+            return $thread->load(['participants', 'state']);
         }, 3);
     }
 
@@ -147,7 +161,7 @@ final class MessagingService
                 abort_if(ConversationMessage::whereIn('thread_id', ConversationThread::where('patient_id', $thread->patient_id)->select('id'))
                     ->where('created_at', '>=', now()->subHour())->count() >= 50, 429);
             }
-            $participants = $thread->participants()->get();
+            $participants = $thread->participants()->active()->get();
             $sender = $participants->firstWhere('user_id', $actor->id);
             $message = ConversationMessage::create([
                 'thread_id' => $thread->id, 'sender_id' => $sender->id, 'actor_id' => $actor->id,
@@ -159,6 +173,8 @@ final class MessagingService
                 'audit_metadata' => $metadata, 'created_at' => now(),
             ]);
             app(AuditLogService::class)->record($message->kind === 'message' ? 'sent' : $message->kind, 'conversation_messages', $message->id, $actor->id);
+            $state = app(CommunicationGovernanceService::class)->state($thread);
+            $state->update(['last_activity_at' => now('UTC'), 'status' => $state->status === 'resolved' ? 'open' : $state->status]);
 
             return [$message, true];
         }, 3);
@@ -167,12 +183,18 @@ final class MessagingService
     public function render(ConversationMessage $message): array
     {
         $redacted = ConversationMessage::where('thread_id', $message->thread_id)->where('supersedes_id', $message->id)->where('kind', 'redaction')->exists();
+        $controlled = ConversationGovernanceEvent::where('thread_id', $message->thread_id)->where('message_id', $message->id)->where('action', 'redacted')->first();
+        $redacted = $redacted || $controlled !== null;
         $result = $message->toArray();
         if ($redacted) {
             $result['body'] = null;
             $result['reason'] = null;
         }
         $result['redacted'] = $redacted;
+        if ($controlled) {
+            $result['redaction'] = ['actor_id' => $controlled->actor_id, 'occurred_at' => $controlled->occurred_at,
+                'event_id' => $controlled->id, 'original_retained' => true];
+        }
 
         return $result;
     }
@@ -186,12 +208,13 @@ final class MessagingService
     {
         $patient = $thread->patient_id !== null;
         abort_unless($this->permitted($actor, $patient ? 'patient_send' : 'internal_send'), 403);
-        foreach ($thread->participants()->whereNotNull('user_id')->get() as $participant) {
+        abort_if(app(CommunicationGovernanceService::class)->state($thread)->status === 'archived', 409);
+        foreach ($thread->participants()->active()->whereNotNull('user_id')->get() as $participant) {
             $user = User::forCurrentTenant()->find($participant->user_id);
             abort_unless($user, 403);
             if ($patient) {
                 // Revalidate every participant after role/permission changes.
-                abort_unless($this->permitted($user, 'patient_send'), 403);
+                abort_unless($this->permitted($user, 'patient_view'), 403);
             } elseif ($user->id !== $actor->id) {
                 abort_if($user->hasRole(Role::ADMIN), 403);
                 abort_unless($this->permitted($user, 'internal_receive'), 403);

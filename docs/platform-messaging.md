@@ -1,5 +1,7 @@
 # Platform messaging
 
+See [communication governance](communication-governance.md) for the separate view/send permissions, handoff, escalation, deactivation, retention, controlled redaction and export/access logging added after this foundation.
+
 Run `php artisan migrate` and `php artisan db:seed --class=PermissionSeeder` to install storage and the permission catalog. No provider or AWS resources are provisioned. The old `/api/messages` API returns 410 for every operation. Its records remain preserved; they are never exposed as authorized platform conversations.
 
 All new endpoints require Sanctum authentication, active tenant membership and the existing `X-Tenant-Id` context. Responses use the standard API envelope. Every read requires current participation and permissions; knowing a thread ID, an admin role, or wildcard CRUD permissions grants no access. Foreign and inaccessible threads return 404. Search matches authorized thread subjects only. Lists paginate with `per_page` (1–100, default 25) and `page`, returning `meta.pagination`.
@@ -12,12 +14,13 @@ Assign exact catalog permissions through the existing role permission API:
 | --- | --- |
 | `messaging.internal.send` | Start/send an internal thread |
 | `messaging.internal.receive` | Receive/read internal messages as an invited participant |
-| `messaging.patient.send` | Start, read and send patient threads as participating staff |
+| `messaging.patient.view` | Read actively assigned/invited patient threads |
+| `messaging.patient.send` | Create/send patient threads; also requires patient view |
 | `messaging.preferences.manage` | Review/record patient in-app consent evidence |
 
-`PUT /api/users/{user}/messaging-permissions` is admin-only and accepts all three nullable boolean fields: `internal_send`, `internal_receive`, `patient_send`. `null` inherits the role grant; false overrides it with denial; true explicitly grants it. Grants remain tenant-local. Patient send permissions never override the admin/patient role prohibition. Users need a clinic role; portal patient identities cannot use these endpoints.
+`PUT /api/users/{user}/messaging-permissions` requires admin role plus settings-manage permission. It accepts nullable messaging overrides, including separate view/send grants; see the governance contract. `null` inherits the role grant; false denies; true grants. Patient send/view permissions never override the admin/patient role prohibition. Users need a clinic role; portal patient identities cannot use these endpoints.
 
-Admins may initiate internal threads targeting eligible staff. Staff may exchange messages with eligible staff. Staff-to-admin sends are outside the permitted directions and return 403, including replies to admin broadcasts. No participant management endpoint is offered. Patient threads reject every admin participant and recheck every staff participant at send time, including subsequent role changes. Admins cannot review patient messaging preferences through this module.
+Admins may initiate internal threads targeting eligible staff. Staff may exchange messages with eligible staff. Staff-to-admin sends are outside the permitted directions and return 403, including replies to admin broadcasts. Patient participation now supports explicit handoff and supervisor escalation through governance endpoints. Patient threads reject every admin participant and recheck active staff participants at send time, including subsequent role changes. Admins cannot review patient messaging preferences through this module.
 
 ## Threads and sends
 
