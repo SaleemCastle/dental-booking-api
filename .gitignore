@@ -81,3 +81,7 @@ Thumbs.db
 
 # Private captures used only by opt-in merchant sandbox tests
 /storage/app/handypay-sandbox/
+
+# P4-M4-B review documentation
+!/docs/architecture/P4-M4-B-prior-authorizations-gap-analysis.md
+!/docs/prior-authorizations.md
