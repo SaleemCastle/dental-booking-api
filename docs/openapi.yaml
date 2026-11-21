@@ -30,6 +30,7 @@ tags:
   - name: Insurance Estimates
   - name: Insurance Claims
   - name: Insurance Remittances
+  - name: Insurance Receipts
   - name: Tenants
   - name: Platform Tenants
   - name: Dental Charts
@@ -849,6 +850,66 @@ paths:
         '200': { description: Audited ordered event history. }
         '403': { description: Explicit claims view permission required. }
         '404': { description: Claim outside patient/tenant scope. }
+  /api/insurance/receipts:
+    parameters:
+      - $ref: "#/components/parameters/TenantHeader"
+    get:
+      tags: [Insurance Receipts]
+      summary: List manually recorded insurer receipts
+      description: Requires insurance_receipts.view and active tenant membership. Receipt observations are not posted payments; remittance advice is not proof of payment.
+      parameters:
+        - { name: insurer_id, in: query, schema: { type: integer, minimum: 1 } }
+        - { name: page, in: query, schema: { type: integer, minimum: 1, default: 1 } }
+        - { name: per_page, in: query, schema: { type: integer, minimum: 1, maximum: 100, default: 15 } }
+      responses:
+        '200': { description: Paginated private/no-store receipt history. }
+        '403': { $ref: "#/components/responses/Forbidden" }
+    post:
+      tags: [Insurance Receipts]
+      summary: Record manual insurer receipt evidence
+      description: Requires insurance_receipts.record. Creates nonposting evidence only. UUID Idempotency-Key required.
+      parameters:
+        - { name: Idempotency-Key, in: header, required: true, schema: { type: string, format: uuid } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/InsurerReceiptInput' }
+      responses:
+        '201': { description: Immutable nonposting receipt evidence recorded. }
+        '200': { description: Identical idempotent replay. }
+        '409': { description: Duplicate external reference or conflicting idempotency key. }
+        '422': { $ref: "#/components/responses/ValidationError" }
+  /api/insurance/receipts/{receipt}:
+    parameters:
+      - $ref: "#/components/parameters/TenantHeader"
+      - { name: receipt, in: path, required: true, schema: { type: integer, minimum: 1 } }
+    get:
+      tags: [Insurance Receipts]
+      summary: Retrieve receipt and verification history
+      description: Requires insurance_receipts.view. Verification stays separate from the posted payment ledger.
+      responses:
+        '200': { description: Receipt and optional immutable verification record. }
+        '403': { $ref: "#/components/responses/Forbidden" }
+        '404': { $ref: "#/components/responses/NotFound" }
+  /api/insurance/receipts/{receipt}/verification:
+    parameters:
+      - $ref: "#/components/parameters/TenantHeader"
+      - { name: receipt, in: path, required: true, schema: { type: integer, minimum: 1 } }
+    post:
+      tags: [Insurance Receipts]
+      summary: Append manual receipt verification observation
+      description: Requires insurance_receipts.verify. Exact observed amount and currency must match; verification does not allocate or post cash.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/InsurerReceiptVerificationInput' }
+      responses:
+        '201': { description: Immutable staff verification observation appended. }
+        '403': { $ref: "#/components/responses/Forbidden" }
+        '409': { description: Already verified or amount/currency differs. }
+        '422': { $ref: "#/components/responses/ValidationError" }
   /api/insurance/remittances:
     parameters:
       - $ref: "#/components/parameters/TenantHeader"
@@ -5037,3 +5098,25 @@ components:
           minItems: 1
           maxItems: 500
           items: { $ref: '#/components/schemas/InsuranceRemittanceLineInput' }
+    InsurerReceiptInput:
+      type: object
+      additionalProperties: false
+      required: [insurer_id, received_on, channel, source_provenance, amount, currency]
+      properties:
+        insurer_id: { type: integer, minimum: 1 }
+        remittance_advice_id: { type: integer, nullable: true }
+        external_reference: { type: string, nullable: true, maxLength: 200 }
+        received_on: { type: string, format: date }
+        channel: { type: string, enum: [portal, email, fax, paper, phone, bank_statement, other] }
+        source_provenance: { type: string, minLength: 1, maxLength: 2000 }
+        amount: { type: string, pattern: '^(?:0|[1-9][0-9]{0,11})(?:\.[0-9]{1,2})?$' }
+        currency: { type: string, pattern: '^[A-Z]{3}$' }
+    InsurerReceiptVerificationInput:
+      type: object
+      additionalProperties: false
+      required: [verification_method, provenance, observed_amount, observed_currency]
+      properties:
+        verification_method: { type: string, enum: [bank_statement, deposit_record, insurer_confirmation, other] }
+        provenance: { type: string, minLength: 1, maxLength: 2000 }
+        observed_amount: { type: string, pattern: '^(?:0|[1-9][0-9]{0,11})(?:\.[0-9]{1,2})?$' }
+        observed_currency: { type: string, pattern: '^[A-Z]{3}$' }
