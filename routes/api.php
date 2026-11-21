@@ -177,6 +177,13 @@ Route::middleware(['auth:sanctum', 'tenant'])->group(function () {
         );
     });
 
+    Route::controller(\App\Http\Controllers\Api\InsurerReceiptController::class)->prefix('insurance/receipts')->group(function () {
+        Route::get('', 'index');
+        Route::post('', 'store');
+        Route::get('{receipt}', 'show')->whereNumber('receipt');
+        Route::post('{receipt}/verification', 'verify')->whereNumber('receipt');
+    });
+
     Route::get('dashboard/summary', [DashboardController::class, 'summary']);
 
     Route::get('reports/appointments', [ReportController::class, 'appointments']);

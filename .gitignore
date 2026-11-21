@@ -25,6 +25,7 @@ yarn-error.log
 !/docs/architecture/P4-M4-A-claims-domain-gap-analysis.md
 !/docs/insurance-claims.md
 !/docs/insurance-remittances.md
+!/docs/insurance-receipts.md
 !/docs/insurance-estimates.md
 !/docs/insurance-benefits.md
 !/docs/insurance-benefits.openapi.json
