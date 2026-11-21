@@ -73,7 +73,7 @@ class PermissionSeeder extends Seeder
             'insurance_catalog' => ['view', 'manage', 'review', 'publish'],
             'patient_insurance' => ['view', 'manage', 'reveal'],
             'insurance_estimates' => ['view', 'create'],
-            'insurance_claims' => ['view', 'prepare', 'submit'],
+            'insurance_claims' => ['view', 'prepare', 'submit', 'responses.record', 'responses.view', 'appeals.manage', 'appeals.view', 'corrections.prepare'],
             'insurance_prior_authorizations' => ['view', 'manage', 'decide', 'evidence'],
         ];
     }

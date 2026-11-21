@@ -9,7 +9,7 @@ class InsuranceClaim extends Model
 {
     use BelongsToTenant;
 
-    public const STATUSES = ['draft', 'ready', 'submitted', 'cancelled'];
+    public const STATUSES = ['draft', 'ready', 'submitted', 'acknowledged', 'under_review', 'additional_information_requested', 'rejected', 'approved', 'partially_approved', 'denied', 'cancelled'];
 
     public $timestamps = false;
 
@@ -30,5 +30,15 @@ class InsuranceClaim extends Model
     public function events()
     {
         return $this->hasMany(InsuranceClaimEvent::class, 'claim_id')->orderBy('version');
+    }
+
+    public function responses()
+    {
+        return $this->hasMany(InsuranceClaimResponse::class, 'claim_id')->orderByDesc('id');
+    }
+
+    public function appeals()
+    {
+        return $this->hasMany(InsuranceClaimAppeal::class, 'claim_id')->orderByDesc('id');
     }
 }

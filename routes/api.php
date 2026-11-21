@@ -72,8 +72,16 @@ Route::middleware(['auth:sanctum', 'tenant'])->group(function () {
     Route::post('patients/{patient}/insurance-claims/{claim}/readiness', [\App\Http\Controllers\Api\InsuranceClaimController::class, 'validateReadiness'])->whereNumber('patient')->whereNumber('claim');
     Route::post('patients/{patient}/insurance-claims/{claim}/cancel', [\App\Http\Controllers\Api\InsuranceClaimController::class, 'cancel'])->whereNumber('patient')->whereNumber('claim');
     Route::post('patients/{patient}/insurance-claims/{claim}/submissions', [\App\Http\Controllers\Api\InsuranceClaimController::class, 'submit'])->whereNumber('patient')->whereNumber('claim');
+    Route::post('patients/{patient}/insurance-claims/{claim}/corrections', [\App\Http\Controllers\Api\InsuranceClaimController::class, 'createCorrection'])->whereNumber('patient')->whereNumber('claim');
     Route::get('patients/{patient}/insurance-claims/{claim}/submissions', [\App\Http\Controllers\Api\InsuranceClaimController::class, 'submissions'])->whereNumber('patient')->whereNumber('claim');
     Route::get('patients/{patient}/insurance-claims/{claim}/events', [\App\Http\Controllers\Api\InsuranceClaimController::class, 'events'])->whereNumber('patient')->whereNumber('claim');
+    Route::post('patients/{patient}/insurance-claims/{claim}/responses', [\App\Http\Controllers\Api\InsuranceClaimController::class, 'recordResponse'])->whereNumber('patient')->whereNumber('claim');
+    Route::get('patients/{patient}/insurance-claims/{claim}/responses', [\App\Http\Controllers\Api\InsuranceClaimController::class, 'responses'])->whereNumber('patient')->whereNumber('claim');
+    Route::post('patients/{patient}/insurance-claims/{claim}/appeals', [\App\Http\Controllers\Api\InsuranceClaimController::class, 'createAppeal'])->whereNumber('patient')->whereNumber('claim');
+    Route::get('patients/{patient}/insurance-claims/{claim}/appeals', [\App\Http\Controllers\Api\InsuranceClaimController::class, 'appealHistory'])->whereNumber('patient')->whereNumber('claim');
+    Route::post('patients/{patient}/insurance-claims/{claim}/appeals/{appeal}/submissions', [\App\Http\Controllers\Api\InsuranceClaimController::class, 'submitAppeal'])->whereNumber('patient')->whereNumber('claim')->whereNumber('appeal');
+    Route::post('patients/{patient}/insurance-claims/{claim}/appeals/{appeal}/responses', [\App\Http\Controllers\Api\InsuranceClaimController::class, 'recordAppealResponse'])->whereNumber('patient')->whereNumber('claim')->whereNumber('appeal');
+    Route::post('patients/{patient}/insurance-claims/{claim}/appeals/{appeal}/withdraw', [\App\Http\Controllers\Api\InsuranceClaimController::class, 'withdrawAppeal'])->whereNumber('patient')->whereNumber('claim')->whereNumber('appeal');
     Route::controller(\App\Http\Controllers\Api\InsurancePriorAuthorizationController::class)->prefix('patients/{patient}/insurance-prior-authorizations')->whereNumber('patient')->group(function () {
         Route::get('', 'index');
         Route::post('', 'store');

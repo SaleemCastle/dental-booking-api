@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Billing\Money;
+use App\Insurance\InsuranceClaimLifecycle;
 use App\Models\InsuranceClaim;
 use App\Models\InsuranceClaimEvent;
 use App\Models\InsuranceClaimLine;
@@ -28,7 +29,7 @@ class InsuranceClaimWorkflow
         $this->authorize($patient, $actor, 'view');
         $data = Validator::make($input, [
             'page' => ['sometimes', 'integer', 'min:1'], 'per_page' => ['sometimes', 'integer', 'between:1,100'],
-            'status' => ['sometimes', 'in:draft,ready,submitted,cancelled'],
+            'status' => ['sometimes', 'in:'.implode(',', InsuranceClaim::STATUSES)],
         ])->validate();
         $query = InsuranceClaim::query()->where('patient_id', $patient->id)->with('lines')->orderByDesc('id');
         if (isset($data['status'])) {
@@ -43,13 +44,17 @@ class InsuranceClaimWorkflow
     public function create(Patient $patient, array $input, User $actor): InsuranceClaim
     {
         $patient = $this->authorize($patient, $actor, 'prepare');
-        $this->only($input, ['association_id', 'policy_revision_id', 'estimate_id', 'corrects_claim_id']);
+        $this->only($input, ['association_id', 'policy_revision_id', 'estimate_id', 'corrects_claim_id', 'correction_reason']);
         $data = Validator::make($input, [
             'association_id' => ['required', 'integer', 'min:1'],
             'policy_revision_id' => ['sometimes', 'nullable', 'integer', 'min:1'],
             'estimate_id' => ['sometimes', 'nullable', 'integer', 'min:1'],
             'corrects_claim_id' => ['sometimes', 'nullable', 'integer', 'min:1'],
+            'correction_reason' => ['required_with:corrects_claim_id', 'string', 'max:2000', 'regex:/\\S/u'],
         ])->validate();
+        if (isset($data['corrects_claim_id']) !== isset($data['correction_reason'])) {
+            throw ValidationException::withMessages(['correction_reason' => ['A correction reason is required only for corrected claims.']]);
+        }
         $association = PatientInsurerAssociation::query()->where('patient_id', $patient->id)->findOrFail($data['association_id']);
         $this->validateSources($patient, $association->id, $data);
 
@@ -59,6 +64,7 @@ class InsuranceClaimWorkflow
                 'patient_id' => $patient->id, 'association_id' => $association->id,
                 'policy_revision_id' => $data['policy_revision_id'] ?? null, 'estimate_id' => $data['estimate_id'] ?? null,
                 'corrects_claim_id' => $data['corrects_claim_id'] ?? null, 'claim_identifier' => (string) Str::uuid(),
+                'correction_reason' => isset($data['correction_reason']) ? trim($data['correction_reason']) : null,
                 'status' => 'draft', 'lock_version' => 1, 'created_by_user_id' => $actor->id,
                 'updated_by_user_id' => $actor->id, 'created_at' => now('UTC'), 'updated_at' => now('UTC'),
             ])->save();
@@ -67,6 +73,18 @@ class InsuranceClaimWorkflow
 
             return $claim->load('lines');
         }, 3);
+    }
+
+    public function createCorrection(Patient $patient, InsuranceClaim $prior, array $input, User $actor): InsuranceClaim
+    {
+        $current = $this->readClaim($patient, $prior, $actor);
+        abort_unless($actor->hasPermission('insurance_claims.corrections.prepare'), 403);
+        $alreadyCorrected = InsuranceClaim::query()->where('corrects_claim_id', $current->id)->exists();
+        abort_unless(InsuranceClaimLifecycle::canCreateCorrection($current->status, $alreadyCorrected), 422, 'Only uncorrected submitted or adverse claims can be corrected.');
+        $this->only($input, ['correction_reason', 'policy_revision_id', 'estimate_id']);
+        $data = Validator::make($input, ['correction_reason' => ['required', 'string', 'max:2000', 'regex:/\\S/u'], 'policy_revision_id' => ['sometimes', 'nullable', 'integer', 'min:1'], 'estimate_id' => ['sometimes', 'nullable', 'integer', 'min:1']])->validate();
+
+        return $this->create($patient, [...$data, 'association_id' => $current->association_id, 'corrects_claim_id' => $current->id], $actor);
     }
 
     public function show(Patient $patient, InsuranceClaim $claim, User $actor): InsuranceClaim
@@ -338,7 +356,8 @@ class InsuranceClaimWorkflow
         }
         if (isset($data['corrects_claim_id']) && $data['corrects_claim_id'] !== null) {
             $prior = InsuranceClaim::query()->where('patient_id', $patient->id)->where('association_id', $associationId)->findOrFail($data['corrects_claim_id']);
-            abort_unless($prior->status === 'submitted', 422, 'Corrections must link to a submitted claim.');
+            $alreadyCorrected = InsuranceClaim::query()->where('corrects_claim_id', $prior->id)->exists();
+            abort_unless(InsuranceClaimLifecycle::canCreateCorrection($prior->status, $alreadyCorrected), 422, 'Corrections must link to an uncorrected submitted or adverse claim.');
         }
     }
 
