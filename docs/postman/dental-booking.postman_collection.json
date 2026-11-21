@@ -1609,7 +1609,7 @@
                             },
                             {
                                 "key": "Idempotency-Key",
-                                "value": "postman-claim-submit-001",
+                                "value": "{{$guid}}",
                                 "description": "",
                                 "disabled": false
                             },
@@ -2485,6 +2485,258 @@
                             "query": []
                         },
                         "description": "GET /api/patients/{patient}/insurance-claims/{claim}/events\nDomain writes require allow_writes=true. Missing required variables skip requests rather than selecting real records automatically."
+                    },
+                    "response": []
+                }
+            ]
+        },
+        {
+            "name": "Insurance Remittances",
+            "item": [
+                {
+                    "name": "GET List manually recorded insurer remittance advice",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            },
+                            {
+                                "key": "X-Tenant-Id",
+                                "value": "",
+                                "description": "Select an active clinic membership. Omit for default-clinic. Does not confer membership or bypass authorization.",
+                                "disabled": true
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/api/insurance/remittances?page=1&per_page=15",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "insurance",
+                                "remittances"
+                            ],
+                            "query": [
+                                {
+                                    "key": "insurer_id",
+                                    "value": "{{insurer_id}}",
+                                    "disabled": true,
+                                    "description": "Optional filter; enable its checkbox to send it."
+                                },
+                                {
+                                    "key": "advice_date_from",
+                                    "value": "",
+                                    "disabled": true,
+                                    "description": "Optional filter; enable its checkbox to send it."
+                                },
+                                {
+                                    "key": "advice_date_to",
+                                    "value": "",
+                                    "disabled": true,
+                                    "description": "Optional filter; enable its checkbox to send it."
+                                },
+                                {
+                                    "key": "page",
+                                    "value": "1",
+                                    "disabled": false,
+                                    "description": "Optional filter; enable its checkbox to send it."
+                                },
+                                {
+                                    "key": "per_page",
+                                    "value": "15",
+                                    "disabled": false,
+                                    "description": "Optional filter; enable its checkbox to send it."
+                                }
+                            ]
+                        },
+                        "description": "Requires insurance_remittances.view and patients.view. Paginated clinic-scoped staff observations; these records do not represent insurer-verified settlement or cash receipt.\n\nGET /api/insurance/remittances\nDomain writes require allow_writes=true. Missing required variables skip requests rather than selecting real records automatically."
+                    },
+                    "response": []
+                },
+                {
+                    "name": "POST Record manual insurer remittance advice",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            },
+                            {
+                                "key": "X-Tenant-Id",
+                                "value": "",
+                                "description": "Select an active clinic membership. Omit for default-clinic. Does not confer membership or bypass authorization.",
+                                "disabled": true
+                            },
+                            {
+                                "key": "Idempotency-Key",
+                                "value": "{{$guid}}",
+                                "description": "",
+                                "disabled": false
+                            },
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/api/insurance/remittances",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "insurance",
+                                "remittances"
+                            ],
+                            "query": []
+                        },
+                        "description": "Requires insurance_remittances.record, patients.view and active clinic membership. Staff-entered observation only; supplied amounts remain informational and do not post payments, modify invoices or balances, reconcile receivables, or recognize cash. An Idempotency-Key must be a UUID.\n\nPOST /api/insurance/remittances\nDomain writes require allow_writes=true. Missing required variables skip requests rather than selecting real records automatically.",
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"insurer_id\": \"{{insurer_id}}\",\n    \"external_reference\": \"Replace with insurer-provided reference\",\n    \"advice_date\": \"2026-01-15\",\n    \"communication_channel\": \"portal\",\n    \"source_provenance\": \"Manually recorded from staff-observed insurer correspondence; not independently verified.\",\n    \"currency\": \"COP\",\n    \"lines\": [\n        {\n            \"patient_id\": \"{{patient_id}}\",\n            \"association_id\": \"{{association_id}}\"\n        }\n    ]\n}\n",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        }
+                    },
+                    "response": []
+                },
+                {
+                    "name": "GET Retrieve manually recorded insurer remittance advice",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            },
+                            {
+                                "key": "X-Tenant-Id",
+                                "value": "",
+                                "description": "Select an active clinic membership. Omit for default-clinic. Does not confer membership or bypass authorization.",
+                                "disabled": true
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/api/insurance/remittances/{{advice_id}}",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "insurance",
+                                "remittances",
+                                "{{advice_id}}"
+                            ],
+                            "query": []
+                        },
+                        "description": "Requires insurance_remittances.view and patients.view. Returns an immutable staff observation in the active clinic only.\n\nGET /api/insurance/remittances/{advice}\nDomain writes require allow_writes=true. Missing required variables skip requests rather than selecting real records automatically."
+                    },
+                    "response": []
+                },
+                {
+                    "name": "GET List remittance advice line items",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            },
+                            {
+                                "key": "X-Tenant-Id",
+                                "value": "",
+                                "description": "Select an active clinic membership. Omit for default-clinic. Does not confer membership or bypass authorization.",
+                                "disabled": true
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/api/insurance/remittances/{{advice_id}}/lines?page=1&per_page=50",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "insurance",
+                                "remittances",
+                                "{{advice_id}}",
+                                "lines"
+                            ],
+                            "query": [
+                                {
+                                    "key": "page",
+                                    "value": "1",
+                                    "disabled": false,
+                                    "description": "Optional filter; enable its checkbox to send it."
+                                },
+                                {
+                                    "key": "per_page",
+                                    "value": "50",
+                                    "disabled": false,
+                                    "description": "Optional filter; enable its checkbox to send it."
+                                }
+                            ]
+                        },
+                        "description": "Requires insurance_remittances.view and patients.view. Lines retain explicit nulls when a reported amount is unknown; pagination is clinic-scoped.\n\nGET /api/insurance/remittances/{advice}/lines\nDomain writes require allow_writes=true. Missing required variables skip requests rather than selecting real records automatically."
+                    },
+                    "response": []
+                },
+                {
+                    "name": "POST Record a linked correction to remittance advice",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            },
+                            {
+                                "key": "X-Tenant-Id",
+                                "value": "",
+                                "description": "Select an active clinic membership. Omit for default-clinic. Does not confer membership or bypass authorization.",
+                                "disabled": true
+                            },
+                            {
+                                "key": "Idempotency-Key",
+                                "value": "{{$guid}}",
+                                "description": "",
+                                "disabled": false
+                            },
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/api/insurance/remittances/{{advice_id}}/corrections",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "insurance",
+                                "remittances",
+                                "{{advice_id}}",
+                                "corrections"
+                            ],
+                            "query": []
+                        },
+                        "description": "Requires insurance_remittances.correct, patients.view and active clinic membership. Creates a new immutable advice record linked to the original, retaining insurer and currency; no insurer-issued identifier is generated.\n\nPOST /api/insurance/remittances/{advice}/corrections\nDomain writes require allow_writes=true. Missing required variables skip requests rather than selecting real records automatically.",
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"external_reference\": \"Replace with corrected insurer reference, if supplied.\",\n    \"advice_date\": \"2026-01-15\",\n    \"communication_channel\": \"portal\",\n    \"source_provenance\": \"Manually recorded from staff-observed insurer correspondence; not independently verified.\",\n    \"currency\": \"COP\",\n    \"correction_reason\": \"Postman test data\",\n    \"lines\": [\n        {\n            \"patient_id\": \"{{patient_id}}\",\n            \"association_id\": \"{{association_id}}\"\n        }\n    ]\n}\n",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        }
                     },
                     "response": []
                 }
@@ -6503,6 +6755,12 @@
                             {
                                 "key": "Accept",
                                 "value": "application/json"
+                            },
+                            {
+                                "key": "X-Tenant-Id",
+                                "value": "",
+                                "description": "Select an active clinic membership. Omit for default-clinic. Does not confer membership or bypass authorization.",
+                                "disabled": true
                             }
                         ],
                         "url": {
@@ -6529,6 +6787,12 @@
                             {
                                 "key": "Accept",
                                 "value": "application/json"
+                            },
+                            {
+                                "key": "X-Tenant-Id",
+                                "value": "",
+                                "description": "Select an active clinic membership. Omit for default-clinic. Does not confer membership or bypass authorization.",
+                                "disabled": true
                             },
                             {
                                 "key": "Content-Type",
@@ -6568,6 +6832,12 @@
                             {
                                 "key": "Accept",
                                 "value": "application/json"
+                            },
+                            {
+                                "key": "X-Tenant-Id",
+                                "value": "",
+                                "description": "Select an active clinic membership. Omit for default-clinic. Does not confer membership or bypass authorization.",
+                                "disabled": true
                             }
                         ],
                         "url": {
@@ -6596,6 +6866,12 @@
                             {
                                 "key": "Accept",
                                 "value": "application/json"
+                            },
+                            {
+                                "key": "X-Tenant-Id",
+                                "value": "",
+                                "description": "Select an active clinic membership. Omit for default-clinic. Does not confer membership or bypass authorization.",
+                                "disabled": true
                             },
                             {
                                 "key": "Content-Type",
@@ -6638,6 +6914,12 @@
                                 "value": "application/json"
                             },
                             {
+                                "key": "X-Tenant-Id",
+                                "value": "",
+                                "description": "Select an active clinic membership. Omit for default-clinic. Does not confer membership or bypass authorization.",
+                                "disabled": true
+                            },
+                            {
                                 "key": "Content-Type",
                                 "value": "application/json"
                             }
@@ -6676,6 +6958,12 @@
                             {
                                 "key": "Accept",
                                 "value": "application/json"
+                            },
+                            {
+                                "key": "X-Tenant-Id",
+                                "value": "",
+                                "description": "Select an active clinic membership. Omit for default-clinic. Does not confer membership or bypass authorization.",
+                                "disabled": true
                             },
                             {
                                 "key": "Content-Type",
@@ -6718,6 +7006,12 @@
                                 "value": "application/json"
                             },
                             {
+                                "key": "X-Tenant-Id",
+                                "value": "",
+                                "description": "Select an active clinic membership. Omit for default-clinic. Does not confer membership or bypass authorization.",
+                                "disabled": true
+                            },
+                            {
                                 "key": "Content-Type",
                                 "value": "application/json"
                             }
@@ -6756,6 +7050,12 @@
                             {
                                 "key": "Accept",
                                 "value": "application/json"
+                            },
+                            {
+                                "key": "X-Tenant-Id",
+                                "value": "",
+                                "description": "Select an active clinic membership. Omit for default-clinic. Does not confer membership or bypass authorization.",
+                                "disabled": true
                             },
                             {
                                 "key": "Content-Type",
@@ -6798,6 +7098,12 @@
                                 "value": "application/json"
                             },
                             {
+                                "key": "X-Tenant-Id",
+                                "value": "",
+                                "description": "Select an active clinic membership. Omit for default-clinic. Does not confer membership or bypass authorization.",
+                                "disabled": true
+                            },
+                            {
                                 "key": "Content-Type",
                                 "value": "application/json"
                             }
@@ -6836,6 +7142,12 @@
                             {
                                 "key": "Accept",
                                 "value": "application/json"
+                            },
+                            {
+                                "key": "X-Tenant-Id",
+                                "value": "",
+                                "description": "Select an active clinic membership. Omit for default-clinic. Does not confer membership or bypass authorization.",
+                                "disabled": true
                             }
                         ],
                         "url": {
@@ -6876,6 +7188,12 @@
                             {
                                 "key": "Accept",
                                 "value": "application/json"
+                            },
+                            {
+                                "key": "X-Tenant-Id",
+                                "value": "",
+                                "description": "Select an active clinic membership. Omit for default-clinic. Does not confer membership or bypass authorization.",
+                                "disabled": true
                             },
                             {
                                 "key": "Content-Type",
@@ -8100,6 +8418,16 @@
         },
         {
             "key": "line_id",
+            "value": "",
+            "type": "string"
+        },
+        {
+            "key": "insurer_id",
+            "value": "",
+            "type": "string"
+        },
+        {
+            "key": "advice_id",
             "value": "",
             "type": "string"
         },

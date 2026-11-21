@@ -130,7 +130,7 @@ class PostmanExport
             }
             $schema = $this->expand($parameter['schema'] ?? []);
             $value = $parameter['name'] === 'Idempotency-Key'
-                ? 'postman-claim-submit-001'
+                ? (($schema['format'] ?? '') === 'uuid' ? '{{$guid}}' : 'postman-claim-submit-001')
                 : ($schema['example'] ?? $schema['default'] ?? '');
             $request['header'][] = [
                 'key' => $parameter['name'], 'value' => (string) $value,
