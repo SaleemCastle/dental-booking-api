@@ -63,6 +63,10 @@ yarn-error.log
 !/docs/postman/insurance-evidence.postman_environment.json
 !/docs/postman/insurance-catalog.postman_collection.json
 !/docs/postman/insurance-catalog.postman_environment.json
+!/docs/insurance-claims.openapi.json
+!/docs/postman/insurance-claims.postman_collection.json
+!/docs/postman/insurance-claims.postman_environment.json
+!/docs/p4-m4-c-gap-analysis.md
 
 # Local environment files
 .env.*
@@ -78,6 +82,7 @@ Thumbs.db
 
 # Test and coverage output
 /coverage
+/.coverage/
 /build/coverage
 
 # Private captures used only by opt-in merchant sandbox tests
