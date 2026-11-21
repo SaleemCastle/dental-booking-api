@@ -29,6 +29,7 @@ tags:
   - name: Audit Logs
   - name: Insurance Estimates
   - name: Insurance Claims
+  - name: Insurance Remittances
   - name: Tenants
   - name: Platform Tenants
   - name: Dental Charts
@@ -848,6 +849,94 @@ paths:
         '200': { description: Audited ordered event history. }
         '403': { description: Explicit claims view permission required. }
         '404': { description: Claim outside patient/tenant scope. }
+  /api/insurance/remittances:
+    parameters:
+      - $ref: "#/components/parameters/TenantHeader"
+    get:
+      tags: [Insurance Remittances]
+      summary: List manually recorded insurer remittance advice
+      description: Requires insurance_remittances.view and patients.view. Paginated clinic-scoped staff observations; these records do not represent insurer-verified settlement or cash receipt.
+      parameters:
+        - { name: insurer_id, in: query, schema: { type: integer, minimum: 1 } }
+        - { name: advice_date_from, in: query, schema: { type: string, format: date } }
+        - { name: advice_date_to, in: query, schema: { type: string, format: date } }
+        - { name: page, in: query, schema: { type: integer, minimum: 1, default: 1 } }
+        - { name: per_page, in: query, schema: { type: integer, minimum: 1, maximum: 100, default: 15 } }
+      responses:
+        '200': { description: Standard envelope with a paginated advice array and meta.pagination; private/no-store. }
+        '401': { $ref: "#/components/responses/Unauthenticated" }
+        '403': { $ref: "#/components/responses/Forbidden" }
+        '422': { $ref: "#/components/responses/ValidationError" }
+    post:
+      tags: [Insurance Remittances]
+      summary: Record manual insurer remittance advice
+      description: Requires insurance_remittances.record, patients.view and active clinic membership. Staff-entered observation only; supplied amounts remain informational and do not post payments, modify invoices or balances, reconcile receivables, or recognize cash. An Idempotency-Key must be a UUID.
+      parameters:
+        - { name: Idempotency-Key, in: header, required: true, schema: { type: string, format: uuid, example: e9a92467-981a-46db-a6fe-d9bc0e9bc215 } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/InsuranceRemittanceAdviceInput' }
+      responses:
+        '201': { description: Immutable advice observation and its line items recorded. }
+        '200': { description: Identical idempotent replay. }
+        '401': { $ref: "#/components/responses/Unauthenticated" }
+        '403': { $ref: "#/components/responses/Forbidden" }
+        '409': { description: Duplicate insurer reference or idempotency key reused with different data. }
+        '422': { $ref: "#/components/responses/ValidationError" }
+  /api/insurance/remittances/{advice}:
+    parameters:
+      - $ref: "#/components/parameters/TenantHeader"
+      - { name: advice, in: path, required: true, schema: { type: integer, minimum: 1 } }
+    get:
+      tags: [Insurance Remittances]
+      summary: Retrieve manually recorded insurer remittance advice
+      description: Requires insurance_remittances.view and patients.view. Returns an immutable staff observation in the active clinic only.
+      responses:
+        '200': { description: Standard envelope containing advice metadata and reported totals. }
+        '401': { $ref: "#/components/responses/Unauthenticated" }
+        '403': { $ref: "#/components/responses/Forbidden" }
+        '404': { $ref: "#/components/responses/NotFound" }
+  /api/insurance/remittances/{advice}/lines:
+    parameters:
+      - $ref: "#/components/parameters/TenantHeader"
+      - { name: advice, in: path, required: true, schema: { type: integer, minimum: 1 } }
+    get:
+      tags: [Insurance Remittances]
+      summary: List remittance advice line items
+      description: Requires insurance_remittances.view and patients.view. Lines retain explicit nulls when a reported amount is unknown; pagination is clinic-scoped.
+      parameters:
+        - { name: page, in: query, schema: { type: integer, minimum: 1, default: 1 } }
+        - { name: per_page, in: query, schema: { type: integer, minimum: 1, maximum: 100, default: 50 } }
+      responses:
+        '200': { description: Standard envelope with paginated line items and meta.pagination; private/no-store. }
+        '401': { $ref: "#/components/responses/Unauthenticated" }
+        '403': { $ref: "#/components/responses/Forbidden" }
+        '404': { $ref: "#/components/responses/NotFound" }
+  /api/insurance/remittances/{advice}/corrections:
+    parameters:
+      - $ref: "#/components/parameters/TenantHeader"
+      - { name: advice, in: path, required: true, schema: { type: integer, minimum: 1 } }
+    post:
+      tags: [Insurance Remittances]
+      summary: Record a linked correction to remittance advice
+      description: Requires insurance_remittances.correct, patients.view and active clinic membership. Creates a new immutable advice record linked to the original, retaining insurer and currency; no insurer-issued identifier is generated.
+      parameters:
+        - { name: Idempotency-Key, in: header, required: true, schema: { type: string, format: uuid, example: e9a92467-981a-46db-a6fe-d9bc0e9bc216 } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/InsuranceRemittanceCorrectionInput' }
+      responses:
+        '201': { description: New immutable correction linked to the original advice. }
+        '200': { description: Identical idempotent replay. }
+        '401': { $ref: "#/components/responses/Unauthenticated" }
+        '403': { $ref: "#/components/responses/Forbidden" }
+        '404': { $ref: "#/components/responses/NotFound" }
+        '409': { description: Advice already has a correction or idempotency key conflicts. }
+        '422': { $ref: "#/components/responses/ValidationError" }
   /api/patients/{patient}/treatment-plans:
     parameters:
       - $ref: "#/components/parameters/TenantHeader"
@@ -4886,3 +4975,65 @@ components:
       description: Appointment projection uses unpaid when no invoice exists; otherwise the invoice lifecycle status.
       enum: [unpaid, draft, issued, partially_paid, paid, void]
       example: unpaid
+    InsuranceRemittanceAmounts:
+      type: object
+      additionalProperties: false
+      description: Insurer-reported informational totals. Omitted or null means the source did not provide a value; totals are not recalculated or reconciled.
+      properties:
+        billed: { type: string, nullable: true, pattern: '^(0|[1-9][0-9]{0,11})(\.[0-9]{1,2})?$', example: '125.00' }
+        allowed: { type: string, nullable: true, pattern: '^(0|[1-9][0-9]{0,11})(\.[0-9]{1,2})?$', example: '100.00' }
+        paid: { type: string, nullable: true, pattern: '^(0|[1-9][0-9]{0,11})(\.[0-9]{1,2})?$', example: '80.00' }
+        denied: { type: string, nullable: true, pattern: '^(0|[1-9][0-9]{0,11})(\.[0-9]{1,2})?$', example: '20.00' }
+        adjusted: { type: string, nullable: true, pattern: '^-?(0|[1-9][0-9]{0,11})(\.[0-9]{1,2})?$', example: '-5.00', description: Signed insurer-reported adjustment; not a posted accounting adjustment. }
+    InsuranceRemittanceLineInput:
+      type: object
+      additionalProperties: false
+      required: [patient_id, association_id]
+      properties:
+        external_line_reference: { type: string, nullable: true, maxLength: 200, description: Insurer-provided reference only; null when unknown. }
+        patient_id: { type: integer, minimum: 1, example: 1 }
+        association_id: { type: integer, minimum: 1, example: 1 }
+        claim_id: { type: integer, nullable: true, minimum: 1 }
+        submission_id: { type: integer, nullable: true, minimum: 1 }
+        supporting_evidence_id: { type: integer, nullable: true, minimum: 1, description: Existing authorized evidence link for the referenced claim submission; documents are not transmitted. }
+        billed_amount: { type: string, nullable: true, pattern: '^(0|[1-9][0-9]{0,11})(\.[0-9]{1,2})?$', example: '125.00' }
+        allowed_amount: { type: string, nullable: true, pattern: '^(0|[1-9][0-9]{0,11})(\.[0-9]{1,2})?$', example: '100.00' }
+        paid_amount: { type: string, nullable: true, pattern: '^(0|[1-9][0-9]{0,11})(\.[0-9]{1,2})?$', example: '80.00' }
+        denied_amount: { type: string, nullable: true, pattern: '^(0|[1-9][0-9]{0,11})(\.[0-9]{1,2})?$', example: '20.00' }
+        adjusted_amount: { type: string, nullable: true, pattern: '^-?(0|[1-9][0-9]{0,11})(\.[0-9]{1,2})?$', example: '-5.00', description: Signed reported amount only; it does not post an adjustment. }
+        adjustment_reason: { type: string, nullable: true, maxLength: 2000 }
+    InsuranceRemittanceAdviceInput:
+      type: object
+      additionalProperties: false
+      required: [insurer_id, external_reference, advice_date, communication_channel, source_provenance, currency, lines]
+      properties:
+        insurer_id: { type: integer, minimum: 1, example: 1 }
+        external_reference: { type: string, minLength: 1, maxLength: 200, example: 'Replace with insurer-provided reference' }
+        advice_date: { type: string, format: date, example: '2026-01-15' }
+        communication_channel: { type: string, enum: [portal, email, fax, paper, phone, other] }
+        source_provenance: { type: string, minLength: 1, maxLength: 2000, example: 'Manually recorded from staff-observed insurer correspondence; not independently verified.' }
+        currency: { type: string, pattern: '^[A-Z]{3}$', example: COP }
+        reported_totals: { $ref: '#/components/schemas/InsuranceRemittanceAmounts' }
+        lines:
+          type: array
+          minItems: 1
+          maxItems: 500
+          items: { $ref: '#/components/schemas/InsuranceRemittanceLineInput' }
+    InsuranceRemittanceCorrectionInput:
+      type: object
+      additionalProperties: false
+      required: [external_reference, advice_date, communication_channel, source_provenance, currency, correction_reason, lines]
+      description: Creates a new linked immutable record. Insurer and currency are inherited/validated against the original; no insurer identifier is generated.
+      properties:
+        external_reference: { type: string, minLength: 1, maxLength: 200, example: 'Replace with corrected insurer reference, if supplied.' }
+        advice_date: { type: string, format: date, example: '2026-01-15' }
+        communication_channel: { type: string, enum: [portal, email, fax, paper, phone, other] }
+        source_provenance: { type: string, minLength: 1, maxLength: 2000, example: 'Manually recorded from staff-observed insurer correspondence; not independently verified.' }
+        currency: { type: string, pattern: '^[A-Z]{3}$', example: COP }
+        correction_reason: { type: string, minLength: 1, maxLength: 2000 }
+        reported_totals: { $ref: '#/components/schemas/InsuranceRemittanceAmounts' }
+        lines:
+          type: array
+          minItems: 1
+          maxItems: 500
+          items: { $ref: '#/components/schemas/InsuranceRemittanceLineInput' }

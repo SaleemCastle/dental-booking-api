@@ -108,6 +108,33 @@ class PostmanExportTest extends TestCase
         $this->assertSame('', array_column($this->export['environment']['values'], 'value', 'key')['payment_link_id']);
     }
 
+    public function test_remittance_contract_exports_all_operations_with_uuid_retries_and_informational_data(): void
+    {
+        foreach ([
+            ['GET', '/api/insurance/remittances'],
+            ['POST', '/api/insurance/remittances'],
+            ['GET', '/api/insurance/remittances/{{advice_id}}'],
+            ['GET', '/api/insurance/remittances/{{advice_id}}/lines'],
+            ['POST', '/api/insurance/remittances/{{advice_id}}/corrections'],
+        ] as [$method, $path]) {
+            $this->requestFor($method, $path);
+        }
+
+        $create = $this->requestFor('POST', '/api/insurance/remittances');
+        $this->assertSame(
+            '{{$guid}}',
+            array_column($create['header'], 'value', 'key')['Idempotency-Key'],
+        );
+        $body = $this->bodyFor('POST', '/api/insurance/remittances');
+        $this->assertArrayHasKey('insurer_id', $body);
+        $this->assertArrayHasKey('lines', $body);
+        $this->assertArrayNotHasKey('payment_id', $body);
+        $this->assertArrayNotHasKey('invoice_id', $body);
+        $correction = $this->bodyFor('POST', '/api/insurance/remittances/{{advice_id}}/corrections');
+        $this->assertArrayHasKey('correction_reason', $correction);
+        $this->assertArrayNotHasKey('insurer_id', $correction);
+    }
+
     public function test_request_bodies_are_json_objects_with_declared_variables(): void
     {
         $variables = array_fill_keys(array_column($this->export['environment']['values'], 'key'), 'test-value');

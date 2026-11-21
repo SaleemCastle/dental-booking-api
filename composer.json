@@ -39,6 +39,10 @@
             "phpunit --configuration phpunit.claim-coverage.xml --coverage-clover coverage/claims.xml",
             "@php tools/check-claim-coverage.php coverage/claims.xml 80"
         ],
+        "test:remittance-coverage": [
+            "phpunit --configuration phpunit.remittance-coverage.xml --coverage-clover coverage/remittances.xml",
+            "@php tools/check-claim-coverage.php coverage/remittances.xml 80"
+        ],
         "post-autoload-dump": [
             "Illuminate\\Foundation\\ComposerScripts::postAutoloadDump",
             "@php artisan package:discover --ansi"
