@@ -2491,6 +2491,193 @@
             ]
         },
         {
+            "name": "Insurance Receipts",
+            "item": [
+                {
+                    "name": "GET List manually recorded insurer receipts",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            },
+                            {
+                                "key": "X-Tenant-Id",
+                                "value": "",
+                                "description": "Select an active clinic membership. Omit for default-clinic. Does not confer membership or bypass authorization.",
+                                "disabled": true
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/api/insurance/receipts?page=1&per_page=15",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "insurance",
+                                "receipts"
+                            ],
+                            "query": [
+                                {
+                                    "key": "insurer_id",
+                                    "value": "{{insurer_id}}",
+                                    "disabled": true,
+                                    "description": "Optional filter; enable its checkbox to send it."
+                                },
+                                {
+                                    "key": "page",
+                                    "value": "1",
+                                    "disabled": false,
+                                    "description": "Optional filter; enable its checkbox to send it."
+                                },
+                                {
+                                    "key": "per_page",
+                                    "value": "15",
+                                    "disabled": false,
+                                    "description": "Optional filter; enable its checkbox to send it."
+                                }
+                            ]
+                        },
+                        "description": "Requires insurance_receipts.view and active tenant membership. Receipt observations are not posted payments; remittance advice is not proof of payment.\n\nGET /api/insurance/receipts\nDomain writes require allow_writes=true. Missing required variables skip requests rather than selecting real records automatically."
+                    },
+                    "response": []
+                },
+                {
+                    "name": "POST Record manual insurer receipt evidence",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            },
+                            {
+                                "key": "X-Tenant-Id",
+                                "value": "",
+                                "description": "Select an active clinic membership. Omit for default-clinic. Does not confer membership or bypass authorization.",
+                                "disabled": true
+                            },
+                            {
+                                "key": "Idempotency-Key",
+                                "value": "{{$guid}}",
+                                "description": "",
+                                "disabled": false
+                            },
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/api/insurance/receipts",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "insurance",
+                                "receipts"
+                            ],
+                            "query": []
+                        },
+                        "description": "Requires insurance_receipts.record. Creates nonposting evidence only. UUID Idempotency-Key required.\n\nPOST /api/insurance/receipts\nDomain writes require allow_writes=true. Missing required variables skip requests rather than selecting real records automatically.",
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"insurer_id\": \"{{insurer_id}}\",\n    \"received_on\": \"Postman test data\",\n    \"channel\": \"portal\",\n    \"source_provenance\": \"Postman test data\",\n    \"amount\": \"Postman test data\",\n    \"currency\": \"Postman test data\"\n}\n",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        }
+                    },
+                    "response": []
+                },
+                {
+                    "name": "GET Retrieve receipt and verification history",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            },
+                            {
+                                "key": "X-Tenant-Id",
+                                "value": "",
+                                "description": "Select an active clinic membership. Omit for default-clinic. Does not confer membership or bypass authorization.",
+                                "disabled": true
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/api/insurance/receipts/{{receipt_id}}",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "insurance",
+                                "receipts",
+                                "{{receipt_id}}"
+                            ],
+                            "query": []
+                        },
+                        "description": "Requires insurance_receipts.view. Verification stays separate from the posted payment ledger.\n\nGET /api/insurance/receipts/{receipt}\nDomain writes require allow_writes=true. Missing required variables skip requests rather than selecting real records automatically."
+                    },
+                    "response": []
+                },
+                {
+                    "name": "POST Append manual receipt verification observation",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            },
+                            {
+                                "key": "X-Tenant-Id",
+                                "value": "",
+                                "description": "Select an active clinic membership. Omit for default-clinic. Does not confer membership or bypass authorization.",
+                                "disabled": true
+                            },
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/api/insurance/receipts/{{receipt_id}}/verification",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "insurance",
+                                "receipts",
+                                "{{receipt_id}}",
+                                "verification"
+                            ],
+                            "query": []
+                        },
+                        "description": "Requires insurance_receipts.verify. Exact observed amount and currency must match; verification does not allocate or post cash.\n\nPOST /api/insurance/receipts/{receipt}/verification\nDomain writes require allow_writes=true. Missing required variables skip requests rather than selecting real records automatically.",
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"verification_method\": \"bank_statement\",\n    \"provenance\": \"Postman test data\",\n    \"observed_amount\": \"Postman test data\",\n    \"observed_currency\": \"Postman test data\"\n}\n",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        }
+                    },
+                    "response": []
+                }
+            ]
+        },
+        {
             "name": "Insurance Remittances",
             "item": [
                 {
@@ -8423,6 +8610,11 @@
         },
         {
             "key": "insurer_id",
+            "value": "",
+            "type": "string"
+        },
+        {
+            "key": "receipt_id",
             "value": "",
             "type": "string"
         },
