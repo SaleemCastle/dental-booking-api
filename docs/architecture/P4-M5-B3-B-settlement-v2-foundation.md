@@ -4,7 +4,7 @@ Status: inactive additive foundation. It does not approve or enable financial po
 
 ## Architecture review and gaps
 
-- ADR-004 is Proposed and ADR-001 remains awaiting architecture approval. ADR-004 links to ADR-001, but the ADR-001 document is absent from this checkout; that is a documentation/source-of-truth gap to resolve before policy implementation.
+- ADR-004 is Proposed and ADR-001 remains recommended, awaiting architecture approval. ADR-001 was absent from the tracked `origin/main` tree at this note's baseline; B3-F restores a local ignored draft as a tracked-document proposal. Its presence in the B3-F branch does not approve it. Confirm provenance and resolve the source-of-truth gap before policy implementation.
 - `BillingWorkflow` and `PaymentSettlement` use the existing `payments` ledger and synchronously update `invoices.amount_paid` and invoice status. `PaymentSettlement` only records provider-completed checkout. Both writers remain untouched.
 - `PaymentLink` and hosted-checkout reconciliation continue to follow the existing invoice-level contract. This migration does not add or change their paths.
 - Insurer receipt verification is an observation, not sufficient authority for posting. Approved insurer obligations are immutable nonposting history and do not create responsibility assignments.

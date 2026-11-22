@@ -14,7 +14,7 @@ The existing billing ledger treats each `Payment` as a positive settled amount a
 
 M5-B insurer receipts are immutable staff observations. Their verification row proves that an authorized staff member recorded a matching amount and currency; it does not prove that cash cleared. M5-A remittance advice and claim decisions remain informational and cannot fund an allocation. M5-B2 obligation approvals are explicit staff finance records linked to a line, but still require approved authority and responsibility policy before they become collectible insurer receivables.
 
-ADR-001 already recommends one extended billing ledger, receipt/allocation events, explicit settlement-version compatibility, and immutable corrections. ADR-001 remains **awaiting architecture approval**; its recommendations, including those repeated here, are not approved operating policy. A prior B2 note says ADR-001 is absent; that statement is stale in the current mainline. The source ADR exists and remains pending approval.
+ADR-001 recommends one extended billing ledger, receipt/allocation events, explicit settlement-version compatibility, and immutable corrections. It remains **Recommended; awaiting architecture approval. Not implemented.** Its recommendations, including those repeated here, are not approved operating policy. The ADR-001 file was absent from the tracked `origin/main` tree at the B3-F baseline (`3bded85`); B3-F restores a local ignored draft as a tracked-document proposal. Its presence on this branch does not establish approval, and its source/provenance still requires owner confirmation.
 
 ## Proposed decisions
 

@@ -18,7 +18,7 @@ The current `BillingWorkflow` and `PaymentSettlement` remain authoritative for i
 ## Unresolved decisions and blockers
 
 - ADR-004 is Proposed. It states that approved obligations require an approved finance authority/evidence policy before becoming collectible responsibility. That policy remains pending, so the new insurer check is only a candidate-shape validation and must not be used as approval or collection authority.
-- ADR-004 references ADR-001 and says ADR-001 awaits architecture approval, but the ADR-001 file is absent from this `origin/main` checkout. Resolve the source-documentation discrepancy and obtain the required approval before financial implementation.
+- ADR-004 references ADR-001 and says ADR-001 awaits architecture approval. ADR-001 was absent from the tracked `origin/main` tree at this note's baseline; B3-F restores a local ignored draft as a tracked-document proposal, still awaiting architecture approval. Confirm provenance and resolve the source-documentation discrepancy before financial implementation.
 - Finance must decide authority and separation of duties for patient and insurer responsibility, evidence required for insurer liability, guarantor/patient identity rules, responsibility revisions, and how prior allocations/write-offs affect line remainder.
 - Allocation eligibility, payer-specific cash caps, ordering, transfer, idempotency across competing commands, and concurrency locking remain unimplemented until those decisions are approved. PostgreSQL release QA is required before any future writer; this milestone adds no database guarantees.
 
