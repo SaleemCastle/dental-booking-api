@@ -93,3 +93,6 @@ Thumbs.db
 # P4-M4-B review documentation
 !/docs/architecture/P4-M4-B-prior-authorizations-gap-analysis.md
 !/docs/prior-authorizations.md
+
+# P4-M5-B2 insurer obligation documentation
+!/docs/insurance-obligations.md

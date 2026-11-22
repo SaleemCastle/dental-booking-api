@@ -1,4 +1,4 @@
-openapi: 3.0.3
+﻿openapi: 3.0.3
 info:
   title: Dental Booking Backend API
   version: 2.0.0
@@ -29,6 +29,7 @@ tags:
   - name: Audit Logs
   - name: Insurance Estimates
   - name: Insurance Claims
+  - name: Insurance Obligations
   - name: Insurance Remittances
   - name: Insurance Receipts
   - name: Tenants
@@ -909,6 +910,75 @@ paths:
         '201': { description: Immutable staff verification observation appended. }
         '403': { $ref: "#/components/responses/Forbidden" }
         '409': { description: Already verified or amount/currency differs. }
+        '422': { $ref: "#/components/responses/ValidationError" }
+  /api/insurance/obligations:
+    parameters:
+      - $ref: "#/components/parameters/TenantHeader"
+    get:
+      tags: [Insurance Obligations]
+      summary: List explicit insurer obligation proposals and approvals
+      description: Requires insurance_obligations.view, invoices.view and patients.view. Finance-entered amounts only; claim decisions and remittance amounts are never inferred as liability. No invoice/payment posting occurs.
+      parameters:
+        - { name: invoice_id, in: query, schema: { type: integer, minimum: 1 } }
+        - { name: insurer_id, in: query, schema: { type: integer, minimum: 1 } }
+        - { name: approval_status, in: query, schema: { type: string, enum: [proposed, approved] } }
+        - { name: page, in: query, schema: { type: integer, minimum: 1, default: 1 } }
+        - { name: per_page, in: query, schema: { type: integer, minimum: 1, maximum: 100, default: 15 } }
+      responses:
+        '200': { description: Paginated private/no-store obligation history. }
+        '403': { $ref: "#/components/responses/Forbidden" }
+    post:
+      tags: [Insurance Obligations]
+      summary: Record a proposed insurer obligation
+      description: Requires insurance_obligations.propose, invoices.view and patients.view. Amount is an explicit proposal, not inferred liability. UUID Idempotency-Key required.
+      parameters:
+        - { name: Idempotency-Key, in: header, required: true, schema: { type: string, format: uuid } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/InsurerObligationProposalInput' }
+      responses:
+        '201': { description: Immutable proposal recorded. }
+        '200': { description: Identical idempotent replay. }
+        '409': { description: Idempotency key conflict. }
+        '422': { $ref: "#/components/responses/ValidationError" }
+  /api/insurance/obligations/{obligation}:
+    parameters:
+      - $ref: "#/components/parameters/TenantHeader"
+      - { name: obligation, in: path, required: true, schema: { type: integer, minimum: 1 } }
+    get:
+      tags: [Insurance Obligations]
+      summary: Retrieve an obligation and immutable approval history
+      description: Requires insurance_obligations.view, invoices.view and patients.view.
+      responses:
+        '200': { description: Proposal and optional finance approval history. }
+        '403': { $ref: "#/components/responses/Forbidden" }
+        '404': { $ref: "#/components/responses/NotFound" }
+  /api/insurance/obligations/{obligation}/approve:
+    parameters:
+      - $ref: "#/components/parameters/TenantHeader"
+      - { name: obligation, in: path, required: true, schema: { type: integer, minimum: 1 } }
+      - { name: Idempotency-Key, in: header, required: true, schema: { type: string, format: uuid } }
+    post:
+      tags: [Insurance Obligations]
+      summary: Approve a proposed insurer obligation
+      description: Requires insurance_obligations.approve, invoices.view and patients.view. Approval records the proposal amount unchanged. This records no payment, allocation, receivable, balance change, or financial posting.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required: [approval_reason]
+              properties:
+                approval_reason: { type: string, minLength: 1, maxLength: 2000 }
+      responses:
+        '201': { description: Immutable finance approval recorded. }
+        '200': { description: Identical idempotent replay. }
+        '403': { $ref: "#/components/responses/Forbidden" }
+        '409': { description: 'Already approved, ineligible invoice, or idempotency conflict.' }
         '422': { $ref: "#/components/responses/ValidationError" }
   /api/insurance/remittances:
     parameters:
@@ -3856,6 +3926,22 @@ components:
           required: [user_id]
           properties:
             user_id: { type: integer, description: Explicit permitted staff target within the current clinic. }
+    InsurerObligationProposalInput:
+      type: object
+      additionalProperties: false
+      required: [insurer_id, association_id, invoice_id, invoice_item_id, proposed_amount, currency, source_provenance]
+      properties:
+        insurer_id: { type: integer, minimum: 1 }
+        association_id: { type: integer, minimum: 1 }
+        invoice_id: { type: integer, minimum: 1, description: Must identify an issued invoice belonging to the selected patient and tenant. }
+        invoice_item_id: { type: integer, minimum: 1, description: Must identify a line on the invoice. Proposed obligation cannot exceed that line's charge. }
+        claim_id: { type: integer, nullable: true }
+        submission_id: { type: integer, nullable: true }
+        claim_response_id: { type: integer, nullable: true, description: Optional approved or partially approved response for context only; amount is entered independently. }
+        supporting_evidence_id: { type: integer, nullable: true }
+        proposed_amount: { type: string, pattern: '^(?:0|[1-9][0-9]{0,7})(?:\.[0-9]{1,2})?$', example: '125.00' }
+        currency: { type: string, pattern: '^[A-Z]{3}$', example: 'JMD' }
+        source_provenance: { type: string, minLength: 1, maxLength: 2000, description: Staff-recorded basis for the proposal; it does not assert direct insurer verification. }
     PriorAuthorizationCreateInput:
       type: object
       additionalProperties: false

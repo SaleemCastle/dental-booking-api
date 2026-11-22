@@ -177,6 +177,13 @@ Route::middleware(['auth:sanctum', 'tenant'])->group(function () {
         );
     });
 
+    Route::controller(\App\Http\Controllers\Api\InsurerObligationController::class)->prefix('insurance/obligations')->group(function () {
+        Route::get('', 'index');
+        Route::post('', 'store');
+        Route::get('{obligation}', 'show')->whereNumber('obligation');
+        Route::post('{obligation}/approve', 'approve')->whereNumber('obligation');
+    });
+
     Route::controller(\App\Http\Controllers\Api\InsurerReceiptController::class)->prefix('insurance/receipts')->group(function () {
         Route::get('', 'index');
         Route::post('', 'store');
