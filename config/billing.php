@@ -11,4 +11,7 @@ return [
 
     // Required only when upgrading a database containing legacy invoices.
     'legacy_currency' => env('BILLING_LEGACY_CURRENCY'),
+
+    // Settlement v2 is an inactive schema foundation until finance and architecture approval.
+    'settlement_v2_enabled' => env('SETTLEMENT_V2_ENABLED', false),
 ];
