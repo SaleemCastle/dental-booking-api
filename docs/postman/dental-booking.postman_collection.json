@@ -2678,6 +2678,211 @@
             ]
         },
         {
+            "name": "Insurance Obligations",
+            "item": [
+                {
+                    "name": "GET List explicit insurer obligation proposals and approvals",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            },
+                            {
+                                "key": "X-Tenant-Id",
+                                "value": "",
+                                "description": "Select an active clinic membership. Omit for default-clinic. Does not confer membership or bypass authorization.",
+                                "disabled": true
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/api/insurance/obligations?page=1&per_page=15",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "insurance",
+                                "obligations"
+                            ],
+                            "query": [
+                                {
+                                    "key": "invoice_id",
+                                    "value": "{{invoice_id}}",
+                                    "disabled": true,
+                                    "description": "Optional filter; enable its checkbox to send it."
+                                },
+                                {
+                                    "key": "insurer_id",
+                                    "value": "{{insurer_id}}",
+                                    "disabled": true,
+                                    "description": "Optional filter; enable its checkbox to send it."
+                                },
+                                {
+                                    "key": "approval_status",
+                                    "value": "proposed",
+                                    "disabled": true,
+                                    "description": "Optional filter; enable its checkbox to send it."
+                                },
+                                {
+                                    "key": "page",
+                                    "value": "1",
+                                    "disabled": false,
+                                    "description": "Optional filter; enable its checkbox to send it."
+                                },
+                                {
+                                    "key": "per_page",
+                                    "value": "15",
+                                    "disabled": false,
+                                    "description": "Optional filter; enable its checkbox to send it."
+                                }
+                            ]
+                        },
+                        "description": "Requires insurance_obligations.view, invoices.view and patients.view. Finance-entered amounts only; claim decisions and remittance amounts are never inferred as liability. No invoice/payment posting occurs.\n\nGET /api/insurance/obligations\nDomain writes require allow_writes=true. Missing required variables skip requests rather than selecting real records automatically."
+                    },
+                    "response": []
+                },
+                {
+                    "name": "POST Record a proposed insurer obligation",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            },
+                            {
+                                "key": "X-Tenant-Id",
+                                "value": "",
+                                "description": "Select an active clinic membership. Omit for default-clinic. Does not confer membership or bypass authorization.",
+                                "disabled": true
+                            },
+                            {
+                                "key": "Idempotency-Key",
+                                "value": "{{$guid}}",
+                                "description": "",
+                                "disabled": false
+                            },
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/api/insurance/obligations",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "insurance",
+                                "obligations"
+                            ],
+                            "query": []
+                        },
+                        "description": "Requires insurance_obligations.propose, invoices.view and patients.view. Amount is an explicit proposal, not inferred liability. UUID Idempotency-Key required.\n\nPOST /api/insurance/obligations\nDomain writes require allow_writes=true. Missing required variables skip requests rather than selecting real records automatically.",
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"insurer_id\": \"{{insurer_id}}\",\n    \"association_id\": \"{{association_id}}\",\n    \"invoice_id\": \"{{invoice_id}}\",\n    \"invoice_item_id\": \"{{invoice_item_id}}\",\n    \"proposed_amount\": \"125.00\",\n    \"currency\": \"JMD\",\n    \"source_provenance\": \"Postman test data\"\n}\n",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        }
+                    },
+                    "response": []
+                },
+                {
+                    "name": "GET Retrieve an obligation and immutable approval history",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            },
+                            {
+                                "key": "X-Tenant-Id",
+                                "value": "",
+                                "description": "Select an active clinic membership. Omit for default-clinic. Does not confer membership or bypass authorization.",
+                                "disabled": true
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/api/insurance/obligations/{{obligation_id}}",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "insurance",
+                                "obligations",
+                                "{{obligation_id}}"
+                            ],
+                            "query": []
+                        },
+                        "description": "Requires insurance_obligations.view, invoices.view and patients.view.\n\nGET /api/insurance/obligations/{obligation}\nDomain writes require allow_writes=true. Missing required variables skip requests rather than selecting real records automatically."
+                    },
+                    "response": []
+                },
+                {
+                    "name": "POST Approve a proposed insurer obligation",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            },
+                            {
+                                "key": "X-Tenant-Id",
+                                "value": "",
+                                "description": "Select an active clinic membership. Omit for default-clinic. Does not confer membership or bypass authorization.",
+                                "disabled": true
+                            },
+                            {
+                                "key": "Idempotency-Key",
+                                "value": "{{$guid}}",
+                                "description": "",
+                                "disabled": false
+                            },
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/api/insurance/obligations/{{obligation_id}}/approve",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "insurance",
+                                "obligations",
+                                "{{obligation_id}}",
+                                "approve"
+                            ],
+                            "query": []
+                        },
+                        "description": "Requires insurance_obligations.approve, invoices.view and patients.view. Approval records the proposal amount unchanged. This records no payment, allocation, receivable, balance change, or financial posting.\n\nPOST /api/insurance/obligations/{obligation}/approve\nDomain writes require allow_writes=true. Missing required variables skip requests rather than selecting real records automatically.",
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"approval_reason\": \"Postman test data\"\n}\n",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        }
+                    },
+                    "response": []
+                }
+            ]
+        },
+        {
             "name": "Insurance Remittances",
             "item": [
                 {
@@ -8615,6 +8820,16 @@
         },
         {
             "key": "receipt_id",
+            "value": "",
+            "type": "string"
+        },
+        {
+            "key": "invoice_item_id",
+            "value": "",
+            "type": "string"
+        },
+        {
+            "key": "obligation_id",
             "value": "",
             "type": "string"
         },
