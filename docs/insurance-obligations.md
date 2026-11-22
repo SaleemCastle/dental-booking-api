@@ -43,9 +43,11 @@ an immutable informational finance record and never changes patient liability.
 
 ## Open decisions and release QA
 
-- ADR-001 is present in the current mainline and remains recommended, awaiting
-  architecture approval. Finance authority and the evidence standard for an
-  obligation are still pending; see the proposed [ADR-004](architecture/ADR-004-insurer-cash-application-policy.md).
+- ADR-001 was absent from the tracked mainline at the B3-F baseline. B3-F
+  restores a local ignored draft as a tracked-document proposal; it remains
+  recommended and awaiting architecture approval, not approved policy. Finance
+  authority and the evidence standard for an obligation are still pending; see
+  the proposed [ADR-004](architecture/ADR-004-insurer-cash-application-policy.md).
 - Decide whether the proposer and approver must be different staff members.
 - Define currency application if multi-currency invoices are enabled in future.
 - Decide whether repeated proposals for one invoice line need a business-level
