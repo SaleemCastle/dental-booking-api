@@ -21,6 +21,7 @@ yarn-error.log
 !/docs/architecture/
 /docs/architecture/*
 !/docs/architecture/ADR-004-insurer-cash-application-policy.md
+!/docs/architecture/P4-M5-B3-C-nonposting-domain-rules.md
 !/docs/architecture/P4-M3-A-insurance-estimation-gap-analysis.md
 !/docs/architecture/P4-M3-B-coverage-estimate-workflow-gap-analysis.md
 !/docs/architecture/P4-M4-A-claims-domain-gap-analysis.md
