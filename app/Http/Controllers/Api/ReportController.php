@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\InsuranceReportRequest;
 use App\Http\Requests\ReportRequest;
 use App\Models\ProviderAvailability;
 use App\Services\ReportingService;
@@ -32,7 +33,12 @@ class ReportController extends Controller
         return $this->respond($request, $reports->billing($request->validated()));
     }
 
-    private function respond(ReportRequest $request, mixed $data)
+    public function insurance(InsuranceReportRequest $request, InsuranceReportingService $reports)
+    {
+        return $this->respond($request, $reports->summary($request->validated(), $request->user()));
+    }
+
+    private function respond(ReportRequest|InsuranceReportRequest $request, mixed $data)
     {
         return ApiResponse::success($data, 'Report retrieved.', meta: [
             'filters' => [

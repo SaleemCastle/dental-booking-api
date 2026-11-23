@@ -1,0 +1,11 @@
+# Insurance reporting, access and audit
+
+`GET /api/reports/insurance` returns an aggregate operational snapshot for one tenant and a required inclusive date window of at most 366 calendar days. It reports eligibility outcomes, benefit-rule sources, estimate states, claim and appeal current states, prior-authorization current states, recorded remittance advice, insurer receipt verification counts, and insurer obligation approval counts.
+
+The date window selects the records created or recorded during that period: eligibility `checked_at`; benefit and estimate `recorded_at`; claims, appeals and prior authorizations `created_at`; remittance and insurer receipt `recorded_at`; obligation proposals `proposed_at`. Claim, appeal and authorization values are their current status for records in the creation window, not a historical as-of reconstruction. Sections are read with separate aggregate queries, so concurrent workflow updates can cause small timing differences between sections.
+
+The endpoint emits counts only. It does not return patient or insurer identifiers, policy identifiers, free text, evidence references, amounts, balances, payments, or benefit consumption. Receipt verification counts describe the staff-recorded verification observation; they do not represent allocation, settlement, or invoice payment. Remittance and approved obligation counts remain observational/proposal data.
+
+Access requires active membership, `patients.view`, and the exact `insurance_reports.view` permission. The permission is seeded but is not automatically assigned to Admin or any other role. Tenant-scoped Eloquent queries and tenant middleware isolate all source rows. Invalid date ranges return the standard validation envelope. Successful report reads are audited as `insurance_report.viewed` and return `Cache-Control: private, no-store`.
+
+An additive migration creates tenant/date lookup indexes only. The report does not change insurance records, invoices, payments, receivables, patient balances, benefits, or Settlement v2 state. PostgreSQL API behavior and cross-tenant feature tests are included in the focused suite; this local environment cannot execute them because its PHP build lacks `pdo_pgsql`.

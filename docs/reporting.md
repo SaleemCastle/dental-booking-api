@@ -1,6 +1,6 @@
 # Aggregate reporting
 
-All reports require Sanctum authentication and active clinic membership. `X-Tenant-Id` selects the clinic using the normal tenant contract. Reads are private/no-store and return the standard API envelope. Reports reuse existing domain read policies, including admin access and the normal permission wildcards; there is no independent `reports.*` grant that bypasses source permissions.
+All reports require Sanctum authentication and active clinic membership. `X-Tenant-Id` selects the clinic using the normal tenant contract. Reads are private/no-store and return the standard API envelope. Existing operational and billing reports reuse source policies. Insurance reporting has a dedicated exact permission and does not accept wildcard permissions; see [insurance reporting](insurance-reporting.md).
 
 | GET endpoint | Required access | `data` |
 | --- | --- | --- |
@@ -8,6 +8,7 @@ All reports require Sanctum authentication and active clinic membership. `X-Tena
 | `/api/reports/providers` | Appointment read | Paginated provider activity and optional utilization |
 | `/api/reports/treatments` | Appointment **and** catalog treatment read | Paginated counts by treatment ID |
 | `/api/reports/billing` | Invoice **and** payment read | Totals grouped by currency |
+| `/api/reports/insurance` | Exact `insurance_reports.view` and `patients.view` | Aggregate insurance workflow counts; no patient fields or monetary values |
 
 Billing and Auditor roles inherit their usual billing read access. Clinical or reception roles have no implicit billing report access. Custom roles need both `invoices.view` and `payments.view`. A catalog-only reader cannot read treatment activity. Missing source permission returns 403 before filter validation.
 

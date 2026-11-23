@@ -1086,6 +1086,51 @@
                         "description": "Requires BOTH invoice and payment read access (including Billing/Auditor/Admin roles). The invoice cohort uses issued_at and current issued/partially_paid/paid statuses; excludes drafts/voids. paid_total and outstanding_balance use current balances, including payments after date_to. Collections instead use payments.paid_at, including older invoices. Currency totals are separate decimal strings. Provider attribution uses invoice.appointment.dentist_id; unlinked invoices are excluded only when a provider filter is supplied. Current-data report without a cross-query snapshot. Private/no-store. See docs/reporting.md.\n\nGET /api/reports/billing\nDomain writes require allow_writes=true. Missing required variables skip requests rather than selecting real records automatically."
                     },
                     "response": []
+                },
+                {
+                    "name": "GET Report aggregate insurance workflow activity",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            },
+                            {
+                                "key": "X-Tenant-Id",
+                                "value": "",
+                                "description": "Select an active clinic membership. Omit for default-clinic. Does not confer membership or bypass authorization.",
+                                "disabled": true
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/api/reports/insurance?date_from=2026-10-01&date_to=2026-10-31",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "reports",
+                                "insurance"
+                            ],
+                            "query": [
+                                {
+                                    "key": "date_from",
+                                    "value": "2026-10-01",
+                                    "disabled": false,
+                                    "description": "Inclusive calendar date in application timezone (UTC). Exact YYYY-MM-DD; required. At most 366 inclusive dates with date_to."
+                                },
+                                {
+                                    "key": "date_to",
+                                    "value": "2026-10-31",
+                                    "disabled": false,
+                                    "description": "Inclusive date, on/after date_from, at most 365 days later. Exact YYYY-MM-DD."
+                                }
+                            ]
+                        },
+                        "description": "Requires exact insurance_reports.view and patients.view permissions in an active tenant. Returns counts only, with no patient identifiers, policy data, benefit amounts, or financial balances. Claim, appeal and authorization values are current states of records created in the selected date window; other sections use their recorded timestamps. Reported receipt, remittance and obligation observations are never represented as posted cash or settled balances. Each read is audited and private/no-store.\n\nGET /api/reports/insurance\nDomain writes require allow_writes=true. Missing required variables skip requests rather than selecting real records automatically."
+                    },
+                    "response": []
                 }
             ]
         },
