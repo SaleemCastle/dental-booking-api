@@ -55,6 +55,7 @@ yarn-error.log
 !/docs/reporting.md
 !/docs/insurance-reporting.md
 !/docs/insurance-v1-feature-coverage.md
+!/docs/insurance-v1-acceptance-qa.md
 !/docs/postgresql.md
 !/docs/vercel-render-auth.md
 !/docs/postman.md

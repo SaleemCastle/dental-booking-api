@@ -11,8 +11,8 @@ This matrix records repository evidence for the P4 Insurance v1 closeout. "Imple
 | P4-M4 | Claims, authorizations, responses, appeals and corrections | Implemented; targeted integration tests require PostgreSQL CI | `docs/insurance-claims.md`, `docs/prior-authorizations.md`, `docs/p4-m4-c-gap-analysis.md`; M4-A through M4-D work on main |
 | P4-M5-A/B | Remittance advice, receipt observations and obligation register | Implemented as nonposting observations/proposals | `docs/insurance-remittances.md`, `docs/insurance-receipts.md`, `docs/insurance-obligations.md`; no invoice/payment/balance mutation |
 | P4-M5 reconciliation / Settlement v2 | Financial posting, cash allocations, refunds and activation | Deferred | ADR-001/ADR-004 remain proposed/pending; feature flag defaults false; no posting writer is part of Insurance v1 |
-| P4-M6 | Aggregate insurance reporting, access controls and read audit | Implemented in this change; runtime API tests await PostgreSQL CI | `docs/insurance-reporting.md`; `InsuranceReportingApiTest`; exact `insurance_reports.view` plus `patients.view`; aggregate-only and audited |
-| P4-M7 | End-to-end acceptance and PostgreSQL release evidence | Unverified / release QA | Local PHP has no `pdo_pgsql`; SQLite setup aborts at PostgreSQL-only insurance migrations. Run focused PostgreSQL acceptance tests in hosted CI before marking Done. |
+| P4-M6 | Aggregate insurance reporting, access controls and read audit | Merged in PR #70; runtime API tests remain unverified | `docs/insurance-reporting.md`; `InsuranceReportingApiTest`; exact `insurance_reports.view` plus `patients.view`; aggregate-only and audited |
+| P4-M7 | End-to-end acceptance and PostgreSQL release evidence | Incomplete; release QA required | `docs/insurance-v1-acceptance-qa.md`; no application-test job completed for PR #70, and local PHP lacks `pdo_pgsql` and installed Composer dependencies. |
 
 ## Boundaries
 
@@ -20,4 +20,4 @@ Manual eligibility, benefits, estimates, claims, authorization decisions, appeal
 
 ## Verification status
 
-Locally rerun focused domain tests passed (27 tests / 148 assertions). M6 feature tests are authored but cannot be executed locally because the available PHP build lacks `pdo_pgsql` and the applicable migrations intentionally reject SQLite. The repository's PostgreSQL GitHub Actions workflow is the required runtime verification for those tests and P4-M7 acceptance; do not mark M7 complete until that evidence is green and reviewed.
+Previously recorded focused domain runs passed (27 tests / 148 assertions; claim-response tests 9 / 43 assertions; M6 access-policy unit tests 4 / 8 assertions). These are prior evidence and were not rerun during M7. M6 API feature tests have not reached assertions: the local PHP build lacks `pdo_pgsql`, the applicable migrations intentionally reject SQLite, and this checkout has no `vendor` dependencies. PR #70's application-test workflow run failed with zero jobs; the separate pull-request metadata workflow passed but did not execute application tests. See the M7 QA report for release checks and links. Do not mark M7 complete until PostgreSQL acceptance evidence is green and reviewed.
