@@ -368,6 +368,28 @@ paths:
         "401": { $ref: "#/components/responses/Unauthenticated" }
         "403": { $ref: "#/components/responses/Forbidden" }
         "422": { $ref: "#/components/responses/ValidationError" }
+  /api/reports/insurance:
+    parameters:
+      - { $ref: "#/components/parameters/TenantHeader" }
+      - { $ref: "#/components/parameters/ReportDateFrom" }
+      - { $ref: "#/components/parameters/ReportDateTo" }
+    get:
+      tags: [Reporting]
+      summary: Report aggregate insurance workflow activity
+      description: Requires exact insurance_reports.view and patients.view permissions in an active tenant. Returns counts only, with no patient identifiers, policy data, benefit amounts, or financial balances. Claim, appeal and authorization values are current states of records created in the selected date window; other sections use their recorded timestamps. Reported receipt, remittance and obligation observations are never represented as posted cash or settled balances. Each read is audited and private/no-store.
+      responses:
+        "200":
+          description: Aggregate counts by insurance workflow and current status; meta.filters echoes the date window and meta.timezone identifies the application timezone.
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - { $ref: "#/components/schemas/ApiEnvelope" }
+                  - properties:
+                      data: { $ref: "#/components/schemas/InsuranceReportSummary" }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "422": { $ref: "#/components/responses/ValidationError" }
   /api/patients/{patient}/documents:
     parameters:
       - $ref: "#/components/parameters/TenantHeader"
@@ -4142,6 +4164,57 @@ components:
         outstanding_balance: { type: string, pattern: '^[0-9]+\.[0-9]{2}$', example: "75.10" }
         payment_count: { type: integer, minimum: 0 }
         collections_total: { type: string, pattern: '^[0-9]+\.[0-9]{2}$', example: "25.00" }
+    InsuranceReportSummary:
+      type: object
+      required: [recorded_window, eligibility_checks, benefit_rules, estimates, claims, appeals, prior_authorizations, remittance_advice, insurer_receipts, insurer_obligations]
+      properties:
+        recorded_window:
+          type: object
+          required: [from, to]
+          properties:
+            from: { type: string, format: date }
+            to: { type: string, format: date }
+        eligibility_checks: { $ref: "#/components/schemas/InsuranceReportOutcomeCounts" }
+        benefit_rules: { $ref: "#/components/schemas/InsuranceReportSourceCounts" }
+        estimates: { $ref: "#/components/schemas/InsuranceReportLifecycleCounts" }
+        claims: { $ref: "#/components/schemas/InsuranceReportLifecycleCounts" }
+        appeals: { $ref: "#/components/schemas/InsuranceReportLifecycleCounts" }
+        prior_authorizations: { $ref: "#/components/schemas/InsuranceReportLifecycleCounts" }
+        remittance_advice:
+          type: object
+          required: [recorded_count]
+          properties:
+            recorded_count: { type: integer, minimum: 0 }
+        insurer_receipts:
+          type: object
+          required: [recorded_count, verified_count, unverified_count]
+          properties:
+            recorded_count: { type: integer, minimum: 0 }
+            verified_count: { type: integer, minimum: 0 }
+            unverified_count: { type: integer, minimum: 0 }
+        insurer_obligations:
+          type: object
+          required: [proposed_count, approved_count, pending_approval_count]
+          properties:
+            proposed_count: { type: integer, minimum: 0 }
+            approved_count: { type: integer, minimum: 0 }
+            pending_approval_count: { type: integer, minimum: 0 }
+    InsuranceReportLifecycleCounts:
+      type: object
+      additionalProperties: false
+      properties:
+        by_status: { type: object, additionalProperties: { type: integer, minimum: 0 } }
+        by_current_status: { type: object, additionalProperties: { type: integer, minimum: 0 } }
+    InsuranceReportOutcomeCounts:
+      type: object
+      required: [by_outcome]
+      properties:
+        by_outcome: { type: object, additionalProperties: { type: integer, minimum: 0 } }
+    InsuranceReportSourceCounts:
+      type: object
+      required: [by_source]
+      properties:
+        by_source: { type: object, additionalProperties: { type: integer, minimum: 0 } }
     AvailabilityPeriod:
       type: object
       additionalProperties: false

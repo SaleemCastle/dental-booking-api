@@ -197,6 +197,7 @@ Route::middleware(['auth:sanctum', 'tenant'])->group(function () {
     Route::get('reports/providers', [ReportController::class, 'providers']);
     Route::get('reports/treatments', [ReportController::class, 'treatments']);
     Route::get('reports/billing', [ReportController::class, 'billing']);
+    Route::get('reports/insurance', [ReportController::class, 'insurance']);
 
     Route::get('appointment-locations', [AppointmentLocationController::class, 'index']);
     Route::get('dentists/{dentist}/availability', [ProviderAvailabilityController::class, 'show']);
