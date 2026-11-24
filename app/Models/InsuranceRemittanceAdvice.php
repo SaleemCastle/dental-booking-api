@@ -9,6 +9,8 @@ class InsuranceRemittanceAdvice extends Model
 {
     use BelongsToTenant;
 
+    protected $table = 'insurance_remittance_advices';
+
     public $timestamps = false;
 
     protected $guarded = ['*'];
