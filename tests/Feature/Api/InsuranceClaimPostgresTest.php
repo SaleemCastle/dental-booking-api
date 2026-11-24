@@ -13,6 +13,7 @@ use App\Services\InsuranceClaimWorkflow;
 use App\Tenancy\TenantContext;
 use Illuminate\Database\QueryException;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Foundation\Testing\RefreshDatabaseState;
 use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\DB;
 use Laravel\Sanctum\Sanctum;
@@ -23,6 +24,8 @@ use Tests\TestCase;
 class InsuranceClaimPostgresTest extends TestCase
 {
     use RefreshDatabase;
+
+    private bool $committedTestData = false;
 
     protected function setUp(): void
     {
@@ -231,7 +234,7 @@ class InsuranceClaimPostgresTest extends TestCase
         $patient = Patient::factory()->create();
         $association = $this->association($patient);
         $claim = $this->draft($patient, $association);
-        DB::connection()->commit();
+        $this->commitSetupForConcurrentSessions();
         DB::connection()->beginTransaction();
         DB::table('insurance_claims')->where('id', $claim['id'])->lockForUpdate()->first();
 
@@ -279,7 +282,7 @@ class InsuranceClaimPostgresTest extends TestCase
         $startedAt = microtime(true);
 
         try {
-            DB::connection()->commit();
+            $this->commitSetupForConcurrentSessions();
             DB::connection()->beginTransaction();
             $base = [
                 'tenant_id' => $patient->tenant_id, 'patient_id' => $patient->id, 'claim_id' => $claim['id'],
@@ -335,6 +338,18 @@ class InsuranceClaimPostgresTest extends TestCase
             'DB_PORT' => (string) config('database.connections.pgsql.port'), 'DB_DATABASE' => (string) config('database.connections.pgsql.database'),
             'DB_USERNAME' => (string) config('database.connections.pgsql.username'), 'DB_PASSWORD' => (string) config('database.connections.pgsql.password'),
         ], null, null, 12);
+    }
+
+    private function commitSetupForConcurrentSessions(): void
+    {
+        DB::connection()->commit();
+        if (! $this->committedTestData) {
+            $this->committedTestData = true;
+            $this->beforeApplicationDestroyed(function (): void {
+                $this->artisan('migrate:fresh', $this->migrateFreshUsing());
+                RefreshDatabaseState::$migrated = false;
+            });
+        }
     }
 
     private function waitForWorkerLock(\PDO $pdo, string $application, string $queryFragment): void

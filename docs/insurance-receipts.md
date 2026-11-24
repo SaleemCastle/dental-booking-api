@@ -43,6 +43,8 @@ writes are audited; API responses are private/no-store.
 - `GET /api/insurance/receipts/{receipt}` (receipt and verification)
 - `POST /api/insurance/receipts/{receipt}/verification` (append verification)
 
+The authoritative API contract is [insurance-receipts.openapi.json](insurance-receipts.openapi.json); the generated `Insurance receipts` Postman collection is under `docs/postman/`.
+
 ## Deferred decisions and release QA
 
 Before financial allocation work, approve the insurer-obligation source,

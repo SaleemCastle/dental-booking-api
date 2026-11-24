@@ -1,0 +1,53 @@
+{
+  "openapi": "3.0.3",
+  "info": {
+    "title": "Manual insurer remittance advice (P4-M5-A)",
+    "version": "1.0.0",
+    "description": "Manual, immutable insurer advice observations. Reported amounts do not represent verified cash or trigger financial posting."
+  },
+  "servers": [{"url": "http://localhost:8000"}],
+  "security": [{"sanctumBearer": []}],
+  "tags": [{"name": "Insurance remittances"}],
+  "paths": {
+    "/api/insurance/remittances": {
+      "parameters": [{"$ref": "#/components/parameters/TenantHeader"}],
+      "get": {
+        "tags": ["Insurance remittances"],
+        "summary": "List remittance advice",
+        "description": "Requires insurance_remittances.view, patients.view, and active tenant membership. Returns paginated immutable advice metadata with private/no-store caching.",
+        "parameters": [
+          {"name":"page","in":"query","schema":{"type":"integer","minimum":1,"default":1}},
+          {"name":"per_page","in":"query","schema":{"type":"integer","minimum":1,"maximum":100,"default":15}},
+          {"name":"insurer_id","in":"query","schema":{"type":"integer","minimum":1}},
+          {"name":"advice_date_from","in":"query","schema":{"type":"string","format":"date"}},
+          {"name":"advice_date_to","in":"query","schema":{"type":"string","format":"date"}}
+        ],
+        "responses":{"200":{"description":"Paginated advice in the standard API envelope."},"401":{"description":"Unauthenticated."},"403":{"description":"Missing exact permission or active tenant access."},"422":{"description":"Invalid date filter or pagination input."}}
+      },
+      "post": {
+        "tags": ["Insurance remittances"],
+        "summary": "Record manual remittance advice",
+        "description": "Requires insurance_remittances.record and patients.view. Staff observation only; does not create a payment, allocation, receivable, or balance change. Retries with the same idempotency key and payload return the original record.",
+        "parameters": [{"$ref":"#/components/parameters/IdempotencyKey"}],
+        "requestBody":{"required":true,"content":{"application/json":{"schema":{"type":"object","required":["insurer_id","external_reference","advice_date","communication_channel","source_provenance","currency","lines"],"properties":{"insurer_id":{"type":"integer","minimum":1,"example":12},"external_reference":{"type":"string","maxLength":200,"example":"RA-2026-001"},"advice_date":{"type":"string","format":"date","example":"2026-11-20"},"communication_channel":{"type":"string","enum":["portal","email","fax","paper","phone","other"]},"source_provenance":{"type":"string","maxLength":2000,"example":"Staff transcribed the paper advice received by clinic mail."},"currency":{"type":"string","pattern":"^[A-Z]{3}$","example":"JMD"},"reported_totals":{"type":"object","properties":{"billed":{"type":"string","nullable":true,"example":"5000.00"},"allowed":{"type":"string","nullable":true,"example":"4200.00"},"paid":{"type":"string","nullable":true,"example":"3500.00"},"denied":{"type":"string","nullable":true,"example":"500.00"},"adjusted":{"type":"string","nullable":true,"example":"200.00"}}},"lines":{"type":"array","minItems":1,"maxItems":500,"items":{"type":"object","required":["patient_id","association_id"],"properties":{"external_line_reference":{"type":"string","nullable":true},"patient_id":{"type":"integer","minimum":1,"example":42},"association_id":{"type":"integer","minimum":1,"example":7},"claim_id":{"type":"integer","nullable":true},"submission_id":{"type":"integer","nullable":true},"supporting_evidence_id":{"type":"integer","nullable":true},"billed_amount":{"type":"string","nullable":true,"example":"5000.00"},"allowed_amount":{"type":"string","nullable":true,"example":"4200.00"},"paid_amount":{"type":"string","nullable":true,"example":"3500.00"},"denied_amount":{"type":"string","nullable":true,"example":"500.00"},"adjusted_amount":{"type":"string","nullable":true,"example":"200.00"},"adjustment_reason":{"type":"string","nullable":true}}}}}}}}},
+        "responses":{"201":{"description":"Advice and immutable lines recorded; standard API envelope."},"200":{"description":"Idempotent replay of an identical recording."},"401":{"description":"Unauthenticated."},"403":{"description":"Missing exact permission or patient/evidence access."},"404":{"description":"Insurer or referenced tenant/patient record not found."},"409":{"description":"Duplicate insurer reference or idempotency key conflict."},"422":{"description":"Invalid observation or inconsistent patient, claim, submission, currency, or evidence lineage."}}
+      }
+    },
+    "/api/insurance/remittances/{advice}": {
+      "parameters":[{"$ref":"#/components/parameters/TenantHeader"},{"name":"advice","in":"path","required":true,"schema":{"type":"integer","minimum":1}}],
+      "get":{"tags":["Insurance remittances"],"summary":"Retrieve remittance advice","description":"Requires insurance_remittances.view and patients.view. Returns staff-entered advice observation, not an insurer-verified fact.","responses":{"200":{"description":"Advice in the standard API envelope."},"401":{"description":"Unauthenticated."},"403":{"description":"Missing exact permission or active tenant access."},"404":{"description":"Advice is outside the active tenant."}}}
+    },
+    "/api/insurance/remittances/{advice}/lines": {
+      "parameters":[{"$ref":"#/components/parameters/TenantHeader"},{"name":"advice","in":"path","required":true,"schema":{"type":"integer","minimum":1}}],
+      "get":{"tags":["Insurance remittances"],"summary":"List remittance advice lines","description":"Requires insurance_remittances.view and patients.view. Returns paginated immutable reported line values; unknown amounts remain null.","parameters":[{"name":"page","in":"query","schema":{"type":"integer","minimum":1,"default":1}},{"name":"per_page","in":"query","schema":{"type":"integer","minimum":1,"maximum":100,"default":50}}],"responses":{"200":{"description":"Paginated lines in the standard API envelope."},"401":{"description":"Unauthenticated."},"403":{"description":"Missing exact permission or active tenant access."},"404":{"description":"Advice is outside the active tenant."},"422":{"description":"Invalid pagination input."}}}
+    },
+    "/api/insurance/remittances/{advice}/corrections": {
+      "parameters":[{"$ref":"#/components/parameters/TenantHeader"},{"name":"advice","in":"path","required":true,"schema":{"type":"integer","minimum":1}}],
+      "post":{"tags":["Insurance remittances"],"summary":"Record a linked correction","description":"Requires insurance_remittances.correct and patients.view. Creates a new immutable advice with explicit correction_reason; the original is preserved. The correction retains insurer and currency.","parameters":[{"$ref":"#/components/parameters/IdempotencyKey"}],"requestBody":{"required":true,"content":{"application/json":{"schema":{"allOf":[{"$ref":"#/components/schemas/AdviceBody"},{"type":"object","required":["correction_reason"],"properties":{"correction_reason":{"type":"string","maxLength":2000,"example":"Corrected amount transcribed from the replacement advice."}}}]}}}},"responses":{"201":{"description":"Linked correction and lines recorded."},"200":{"description":"Idempotent replay of an identical correction."},"401":{"description":"Unauthenticated."},"403":{"description":"Missing exact permission or patient/evidence access."},"404":{"description":"Advice or referenced record not found in active tenant."},"409":{"description":"Advice already corrected or idempotency conflict."},"422":{"description":"Invalid correction or mismatched currency/lineage."}}}
+    }
+  },
+  "components": {
+    "parameters":{"TenantHeader":{"name":"X-Tenant-Id","in":"header","required":false,"schema":{"type":"integer","minimum":1},"description":"Optional tenant selector. Must identify an active tenant membership; never authorizes cross-tenant access."},"IdempotencyKey":{"name":"Idempotency-Key","in":"header","required":true,"schema":{"type":"string","format":"uuid"},"description":"Unique UUID for an idempotent create/correction command."}},
+    "schemas":{"AdviceBody":{"type":"object","required":["external_reference","advice_date","communication_channel","source_provenance","currency","lines"],"properties":{"external_reference":{"type":"string","maxLength":200},"advice_date":{"type":"string","format":"date"},"communication_channel":{"type":"string","enum":["portal","email","fax","paper","phone","other"]},"source_provenance":{"type":"string","maxLength":2000},"currency":{"type":"string","pattern":"^[A-Z]{3}$"},"reported_totals":{"type":"object","properties":{"billed":{"type":"string","nullable":true},"allowed":{"type":"string","nullable":true},"paid":{"type":"string","nullable":true},"denied":{"type":"string","nullable":true},"adjusted":{"type":"string","nullable":true}}},"lines":{"type":"array","minItems":1,"maxItems":500,"items":{"type":"object","required":["patient_id","association_id"],"properties":{"external_line_reference":{"type":"string","nullable":true},"patient_id":{"type":"integer"},"association_id":{"type":"integer"},"claim_id":{"type":"integer","nullable":true},"submission_id":{"type":"integer","nullable":true},"supporting_evidence_id":{"type":"integer","nullable":true},"billed_amount":{"type":"string","nullable":true},"allowed_amount":{"type":"string","nullable":true},"paid_amount":{"type":"string","nullable":true},"denied_amount":{"type":"string","nullable":true},"adjusted_amount":{"type":"string","nullable":true},"adjustment_reason":{"type":"string","nullable":true}}}}}}}
+  }
+}

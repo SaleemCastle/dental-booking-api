@@ -17,6 +17,7 @@ use Illuminate\Support\Facades\DB;
 use Laravel\Sanctum\Sanctum;
 use Mockery;
 use RuntimeException;
+use Tests\Support\InsuranceMigrationRollback;
 use Tests\TestCase;
 
 class InsuranceCatalogApiTest extends TestCase
@@ -138,19 +139,12 @@ class InsuranceCatalogApiTest extends TestCase
         foreach (['invoices', 'invoice_items', 'payments'] as $table) {
             $before[$table] = DB::table($table)->orderBy('id')->get()->toJson();
         }
-        // Unwind benefits, patient-insurance and evidence FK dependencies before the catalog.
-        $benefits = require database_path('migrations/2026_11_16_000001_create_insurance_benefit_rules.php');
-        $benefits->down();
-        $patientInsurance = require database_path('migrations/2026_11_15_000001_create_patient_insurance.php');
-        $patientInsurance->down();
-        $evidence = require database_path('migrations/2026_11_14_000001_protect_document_evidence.php');
-        $evidence->down();
+        // Revert the complete dependent insurance chain in reverse migration order.
+        $downstream = InsuranceMigrationRollback::rollbackAfter('2026_11_13_000001_create_insurance_catalog.php');
         $migration = require database_path('migrations/2026_11_13_000001_create_insurance_catalog.php');
         $migration->down();
         $migration->up();
-        $evidence->up();
-        $patientInsurance->up();
-        $benefits->up();
+        InsuranceMigrationRollback::restore($downstream);
         foreach ($before as $table => $rows) {
             $this->assertSame($rows, DB::table($table)->orderBy('id')->get()->toJson());
         }

@@ -20,6 +20,7 @@ use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Laravel\Sanctum\Sanctum;
+use Tests\Support\InsuranceMigrationRollback;
 use Tests\TestCase;
 
 /** Real combined migrations on a disposable PostgreSQL database; never production data. */
@@ -78,6 +79,7 @@ class PatientInsuranceIntegrationPostgresTest extends TestCase
         $c = require database_path('migrations/2026_11_14_000001_protect_document_evidence.php');
         DB::unprepared("CREATE FUNCTION insurance_review_sentinel() RETURNS integer LANGUAGE sql AS 'SELECT 42'");
         for ($cycle = 0; $cycle < 2; $cycle++) {
+            $downstream = InsuranceMigrationRollback::rollbackAfter('2026_11_15_000001_create_patient_insurance.php');
             $this->assertSame('evidence_patient_tenant_unique', DB::selectOne(<<<'SQL'
 SELECT key.conname FROM pg_constraint fk
 JOIN pg_constraint key ON key.conindid=fk.conindid AND key.contype='u'
@@ -93,6 +95,7 @@ SQL)->conname);
             $this->assertSame(42, DB::selectOne('SELECT insurance_review_sentinel() AS n')->n);
             $c->up();
             $b->up();
+            InsuranceMigrationRollback::restore($downstream);
             $this->assertEquals($before, DB::table('patient')->where('id', $patient->id)->first());
             $this->assertDatabaseCount('patient_insurer_associations', 0);
             $this->assertDatabaseCount('patient_insurance_policies', 0);
@@ -106,8 +109,10 @@ SQL)->conname);
         [, $role, $patient] = $this->actor();
         $path = '/api/patients/'.$patient->id.'/insurance-associations';
         $document = $this->document($patient);
-        $this->assertDatabaseCount('permissions', 82);
-        $this->assertCount(68, $role->fresh()->permissions);
+        $this->assertSame(3, Permission::where('resource', 'patient_insurance')->count());
+        $this->assertSame(5, Permission::where('resource', 'insurance_documents')->count());
+        $this->assertSame(1, Permission::where('resource', 'document_holds')->count());
+        $this->assertFalse($role->permissions()->whereIn('permissions.resource', ['patient_insurance', 'insurance_documents', 'document_holds'])->exists());
         $this->assertFalse(config('insurance_evidence.uploads_enabled'));
         $this->assertFalse(config('insurance_evidence.linking_enabled'));
         $this->postJson($path, ['unverified_insurer_name' => 'Canopy'])->assertForbidden();

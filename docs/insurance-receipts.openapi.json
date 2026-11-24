@@ -1,0 +1,29 @@
+{
+  "openapi": "3.0.3",
+  "info": {
+    "title": "Manual insurer receipt observations (P4-M5-B)",
+    "version": "1.0.0",
+    "description": "Nonposting manual receipt records and independent staff verification observations. A verified receipt does not post a payment or allocation."
+  },
+  "servers": [{"url":"http://localhost:8000"}],
+  "security": [{"sanctumBearer":[]}],
+  "tags": [{"name":"Insurance receipts"}],
+  "paths": {
+    "/api/insurance/receipts": {
+      "parameters":[{"$ref":"#/components/parameters/TenantHeader"}],
+      "get":{"tags":["Insurance receipts"],"summary":"List insurer receipt observations","description":"Requires insurance_receipts.view and active tenant membership. Paginated; private/no-store. These are not invoice payments.","parameters":[{"name":"page","in":"query","schema":{"type":"integer","minimum":1,"default":1}},{"name":"per_page","in":"query","schema":{"type":"integer","minimum":1,"maximum":100,"default":15}},{"name":"insurer_id","in":"query","schema":{"type":"integer","minimum":1}}],"responses":{"200":{"description":"Paginated receipt observations in the standard API envelope."},"401":{"description":"Unauthenticated."},"403":{"description":"Missing exact permission or active tenant access."},"422":{"description":"Invalid list filters."}}},
+      "post":{"tags":["Insurance receipts"],"summary":"Record a manual insurer receipt","description":"Requires insurance_receipts.record. Records staff-entered receipt evidence only. financial_posted is always false; no payment, allocation, receivable, invoice, or patient-balance mutation occurs. Retries with the same UUID key and payload replay the original receipt.","parameters":[{"$ref":"#/components/parameters/IdempotencyKey"}],"requestBody":{"required":true,"content":{"application/json":{"schema":{"type":"object","required":["insurer_id","received_on","channel","source_provenance","amount","currency"],"properties":{"insurer_id":{"type":"integer","minimum":1,"example":12},"remittance_advice_id":{"type":"integer","nullable":true},"external_reference":{"type":"string","nullable":true,"maxLength":200},"received_on":{"type":"string","format":"date","example":"2026-11-20"},"channel":{"type":"string","enum":["portal","email","fax","paper","phone","bank_statement","other"]},"source_provenance":{"type":"string","maxLength":2000,"example":"Staff recorded the deposit advice received from the clinic bank statement."},"amount":{"type":"string","pattern":"^(?:0|[1-9][0-9]{0,11})(?:\\.[0-9]{1,2})?$","example":"3500.00"},"currency":{"type":"string","pattern":"^[A-Z]{3}$","example":"JMD"}}}}},"responses":{"201":{"description":"Nonposting receipt observation created; data.receipt.financial_posted is false."},"200":{"description":"Idempotent replay of an identical command."},"401":{"description":"Unauthenticated."},"403":{"description":"Missing exact permission."},"404":{"description":"Insurer not found in active tenant."},"409":{"description":"Duplicate external reference or idempotency key conflict."},"422":{"description":"Invalid decimal, currency, advice reference, or input."}}}}
+    },
+    "/api/insurance/receipts/{receipt}": {
+      "parameters":[{"$ref":"#/components/parameters/TenantHeader"},{"name":"receipt","in":"path","required":true,"schema":{"type":"integer","minimum":1}}],
+      "get":{"tags":["Insurance receipts"],"summary":"Retrieve receipt and verification history","description":"Requires insurance_receipts.view. Reports any separate staff verification; financial_posted remains false.","responses":{"200":{"description":"Receipt and verification observation in the standard envelope."},"401":{"description":"Unauthenticated."},"403":{"description":"Missing exact permission or active tenant access."},"404":{"description":"Receipt is outside the active tenant."}}}
+    },
+    "/api/insurance/receipts/{receipt}/verification": {
+      "parameters":[{"$ref":"#/components/parameters/TenantHeader"},{"name":"receipt","in":"path","required":true,"schema":{"type":"integer","minimum":1}}],
+      "post":{"tags":["Insurance receipts"],"summary":"Record a staff verification observation","description":"Requires insurance_receipts.verify. Verification must cite its method/provenance and exactly match receipt amount/currency. It does not post or allocate cash.","requestBody":{"required":true,"content":{"application/json":{"schema":{"type":"object","required":["verification_method","provenance","observed_amount","observed_currency"],"properties":{"verification_method":{"type":"string","enum":["bank_statement","deposit_record","insurer_confirmation","other"]},"provenance":{"type":"string","maxLength":2000,"example":"Compared with the statement reference reviewed by finance staff."},"observed_amount":{"type":"string","pattern":"^(?:0|[1-9][0-9]{0,11})(?:\\.[0-9]{1,2})?$","example":"3500.00"},"observed_currency":{"type":"string","pattern":"^[A-Z]{3}$","example":"JMD"}}}}},"responses":{"201":{"description":"Append-only verification observation recorded."},"401":{"description":"Unauthenticated."},"403":{"description":"Missing exact permission."},"404":{"description":"Receipt is outside the active tenant."},"409":{"description":"Already verified or observed amount/currency does not match."},"422":{"description":"Invalid verification input."}}}}
+    }
+  },
+  "components": {
+    "parameters":{"TenantHeader":{"name":"X-Tenant-Id","in":"header","required":false,"schema":{"type":"integer","minimum":1},"description":"Optional tenant selector; active tenant membership is still required."},"IdempotencyKey":{"name":"Idempotency-Key","in":"header","required":true,"schema":{"type":"string","format":"uuid"},"description":"UUID command key for idempotent receipt creation."}}
+  }
+}
