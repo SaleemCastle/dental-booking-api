@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\InsuranceReportRequest;
 use App\Http\Requests\ReportRequest;
 use App\Models\ProviderAvailability;
+use App\Services\InsuranceReportingService;
 use App\Services\ReportingService;
 use App\Support\ApiResponse;
 
