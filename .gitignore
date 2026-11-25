@@ -84,6 +84,7 @@ yarn-error.log
 !/docs/postman/insurance-remittances.postman_collection.json
 !/docs/postman/insurance-remittances.postman_environment.json
 !/docs/p4-m4-c-gap-analysis.md
+!/docs/P5-M0-inventory-procurement-financial-boundaries-audit.md
 
 # Local environment files
 .env.*
