@@ -21,6 +21,8 @@ approval, insurer response, remittance advice, or receipt.
   are checked for each patient/invoice read. Actions and replay are audited.
 - APIs: list, propose, retrieve, approve.
 
+The API contract is [insurance-obligations.openapi.json](insurance-obligations.openapi.json); see the generated `Insurance obligations` Postman artifacts under `docs/postman/`.
+
 Approval history is append-only and returned as version 1 (proposal) and
 version 2 (approval). It does not mutate the invoice, invoice line, payment
 ledger, receivable, or patient balance.
