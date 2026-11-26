@@ -9176,7 +9176,7 @@
                                 }
                             ]
                         },
-                        "description": "Requires inventory.view. Balances are sums of movement deltas for each item, location and nullable lot. Buckets without history are omitted.\n\nGET /api/inventory/balances\nDomain writes require allow_writes=true. Missing required variables skip requests rather than selecting real records automatically."
+                        "description": "Requires inventory.view. Balances are physical quantities, including expired lots, summed from movement deltas for each item, location and nullable lot. Buckets without history are omitted.\n\nGET /api/inventory/balances\nDomain writes require allow_writes=true. Missing required variables skip requests rather than selecting real records automatically."
                     },
                     "response": []
                 }
