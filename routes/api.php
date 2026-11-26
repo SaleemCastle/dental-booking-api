@@ -18,6 +18,7 @@ use App\Http\Controllers\Api\ProviderAvailabilityController;
 use App\Http\Controllers\Api\ReferralController;
 use App\Http\Controllers\Api\ReportController;
 use App\Http\Controllers\Api\RoleController;
+use App\Http\Controllers\Api\SupplierInvoiceController;
 use App\Http\Controllers\Api\SupplierReceiptController;
 use App\Http\Controllers\Api\TaskController;
 use App\Http\Controllers\Api\TokenController;
@@ -65,6 +66,12 @@ Route::middleware('auth:sanctum')->get('tenants', function (Request $request) {
 Route::middleware('auth:sanctum')->delete('auth/token', [TokenController::class, 'destroy']);
 
 Route::middleware(['auth:sanctum', 'tenant'])->group(function () {
+    Route::prefix('procurement/supplier-invoices')->controller(SupplierInvoiceController::class)->group(function () {
+        Route::get('', 'index');
+        Route::post('', 'store');
+        Route::get('{supplier_invoice}', 'show')->whereNumber('supplier_invoice');
+    });
+
     Route::prefix('procurement/supplier-receipts')->controller(SupplierReceiptController::class)->group(function () {
         Route::get('', 'index');
         Route::post('', 'store');

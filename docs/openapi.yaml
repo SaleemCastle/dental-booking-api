@@ -4011,6 +4011,94 @@ paths:
         "404": { $ref: "#/components/responses/NotFound" }
         "422": { $ref: "#/components/responses/ValidationError" }
 
+  /api/procurement/supplier-invoices:
+    parameters:
+      - { $ref: "#/components/parameters/TenantHeader" }
+    get:
+      tags: [Procurement]
+      summary: List recorded supplier invoices
+      description: Requires supplier_invoices.view.
+      parameters:
+        - { name: page, in: query, schema: { type: integer, minimum: 1, maximum: 1000000, default: 1 } }
+        - { name: per_page, in: query, schema: { type: integer, minimum: 1, maximum: 100, default: 15 } }
+        - { name: supplier_id, in: query, schema: { type: integer, minimum: 1 } }
+      responses:
+        "200":
+          description: Paginated invoice observations.
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - { $ref: "#/components/schemas/ApiEnvelope" }
+                  - type: object
+                    properties:
+                      data:
+                        type: array
+                        items: { $ref: "#/components/schemas/SupplierInvoice" }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "422": { $ref: "#/components/responses/ValidationError" }
+    post:
+      tags: [Procurement]
+      summary: Record a supplier invoice
+      description: Requires supplier_invoices.record. Records what the supplier reported. This operation creates no payable or payment.
+      parameters:
+        - { name: Idempotency-Key, in: header, required: true, description: Clinic scoped UUID for the original actor and normalized request., schema: { type: string, format: uuid, example: "550e8400-e29b-41d4-a716-446655440000" } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/SupplierInvoiceInput" }
+      responses:
+        "201":
+          description: Invoice observation recorded.
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - { $ref: "#/components/schemas/ApiEnvelope" }
+                  - type: object
+                    properties:
+                      data: { $ref: "#/components/schemas/SupplierInvoiceResult" }
+        "200":
+          description: Identical request replayed.
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - { $ref: "#/components/schemas/ApiEnvelope" }
+                  - type: object
+                    properties:
+                      data: { $ref: "#/components/schemas/SupplierInvoiceResult" }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "409": { $ref: "#/components/responses/SupplierInvoiceConflict" }
+        "422": { $ref: "#/components/responses/ValidationError" }
+  /api/procurement/supplier-invoices/{supplier_invoice}:
+    parameters:
+      - { $ref: "#/components/parameters/TenantHeader" }
+      - { name: supplier_invoice, in: path, required: true, schema: { type: integer, minimum: 1, example: 1 } }
+    get:
+      tags: [Procurement]
+      summary: Retrieve a recorded supplier invoice
+      description: Requires supplier_invoices.view.
+      responses:
+        "200":
+          description: Invoice observation.
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - { $ref: "#/components/schemas/ApiEnvelope" }
+                  - type: object
+                    properties:
+                      data: { $ref: "#/components/schemas/SupplierInvoice" }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "422": { $ref: "#/components/responses/ValidationError" }
+
 components:
   securitySchemes:
     sanctumBearer:
@@ -4119,6 +4207,11 @@ components:
       required: true
       content: { application/json: { schema: { $ref: "#/components/schemas/ClinicalNoteUpdateRequest" } } }
   responses:
+    SupplierInvoiceConflict:
+      description: Supplier invoice number already recorded or conflicting idempotency key.
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/ApiErrorEnvelope" }
     SupplierReceiptConflict:
       description: Inactive supplier, duplicate supplier reference, or conflicting idempotency key.
       content:
@@ -4521,6 +4614,46 @@ components:
                     properties:
                       clinicalNote: { $ref: "#/components/schemas/ClinicalNote" }
   schemas:
+    SupplierInvoiceInput:
+      type: object
+      required: [supplier_id, invoice_number, invoice_date, currency, reported_total]
+      additionalProperties: false
+      properties:
+        supplier_id: { type: integer, minimum: 1, example: 1 }
+        supplier_receipt_id: { type: integer, minimum: 1, nullable: true, description: Optional reference to an existing receipt from the same supplier and clinic. }
+        invoice_number:
+          type: string
+          pattern: '^[A-Za-z0-9][ A-Za-z0-9._/#-]{0,79}$'
+          description: Supplier reference. Uniqueness is case insensitive within each clinic and supplier.
+          example: Vendor-01
+        invoice_date: { type: string, format: date, example: "2026-11-20" }
+        due_on: { type: string, format: date, nullable: true, description: Informational due date as reported by the supplier. }
+        currency: { type: string, pattern: '^[A-Z]{3}$', example: JMD }
+        reported_total:
+          type: string
+          pattern: '^(0|[1-9][0-9]{0,15})(\.[0-9]{1,2})?$'
+          description: Nonnegative amount as reported by the supplier, with no conversions or balance calculation.
+          example: "1200.50"
+    SupplierInvoice:
+      type: object
+      required: [id, supplier_id, supplier_receipt_id, invoice_number, invoice_date, due_on, currency, reported_total, recorded_by_user_id, recorded_at]
+      properties:
+        id: { type: integer, minimum: 1 }
+        supplier_id: { type: integer, minimum: 1 }
+        supplier_receipt_id: { type: integer, minimum: 1, nullable: true }
+        invoice_number: { type: string }
+        invoice_date: { type: string, format: date }
+        due_on: { type: string, format: date, nullable: true }
+        currency: { type: string }
+        reported_total: { type: string, example: "1200.50" }
+        recorded_by_user_id: { type: integer, minimum: 1 }
+        recorded_at: { type: string, format: date-time }
+    SupplierInvoiceResult:
+      type: object
+      required: [invoice, replayed]
+      properties:
+        invoice: { $ref: "#/components/schemas/SupplierInvoice" }
+        replayed: { type: boolean }
     SupplierReceiptInput:
       type: object
       required: [supplier_id, reference, received_on, lines]
