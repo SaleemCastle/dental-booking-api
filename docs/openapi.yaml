@@ -17,6 +17,7 @@ tags:
   - name: Provider Availability
   - name: Dentists
   - name: Treatments
+  - name: Inventory
   - name: Invoices
   - name: Payments
   - name: Payment Links
@@ -3441,6 +3442,295 @@ paths:
         "401": { $ref: "#/components/responses/Unauthenticated" }
         "403": { $ref: "#/components/responses/Forbidden" }
         "404": { $ref: "#/components/responses/NotFound" }
+  /api/inventory/items:
+    parameters:
+      - { $ref: "#/components/parameters/TenantHeader" }
+    get:
+      tags: [Inventory]
+      summary: List stock items
+      description: Requires inventory.view.
+      parameters:
+        - { name: page, in: query, schema: { type: integer, minimum: 1, maximum: 1000000, default: 1 } }
+        - { name: per_page, in: query, schema: { type: integer, minimum: 1, maximum: 100, default: 15 } }
+      responses:
+        "200":
+          description: Paginated stock items in the standard response envelope.
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - { $ref: "#/components/schemas/ApiEnvelope" }
+                  - type: object
+                    properties:
+                      data:
+                        type: array
+                        items: { $ref: "#/components/schemas/InventoryItem" }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "422": { $ref: "#/components/responses/ValidationError" }
+    post:
+      tags: [Inventory]
+      summary: Record stock item
+      description: Requires inventory.manage_catalog.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/InventoryItemInput" }
+      responses:
+        "201":
+          description: Definition created and audited.
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - { $ref: "#/components/schemas/ApiEnvelope" }
+                  - type: object
+                    properties:
+                      data: { $ref: "#/components/schemas/InventoryItem" }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "409": { $ref: "#/components/responses/InventoryConflict" }
+        "422": { $ref: "#/components/responses/ValidationError" }
+  /api/inventory/locations:
+    parameters:
+      - { $ref: "#/components/parameters/TenantHeader" }
+    get:
+      tags: [Inventory]
+      summary: List stock locations
+      description: Requires inventory.view.
+      parameters:
+        - { name: page, in: query, schema: { type: integer, minimum: 1, maximum: 1000000, default: 1 } }
+        - { name: per_page, in: query, schema: { type: integer, minimum: 1, maximum: 100, default: 15 } }
+      responses:
+        "200":
+          description: Paginated stock locations in the standard response envelope.
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - { $ref: "#/components/schemas/ApiEnvelope" }
+                  - type: object
+                    properties:
+                      data:
+                        type: array
+                        items: { $ref: "#/components/schemas/InventoryLocation" }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "422": { $ref: "#/components/responses/ValidationError" }
+    post:
+      tags: [Inventory]
+      summary: Record stock location
+      description: Requires inventory.manage_catalog.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/InventoryLocationInput" }
+      responses:
+        "201":
+          description: Definition created and audited.
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - { $ref: "#/components/schemas/ApiEnvelope" }
+                  - type: object
+                    properties:
+                      data: { $ref: "#/components/schemas/InventoryLocation" }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "409": { $ref: "#/components/responses/InventoryConflict" }
+        "422": { $ref: "#/components/responses/ValidationError" }
+  /api/inventory/lots:
+    parameters:
+      - { $ref: "#/components/parameters/TenantHeader" }
+    get:
+      tags: [Inventory]
+      summary: List lots
+      description: Requires inventory.view.
+      parameters:
+        - { name: page, in: query, schema: { type: integer, minimum: 1, maximum: 1000000, default: 1 } }
+        - { name: per_page, in: query, schema: { type: integer, minimum: 1, maximum: 100, default: 15 } }
+        - { name: item_id, in: query, schema: { type: integer, minimum: 1 } }
+      responses:
+        "200":
+          description: Paginated lots in the standard response envelope.
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - { $ref: "#/components/schemas/ApiEnvelope" }
+                  - type: object
+                    properties:
+                      data:
+                        type: array
+                        items: { $ref: "#/components/schemas/InventoryLot" }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "422": { $ref: "#/components/responses/ValidationError" }
+    post:
+      tags: [Inventory]
+      summary: Record lot
+      description: Requires inventory.manage_catalog.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/InventoryLotInput" }
+      responses:
+        "201":
+          description: Definition created and audited.
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - { $ref: "#/components/schemas/ApiEnvelope" }
+                  - type: object
+                    properties:
+                      data: { $ref: "#/components/schemas/InventoryLot" }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "409": { $ref: "#/components/responses/InventoryConflict" }
+        "422": { $ref: "#/components/responses/ValidationError" }
+  /api/inventory/movements:
+    parameters:
+      - { $ref: "#/components/parameters/TenantHeader" }
+    get:
+      tags: [Inventory]
+      summary: List movements
+      description: Requires inventory.view.
+      parameters:
+        - { name: page, in: query, schema: { type: integer, minimum: 1, maximum: 1000000, default: 1 } }
+        - { name: per_page, in: query, schema: { type: integer, minimum: 1, maximum: 100, default: 15 } }
+        - { name: item_id, in: query, schema: { type: integer, minimum: 1 } }
+        - { name: location_id, in: query, schema: { type: integer, minimum: 1 } }
+        - { name: lot_id, in: query, schema: { type: integer, minimum: 1 } }
+      responses:
+        "200":
+          description: Paginated movements in the standard response envelope.
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - { $ref: "#/components/schemas/ApiEnvelope" }
+                  - type: object
+                    properties:
+                      data:
+                        type: array
+                        items: { $ref: "#/components/schemas/InventoryMovement" }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "422": { $ref: "#/components/responses/ValidationError" }
+    post:
+      tags: [Inventory]
+      summary: Record movement
+      description: Requires inventory.record_movements.
+      parameters:
+        - { name: Idempotency-Key, in: header, required: true, description: UUID scoped to the clinic and item. Replays require the same actor and normalized payload., schema: { type: string, format: uuid, example: "550e8400-e29b-41d4-a716-446655440000" } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/InventoryMovementInput" }
+      responses:
+        "201":
+          description: Movement appended and audited.
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - { $ref: "#/components/schemas/ApiEnvelope" }
+                  - type: object
+                    properties:
+                      data: { $ref: "#/components/schemas/InventoryMovementResult" }
+        "200":
+          description: Identical movement replay.
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - { $ref: "#/components/schemas/ApiEnvelope" }
+                  - type: object
+                    properties:
+                      data: { $ref: "#/components/schemas/InventoryMovementResult" }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "409": { $ref: "#/components/responses/InventoryConflict" }
+        "422": { $ref: "#/components/responses/ValidationError" }
+  /api/inventory/movements/{movement}/corrections:
+    parameters:
+      - { $ref: "#/components/parameters/TenantHeader" }
+      - { name: movement, in: path, required: true, schema: { type: integer, minimum: 1, example: 1 } }
+    post:
+      tags: [Inventory]
+      summary: Correct a stock movement
+      description: Requires inventory.correct_movements. Appends the exact inverse once in the original bucket.
+      parameters:
+        - { name: Idempotency-Key, in: header, required: true, description: UUID scoped to the clinic and item. Replays require the same actor and normalized payload., schema: { type: string, format: uuid, example: "550e8400-e29b-41d4-a716-446655440000" } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/InventoryCorrectionInput" }
+      responses:
+        "201":
+          description: Movement appended and audited.
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - { $ref: "#/components/schemas/ApiEnvelope" }
+                  - type: object
+                    properties:
+                      data: { $ref: "#/components/schemas/InventoryMovementResult" }
+        "200":
+          description: Identical movement replay.
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - { $ref: "#/components/schemas/ApiEnvelope" }
+                  - type: object
+                    properties:
+                      data: { $ref: "#/components/schemas/InventoryMovementResult" }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "409": { $ref: "#/components/responses/InventoryConflict" }
+        "422": { $ref: "#/components/responses/ValidationError" }
+  /api/inventory/balances:
+    parameters:
+      - { $ref: "#/components/parameters/TenantHeader" }
+    get:
+      tags: [Inventory]
+      summary: List stock balances
+      description: Requires inventory.view. Balances are sums of movement deltas for each item, location and nullable lot. Buckets without history are omitted.
+      parameters:
+        - { name: page, in: query, schema: { type: integer, minimum: 1, maximum: 1000000, default: 1 } }
+        - { name: per_page, in: query, schema: { type: integer, minimum: 1, maximum: 100, default: 15 } }
+        - { name: item_id, in: query, schema: { type: integer, minimum: 1 } }
+        - { name: location_id, in: query, schema: { type: integer, minimum: 1 } }
+        - { name: lot_id, in: query, schema: { type: integer, minimum: 1 } }
+      responses:
+        "200":
+          description: Paginated stock balances in the standard response envelope.
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - { $ref: "#/components/schemas/ApiEnvelope" }
+                  - type: object
+                    properties:
+                      data:
+                        type: array
+                        items: { $ref: "#/components/schemas/InventoryBalance" }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "422": { $ref: "#/components/responses/ValidationError" }
+
 components:
   securitySchemes:
     sanctumBearer:
@@ -3549,6 +3839,11 @@ components:
       required: true
       content: { application/json: { schema: { $ref: "#/components/schemas/ClinicalNoteUpdateRequest" } } }
   responses:
+    InventoryConflict:
+      description: Duplicate catalog code, conflicting idempotency key, insufficient stock, or ineligible correction.
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/ApiErrorEnvelope" }
     ProviderAvailabilityEnvelope:
       description: Standard envelope containing data.availability, including whether rules have been configured.
       content:
@@ -3936,6 +4231,101 @@ components:
                     properties:
                       clinicalNote: { $ref: "#/components/schemas/ClinicalNote" }
   schemas:
+    InventoryItemInput:
+      type: object
+      required: [sku, name, base_unit]
+      additionalProperties: false
+      properties:
+        sku: { type: string, pattern: '^[A-Z0-9][A-Z0-9._-]{0,63}$', example: GLOVES-M }
+        name: { type: string, minLength: 1, maxLength: 160, example: Medium gloves }
+        base_unit: { type: string, pattern: '^[a-z][a-z0-9_-]{0,31}$', example: each }
+    InventoryLocationInput:
+      type: object
+      required: [code, name]
+      additionalProperties: false
+      properties:
+        code: { type: string, pattern: '^[A-Z0-9][A-Z0-9._-]{0,63}$', example: STOCKROOM }
+        name: { type: string, minLength: 1, maxLength: 160, example: Stockroom }
+    InventoryLotInput:
+      type: object
+      required: [item_id, code]
+      additionalProperties: false
+      properties:
+        item_id: { type: integer, minimum: 1, example: 1 }
+        code: { type: string, pattern: '^[A-Z0-9][A-Z0-9._-]{0,63}$', example: LOT-01 }
+        expires_on: { type: string, format: date, nullable: true, example: "2028-05-31" }
+    InventoryMovementInput:
+      type: object
+      required: [item_id, location_id, kind, quantity_delta, reason]
+      additionalProperties: false
+      properties:
+        item_id: { type: integer, minimum: 1, example: 1 }
+        location_id: { type: integer, minimum: 1, example: 1 }
+        lot_id: { type: integer, minimum: 1, nullable: true }
+        kind: { type: string, enum: [receipt, issue, adjustment], example: receipt }
+        quantity_delta:
+          type: string
+          pattern: '^-?(0|[1-9][0-9]{0,11})(\.[0-9]{1,6})?$'
+          description: Positive for receipts, negative for issues and either nonzero sign for adjustments. Use the fixed base unit.
+          example: "12.125"
+        reason: { type: string, minLength: 1, maxLength: 500, example: Manual opening count }
+    InventoryCorrectionInput:
+      type: object
+      required: [reason]
+      additionalProperties: false
+      properties:
+        reason: { type: string, minLength: 1, maxLength: 500, example: Reversing duplicate physical receipt }
+    InventoryItem:
+      type: object
+      required: [id, sku, name, base_unit]
+      properties:
+        id: { type: integer, minimum: 1 }
+        sku: { type: string }
+        name: { type: string }
+        base_unit: { type: string }
+    InventoryLocation:
+      type: object
+      required: [id, code, name]
+      properties:
+        id: { type: integer, minimum: 1 }
+        code: { type: string }
+        name: { type: string }
+    InventoryLot:
+      type: object
+      required: [id, item_id, code, expires_on]
+      properties:
+        id: { type: integer, minimum: 1 }
+        item_id: { type: integer, minimum: 1 }
+        code: { type: string }
+        expires_on: { type: string, format: date, nullable: true }
+    InventoryMovement:
+      type: object
+      required: [id, item_id, location_id, lot_id, kind, quantity_delta, reason, corrects_movement_id, recorded_by_user_id, recorded_at]
+      properties:
+        id: { type: integer, minimum: 1 }
+        item_id: { type: integer, minimum: 1 }
+        location_id: { type: integer, minimum: 1 }
+        lot_id: { type: integer, minimum: 1, nullable: true }
+        kind: { type: string, enum: [receipt, issue, adjustment, correction] }
+        quantity_delta: { type: string, example: "-0.125000" }
+        reason: { type: string }
+        corrects_movement_id: { type: integer, minimum: 1, nullable: true }
+        recorded_by_user_id: { type: integer, minimum: 1 }
+        recorded_at: { type: string, format: date-time }
+    InventoryMovementResult:
+      type: object
+      required: [movement, replayed]
+      properties:
+        movement: { $ref: "#/components/schemas/InventoryMovement" }
+        replayed: { type: boolean }
+    InventoryBalance:
+      type: object
+      required: [item_id, location_id, lot_id, quantity]
+      properties:
+        item_id: { type: integer, minimum: 1 }
+        location_id: { type: integer, minimum: 1 }
+        lot_id: { type: integer, minimum: 1, nullable: true }
+        quantity: { type: string, example: "12.125000" }
     GovernanceReasonRequest:
       type: object
       required: [reason]

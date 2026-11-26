@@ -7,6 +7,7 @@ use App\Http\Controllers\Api\ClinicalNoteController;
 use App\Http\Controllers\Api\DashboardController;
 use App\Http\Controllers\Api\DentalChartController;
 use App\Http\Controllers\Api\DentistController;
+use App\Http\Controllers\Api\InventoryController;
 use App\Http\Controllers\Api\InvoiceController;
 use App\Http\Controllers\Api\PatientController;
 use App\Http\Controllers\Api\PatientDocumentController;
@@ -62,6 +63,17 @@ Route::middleware('auth:sanctum')->get('tenants', function (Request $request) {
 Route::middleware('auth:sanctum')->delete('auth/token', [TokenController::class, 'destroy']);
 
 Route::middleware(['auth:sanctum', 'tenant'])->group(function () {
+    Route::prefix('inventory')->controller(InventoryController::class)->group(function () {
+        foreach (['items', 'locations', 'lots'] as $resource) {
+            Route::get($resource, 'definitions')->defaults('resource', $resource);
+            Route::post($resource, 'createDefinition')->defaults('resource', $resource);
+        }
+        Route::get('movements', 'movements');
+        Route::post('movements', 'record');
+        Route::post('movements/{movement}/corrections', 'correct')->whereNumber('movement');
+        Route::get('balances', 'balances');
+    });
+
     Route::controller(\App\Http\Controllers\Api\InsuranceRemittanceAdviceController::class)->prefix('insurance/remittances')->group(function () {
         Route::get('', 'index');
         Route::post('', 'store');
