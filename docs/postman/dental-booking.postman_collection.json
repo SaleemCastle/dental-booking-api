@@ -8670,6 +8670,517 @@
                     "response": []
                 }
             ]
+        },
+        {
+            "name": "Inventory",
+            "item": [
+                {
+                    "name": "GET List stock items",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            },
+                            {
+                                "key": "X-Tenant-Id",
+                                "value": "",
+                                "description": "Select an active clinic membership. Omit for default-clinic. Does not confer membership or bypass authorization.",
+                                "disabled": true
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/api/inventory/items?page=1&per_page=15",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "inventory",
+                                "items"
+                            ],
+                            "query": [
+                                {
+                                    "key": "page",
+                                    "value": "1",
+                                    "disabled": false,
+                                    "description": "Optional filter; enable its checkbox to send it."
+                                },
+                                {
+                                    "key": "per_page",
+                                    "value": "15",
+                                    "disabled": false,
+                                    "description": "Optional filter; enable its checkbox to send it."
+                                }
+                            ]
+                        },
+                        "description": "Requires inventory.view.\n\nGET /api/inventory/items\nDomain writes require allow_writes=true. Missing required variables skip requests rather than selecting real records automatically."
+                    },
+                    "response": []
+                },
+                {
+                    "name": "POST Record stock item",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            },
+                            {
+                                "key": "X-Tenant-Id",
+                                "value": "",
+                                "description": "Select an active clinic membership. Omit for default-clinic. Does not confer membership or bypass authorization.",
+                                "disabled": true
+                            },
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/api/inventory/items",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "inventory",
+                                "items"
+                            ],
+                            "query": []
+                        },
+                        "description": "Requires inventory.manage_catalog.\n\nPOST /api/inventory/items\nDomain writes require allow_writes=true. Missing required variables skip requests rather than selecting real records automatically.",
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"sku\": \"GLOVES-M\",\n    \"name\": \"Medium gloves\",\n    \"base_unit\": \"each\"\n}\n",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        }
+                    },
+                    "response": []
+                },
+                {
+                    "name": "GET List stock locations",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            },
+                            {
+                                "key": "X-Tenant-Id",
+                                "value": "",
+                                "description": "Select an active clinic membership. Omit for default-clinic. Does not confer membership or bypass authorization.",
+                                "disabled": true
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/api/inventory/locations?page=1&per_page=15",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "inventory",
+                                "locations"
+                            ],
+                            "query": [
+                                {
+                                    "key": "page",
+                                    "value": "1",
+                                    "disabled": false,
+                                    "description": "Optional filter; enable its checkbox to send it."
+                                },
+                                {
+                                    "key": "per_page",
+                                    "value": "15",
+                                    "disabled": false,
+                                    "description": "Optional filter; enable its checkbox to send it."
+                                }
+                            ]
+                        },
+                        "description": "Requires inventory.view.\n\nGET /api/inventory/locations\nDomain writes require allow_writes=true. Missing required variables skip requests rather than selecting real records automatically."
+                    },
+                    "response": []
+                },
+                {
+                    "name": "POST Record stock location",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            },
+                            {
+                                "key": "X-Tenant-Id",
+                                "value": "",
+                                "description": "Select an active clinic membership. Omit for default-clinic. Does not confer membership or bypass authorization.",
+                                "disabled": true
+                            },
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/api/inventory/locations",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "inventory",
+                                "locations"
+                            ],
+                            "query": []
+                        },
+                        "description": "Requires inventory.manage_catalog.\n\nPOST /api/inventory/locations\nDomain writes require allow_writes=true. Missing required variables skip requests rather than selecting real records automatically.",
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"code\": \"STOCKROOM\",\n    \"name\": \"Stockroom\"\n}\n",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        }
+                    },
+                    "response": []
+                },
+                {
+                    "name": "GET List lots",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            },
+                            {
+                                "key": "X-Tenant-Id",
+                                "value": "",
+                                "description": "Select an active clinic membership. Omit for default-clinic. Does not confer membership or bypass authorization.",
+                                "disabled": true
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/api/inventory/lots?page=1&per_page=15",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "inventory",
+                                "lots"
+                            ],
+                            "query": [
+                                {
+                                    "key": "page",
+                                    "value": "1",
+                                    "disabled": false,
+                                    "description": "Optional filter; enable its checkbox to send it."
+                                },
+                                {
+                                    "key": "per_page",
+                                    "value": "15",
+                                    "disabled": false,
+                                    "description": "Optional filter; enable its checkbox to send it."
+                                },
+                                {
+                                    "key": "item_id",
+                                    "value": "{{item_id}}",
+                                    "disabled": true,
+                                    "description": "Optional filter; enable its checkbox to send it."
+                                }
+                            ]
+                        },
+                        "description": "Requires inventory.view.\n\nGET /api/inventory/lots\nDomain writes require allow_writes=true. Missing required variables skip requests rather than selecting real records automatically."
+                    },
+                    "response": []
+                },
+                {
+                    "name": "POST Record lot",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            },
+                            {
+                                "key": "X-Tenant-Id",
+                                "value": "",
+                                "description": "Select an active clinic membership. Omit for default-clinic. Does not confer membership or bypass authorization.",
+                                "disabled": true
+                            },
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/api/inventory/lots",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "inventory",
+                                "lots"
+                            ],
+                            "query": []
+                        },
+                        "description": "Requires inventory.manage_catalog.\n\nPOST /api/inventory/lots\nDomain writes require allow_writes=true. Missing required variables skip requests rather than selecting real records automatically.",
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"item_id\": \"{{item_id}}\",\n    \"code\": \"LOT-01\"\n}\n",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        }
+                    },
+                    "response": []
+                },
+                {
+                    "name": "GET List movements",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            },
+                            {
+                                "key": "X-Tenant-Id",
+                                "value": "",
+                                "description": "Select an active clinic membership. Omit for default-clinic. Does not confer membership or bypass authorization.",
+                                "disabled": true
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/api/inventory/movements?page=1&per_page=15",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "inventory",
+                                "movements"
+                            ],
+                            "query": [
+                                {
+                                    "key": "page",
+                                    "value": "1",
+                                    "disabled": false,
+                                    "description": "Optional filter; enable its checkbox to send it."
+                                },
+                                {
+                                    "key": "per_page",
+                                    "value": "15",
+                                    "disabled": false,
+                                    "description": "Optional filter; enable its checkbox to send it."
+                                },
+                                {
+                                    "key": "item_id",
+                                    "value": "{{item_id}}",
+                                    "disabled": true,
+                                    "description": "Optional filter; enable its checkbox to send it."
+                                },
+                                {
+                                    "key": "location_id",
+                                    "value": "{{location_id}}",
+                                    "disabled": true,
+                                    "description": "Optional filter; enable its checkbox to send it."
+                                },
+                                {
+                                    "key": "lot_id",
+                                    "value": "{{lot_id}}",
+                                    "disabled": true,
+                                    "description": "Optional filter; enable its checkbox to send it."
+                                }
+                            ]
+                        },
+                        "description": "Requires inventory.view.\n\nGET /api/inventory/movements\nDomain writes require allow_writes=true. Missing required variables skip requests rather than selecting real records automatically."
+                    },
+                    "response": []
+                },
+                {
+                    "name": "POST Record movement",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            },
+                            {
+                                "key": "X-Tenant-Id",
+                                "value": "",
+                                "description": "Select an active clinic membership. Omit for default-clinic. Does not confer membership or bypass authorization.",
+                                "disabled": true
+                            },
+                            {
+                                "key": "Idempotency-Key",
+                                "value": "{{$guid}}",
+                                "description": "UUID scoped to the clinic and item. Replays require the same actor and normalized payload.",
+                                "disabled": false
+                            },
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/api/inventory/movements",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "inventory",
+                                "movements"
+                            ],
+                            "query": []
+                        },
+                        "description": "Requires inventory.record_movements.\n\nPOST /api/inventory/movements\nDomain writes require allow_writes=true. Missing required variables skip requests rather than selecting real records automatically.",
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"item_id\": \"{{item_id}}\",\n    \"location_id\": \"{{location_id}}\",\n    \"kind\": \"receipt\",\n    \"quantity_delta\": \"12.125\",\n    \"reason\": \"Manual opening count\"\n}\n",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        }
+                    },
+                    "response": []
+                },
+                {
+                    "name": "POST Correct a stock movement",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            },
+                            {
+                                "key": "X-Tenant-Id",
+                                "value": "",
+                                "description": "Select an active clinic membership. Omit for default-clinic. Does not confer membership or bypass authorization.",
+                                "disabled": true
+                            },
+                            {
+                                "key": "Idempotency-Key",
+                                "value": "{{$guid}}",
+                                "description": "UUID scoped to the clinic and item. Replays require the same actor and normalized payload.",
+                                "disabled": false
+                            },
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/api/inventory/movements/{{movement_id}}/corrections",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "inventory",
+                                "movements",
+                                "{{movement_id}}",
+                                "corrections"
+                            ],
+                            "query": []
+                        },
+                        "description": "Requires inventory.correct_movements. Appends the exact inverse once in the original bucket.\n\nPOST /api/inventory/movements/{movement}/corrections\nDomain writes require allow_writes=true. Missing required variables skip requests rather than selecting real records automatically.",
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"reason\": \"Reversing duplicate physical receipt\"\n}\n",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        }
+                    },
+                    "response": []
+                },
+                {
+                    "name": "GET List stock balances",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            },
+                            {
+                                "key": "X-Tenant-Id",
+                                "value": "",
+                                "description": "Select an active clinic membership. Omit for default-clinic. Does not confer membership or bypass authorization.",
+                                "disabled": true
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/api/inventory/balances?page=1&per_page=15",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "inventory",
+                                "balances"
+                            ],
+                            "query": [
+                                {
+                                    "key": "page",
+                                    "value": "1",
+                                    "disabled": false,
+                                    "description": "Optional filter; enable its checkbox to send it."
+                                },
+                                {
+                                    "key": "per_page",
+                                    "value": "15",
+                                    "disabled": false,
+                                    "description": "Optional filter; enable its checkbox to send it."
+                                },
+                                {
+                                    "key": "item_id",
+                                    "value": "{{item_id}}",
+                                    "disabled": true,
+                                    "description": "Optional filter; enable its checkbox to send it."
+                                },
+                                {
+                                    "key": "location_id",
+                                    "value": "{{location_id}}",
+                                    "disabled": true,
+                                    "description": "Optional filter; enable its checkbox to send it."
+                                },
+                                {
+                                    "key": "lot_id",
+                                    "value": "{{lot_id}}",
+                                    "disabled": true,
+                                    "description": "Optional filter; enable its checkbox to send it."
+                                }
+                            ]
+                        },
+                        "description": "Requires inventory.view. Balances are sums of movement deltas for each item, location and nullable lot. Buckets without history are omitted.\n\nGET /api/inventory/balances\nDomain writes require allow_writes=true. Missing required variables skip requests rather than selecting real records automatically."
+                    },
+                    "response": []
+                }
+            ]
         }
     ],
     "variable": [
@@ -8985,6 +9496,21 @@
         },
         {
             "key": "audit_log_id",
+            "value": "",
+            "type": "string"
+        },
+        {
+            "key": "location_id",
+            "value": "",
+            "type": "string"
+        },
+        {
+            "key": "lot_id",
+            "value": "",
+            "type": "string"
+        },
+        {
+            "key": "movement_id",
             "value": "",
             "type": "string"
         }

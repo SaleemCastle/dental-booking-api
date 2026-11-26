@@ -22,13 +22,16 @@ class PermissionSeederTest extends TestCase
         $this->seed(PermissionSeeder::class);
 
         $this->assertSame($originalIds, Permission::orderBy('slug')->pluck('id', 'slug')->all());
-        $this->assertDatabaseCount('permissions', 109);
+        $this->assertDatabaseCount('permissions', 120);
         foreach (['patient_insurance.view', 'patient_insurance.manage', 'patient_insurance.reveal', 'insurance_documents.view', 'insurance_documents.upload', 'insurance_documents.link', 'insurance_documents.tenant_view', 'insurance_documents.tenant_upload', 'insurance_claims.view', 'insurance_claims.prepare', 'insurance_claims.submit', 'insurance_claims.responses.record', 'insurance_claims.responses.view', 'insurance_claims.appeals.manage', 'insurance_claims.appeals.view', 'insurance_claims.corrections.prepare', 'insurance_prior_authorizations.view', 'insurance_prior_authorizations.manage', 'insurance_prior_authorizations.decide', 'insurance_prior_authorizations.evidence', 'insurance_remittances.view', 'insurance_remittances.record', 'insurance_remittances.correct', 'document_holds.manage', 'document_quarantine.manage'] as $slug) {
             $this->assertDatabaseHas('permissions', ['slug' => $slug]);
             $this->assertNotContains($slug, Role::where('slug', Role::ADMIN)->first()?->permissions()->pluck('slug')->all() ?? []);
         }
         foreach (['view', 'manage', 'review', 'publish'] as $action) {
             $this->assertDatabaseHas('permissions', ['slug' => 'insurance_catalog.'.$action]);
+        }
+        foreach (['view', 'manage_catalog', 'record_movements', 'correct_movements'] as $action) {
+            $this->assertDatabaseHas('permissions', ['slug' => 'inventory.'.$action, 'resource' => 'inventory', 'action' => $action]);
         }
         foreach (['internal.send', 'internal.receive', 'patient.send', 'preferences.manage', 'internal.view', 'patient.view', 'settings.manage', 'history.view', 'assign', 'escalate', 'supervise', 'archive', 'redact', 'export'] as $action) {
             $this->assertDatabaseHas('permissions', ['slug' => 'messaging.'.$action]);
@@ -101,6 +104,7 @@ class PermissionSeederTest extends TestCase
         $this->assertFalse($admin->permissions()->where('resource', 'insurance_claims')->exists());
         $this->assertFalse($admin->permissions()->where('resource', 'insurance_prior_authorizations')->exists());
         $this->assertFalse($admin->permissions()->where('resource', 'insurance_remittances')->exists());
+        $this->assertFalse($admin->permissions()->where('resource', 'inventory')->exists());
         $this->assertSame([$permission->id], $receptionist->permissions()->pluck('permissions.id')->all());
         $this->assertSame([$permission->id], $custom->permissions()->pluck('permissions.id')->all());
         foreach ([Role::DENTIST, Role::HYGIENIST, Role::BILLING, Role::AUDITOR] as $slug) {
@@ -122,7 +126,7 @@ class PermissionSeederTest extends TestCase
         foreach (['appointments.create', 'appointments.update', 'patients.medical.update', 'clinical_notes.create', 'tasks.update', 'audit_logs.view'] as $slug) {
             $this->assertContains($slug, $response->json('data.permissions'));
         }
-        $catalog = $this->getJson('/api/permissions')->assertOk()->assertJsonCount(104, 'data.permissions');
+        $catalog = $this->getJson('/api/permissions')->assertOk()->assertJsonCount(120, 'data.permissions');
         $this->assertContains('appointments.create', array_column($catalog->json('data.permissions'), 'slug'));
     }
 }
