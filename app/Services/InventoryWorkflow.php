@@ -149,6 +149,7 @@ final class InventoryWorkflow
         } catch (QueryException $exception) {
             abort_if((string) $exception->getCode() === 'P5101', 409, 'Insufficient stock in this location and lot.');
             abort_if((string) $exception->getCode() === 'P5102', 409, 'This movement cannot be corrected.');
+            abort_if((string) $exception->getCode() === 'P5103', 409, 'Expired inventory lots cannot be issued.');
             throw $exception;
         }
     }

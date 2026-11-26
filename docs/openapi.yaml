@@ -3707,7 +3707,7 @@ paths:
     get:
       tags: [Inventory]
       summary: List stock balances
-      description: Requires inventory.view. Balances are sums of movement deltas for each item, location and nullable lot. Buckets without history are omitted.
+      description: Requires inventory.view. Balances are physical quantities, including expired lots, summed from movement deltas for each item, location and nullable lot. Buckets without history are omitted.
       parameters:
         - { name: page, in: query, schema: { type: integer, minimum: 1, maximum: 1000000, default: 1 } }
         - { name: per_page, in: query, schema: { type: integer, minimum: 1, maximum: 100, default: 15 } }
@@ -3840,7 +3840,7 @@ components:
       content: { application/json: { schema: { $ref: "#/components/schemas/ClinicalNoteUpdateRequest" } } }
   responses:
     InventoryConflict:
-      description: Duplicate catalog code, conflicting idempotency key, insufficient stock, or ineligible correction.
+      description: Duplicate catalog code, conflicting idempotency key, insufficient stock, expired lot issue, or ineligible correction.
       content:
         application/json:
           schema: { $ref: "#/components/schemas/ApiErrorEnvelope" }
@@ -4266,7 +4266,7 @@ components:
         quantity_delta:
           type: string
           pattern: '^-?(0|[1-9][0-9]{0,11})(\.[0-9]{1,6})?$'
-          description: Positive for receipts, negative for issues and either nonzero sign for adjustments. Use the fixed base unit.
+          description: Positive for receipts, negative for issues and either nonzero sign for adjustments. Use the fixed base unit. Lots can be issued through their expiration date in UTC.
           example: "12.125"
         reason: { type: string, minLength: 1, maxLength: 500, example: Manual opening count }
     InventoryCorrectionInput:

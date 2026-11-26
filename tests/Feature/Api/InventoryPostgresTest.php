@@ -132,6 +132,36 @@ class InventoryPostgresTest extends TestCase
         $this->assertSame(0, $admin->permissions()->where('permissions.resource', 'inventory')->count());
     }
 
+    public function test_expired_lots_reject_issues_but_allow_physical_adjustments(): void
+    {
+        $actor = $this->actor();
+        [$item, $location] = $this->catalog();
+        $dates = DB::selectOne("SELECT (timezone('UTC', clock_timestamp())::date - 1)::text AS expired,
+            (timezone('UTC', clock_timestamp())::date + 1)::text AS current");
+        $expired = $this->postJson(self::ROOT.'/lots', ['item_id' => $item, 'code' => 'EXPIRED', 'expires_on' => $dates->expired])
+            ->assertCreated()->json('data.id');
+        $current = $this->postJson(self::ROOT.'/lots', ['item_id' => $item, 'code' => 'CURRENT', 'expires_on' => $dates->current])
+            ->assertCreated()->json('data.id');
+        foreach ([$expired, $current] as $lot) {
+            $this->postJson(self::ROOT.'/movements', $this->movement($item, $location, 'receipt', '2', $lot), $this->key())->assertCreated();
+        }
+
+        $this->postJson(self::ROOT.'/movements', $this->movement($item, $location, 'issue', '-1', $expired), $this->key())
+            ->assertConflict();
+        $this->rejectSql('P5103', fn () => DB::table('inventory_movements')->insert([
+            'tenant_id' => app(TenantContext::class)->id(), 'item_id' => $item, 'location_id' => $location,
+            'lot_id' => $expired, 'kind' => 'issue', 'quantity_delta' => '-1',
+            'recorded_by_user_id' => $actor->id, 'reason' => 'Expired lot direct insert',
+            'idempotency_key' => (string) Str::uuid(), 'request_hash' => str_repeat('a', 64),
+        ]));
+        $this->getJson(self::ROOT."/balances?lot_id=$expired")->assertJsonPath('data.0.quantity', '2.000000');
+        $this->postJson(self::ROOT.'/movements', $this->movement($item, $location, 'issue', '-1', $current), $this->key())->assertCreated();
+        $this->postJson(self::ROOT.'/movements', $this->movement($item, $location, 'adjustment', '-1', $expired), $this->key())->assertCreated();
+        $this->getJson(self::ROOT."/balances?lot_id=$expired")->assertJsonPath('data.0.quantity', '1.000000');
+        $this->assertDatabaseCount('inventory_movements', 4);
+        $this->assertSame(4, DB::table('audit_logs')->where('resource_type', 'inventory_movements')->count());
+    }
+
     public function test_database_history_and_precision_guards_and_audit_rollback(): void
     {
         $actor = $this->actor();
