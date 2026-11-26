@@ -18,6 +18,7 @@ tags:
   - name: Dentists
   - name: Treatments
   - name: Inventory
+  - name: Procurement
   - name: Invoices
   - name: Payments
   - name: Payment Links
@@ -3731,6 +3732,197 @@ paths:
         "403": { $ref: "#/components/responses/Forbidden" }
         "422": { $ref: "#/components/responses/ValidationError" }
 
+  /api/procurement/suppliers:
+    parameters:
+      - { $ref: "#/components/parameters/TenantHeader" }
+    get:
+      tags: [Procurement]
+      summary: List suppliers
+      description: Requires suppliers.view.
+      parameters:
+        - { name: page, in: query, schema: { type: integer, minimum: 1, maximum: 1000000, default: 1 } }
+        - { name: per_page, in: query, schema: { type: integer, minimum: 1, maximum: 100, default: 15 } }
+      responses:
+        "200":
+          description: Paginated results.
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - { $ref: "#/components/schemas/ApiEnvelope" }
+                  - type: object
+                    properties:
+                      data:
+                        type: array
+                        items: { $ref: "#/components/schemas/ProcurementSupplier" }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "422": { $ref: "#/components/responses/ValidationError" }
+    post:
+      tags: [Procurement]
+      summary: Create a supplier
+      description: Requires suppliers.manage.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/ProcurementSupplierInput" }
+      responses:
+        "201":
+          description: Created.
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - { $ref: "#/components/schemas/ApiEnvelope" }
+                  - type: object
+                    properties:
+                      data: { $ref: "#/components/schemas/ProcurementSupplier" }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "409": { $ref: "#/components/responses/ProcurementConflict" }
+        "422": { $ref: "#/components/responses/ValidationError" }
+  /api/procurement/suppliers/{supplier}:
+    parameters:
+      - { $ref: "#/components/parameters/TenantHeader" }
+      - { name: supplier, in: path, required: true, schema: { type: integer, minimum: 1, example: 1 } }
+    patch:
+      tags: [Procurement]
+      summary: Edit or deactivate a supplier
+      description: Requires suppliers.manage.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/ProcurementSupplierPatch" }
+      responses:
+        "200":
+          description: Success.
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - { $ref: "#/components/schemas/ApiEnvelope" }
+                  - type: object
+                    properties:
+                      data: { $ref: "#/components/schemas/ProcurementSupplier" }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "422": { $ref: "#/components/responses/ValidationError" }
+  /api/procurement/purchase-orders:
+    parameters:
+      - { $ref: "#/components/parameters/TenantHeader" }
+    get:
+      tags: [Procurement]
+      summary: List draft purchase orders
+      description: Requires purchase_orders.view.
+      parameters:
+        - { name: page, in: query, schema: { type: integer, minimum: 1, maximum: 1000000, default: 1 } }
+        - { name: per_page, in: query, schema: { type: integer, minimum: 1, maximum: 100, default: 15 } }
+        - { name: supplier_id, in: query, schema: { type: integer, minimum: 1, example: 1 } }
+      responses:
+        "200":
+          description: Paginated results.
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - { $ref: "#/components/schemas/ApiEnvelope" }
+                  - type: object
+                    properties:
+                      data:
+                        type: array
+                        items: { $ref: "#/components/schemas/ProcurementDraftSummary" }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "422": { $ref: "#/components/responses/ValidationError" }
+    post:
+      tags: [Procurement]
+      summary: Create a draft purchase order
+      description: Requires purchase_orders.manage. An identical retry returns the current draft with replayed set to true.
+      parameters:
+        - { name: Idempotency-Key, in: header, required: true, schema: { type: string, format: uuid, example: "550e8400-e29b-41d4-a716-446655440000" } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/ProcurementDraftCreate" }
+      responses:
+        "201":
+          description: Created.
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - { $ref: "#/components/schemas/ApiEnvelope" }
+                  - type: object
+                    properties:
+                      data: { $ref: "#/components/schemas/ProcurementDraftResult" }
+        "200":
+          description: Success.
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - { $ref: "#/components/schemas/ApiEnvelope" }
+                  - type: object
+                    properties:
+                      data: { $ref: "#/components/schemas/ProcurementDraftResult" }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "409": { $ref: "#/components/responses/ProcurementConflict" }
+        "422": { $ref: "#/components/responses/ValidationError" }
+  /api/procurement/purchase-orders/{order}:
+    parameters:
+      - { $ref: "#/components/parameters/TenantHeader" }
+      - { name: order, in: path, required: true, schema: { type: integer, minimum: 1, example: 1 } }
+    get:
+      tags: [Procurement]
+      summary: Retrieve a draft purchase order
+      description: Requires purchase_orders.view.
+      responses:
+        "200":
+          description: Success.
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - { $ref: "#/components/schemas/ApiEnvelope" }
+                  - type: object
+                    properties:
+                      data: { $ref: "#/components/schemas/ProcurementDraft" }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "422": { $ref: "#/components/responses/ValidationError" }
+    put:
+      tags: [Procurement]
+      summary: Replace a draft purchase order
+      description: Requires purchase_orders.manage. Replaces all lines and notes at the supplied version while retaining the original supplier.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/ProcurementDraftReplace" }
+      responses:
+        "200":
+          description: Success.
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - { $ref: "#/components/schemas/ApiEnvelope" }
+                  - type: object
+                    properties:
+                      data: { $ref: "#/components/schemas/ProcurementDraft" }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "409": { $ref: "#/components/responses/ProcurementConflict" }
+        "422": { $ref: "#/components/responses/ValidationError" }
+
 components:
   securitySchemes:
     sanctumBearer:
@@ -3839,6 +4031,11 @@ components:
       required: true
       content: { application/json: { schema: { $ref: "#/components/schemas/ClinicalNoteUpdateRequest" } } }
   responses:
+    ProcurementConflict:
+      description: Duplicate supplier code, inactive supplier, conflicting idempotency key, or stale draft version.
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/ApiErrorEnvelope" }
     InventoryConflict:
       description: Duplicate catalog code, conflicting idempotency key, insufficient stock, expired lot issue, or ineligible correction.
       content:
@@ -4231,6 +4428,96 @@ components:
                     properties:
                       clinicalNote: { $ref: "#/components/schemas/ClinicalNote" }
   schemas:
+    ProcurementSupplierInput:
+      type: object
+      required: [code, name]
+      additionalProperties: false
+      properties:
+        code: { type: string, pattern: '^[A-Z0-9][A-Z0-9._-]{0,63}$', example: SUPPLY-01 }
+        name: { type: string, minLength: 1, maxLength: 160, example: Example Supply }
+        email: { type: string, format: email, maxLength: 254, nullable: true, example: orders@example.test }
+        phone: { type: string, maxLength: 40, nullable: true }
+    ProcurementSupplierPatch:
+      type: object
+      additionalProperties: false
+      minProperties: 1
+      properties:
+        name: { type: string, minLength: 1, maxLength: 160, example: Example Dental Supply }
+        email: { type: string, format: email, maxLength: 254, nullable: true }
+        phone: { type: string, maxLength: 40, nullable: true }
+        active: { type: boolean, example: true }
+    ProcurementSupplier:
+      type: object
+      required: [id, code, name, email, phone, active]
+      properties:
+        id: { type: integer, minimum: 1 }
+        code: { type: string }
+        name: { type: string }
+        email: { type: string, nullable: true }
+        phone: { type: string, nullable: true }
+        active: { type: boolean }
+    ProcurementDraftLine:
+      type: object
+      additionalProperties: false
+      required: [item_id, quantity]
+      properties:
+        item_id: { type: integer, minimum: 1, example: 1 }
+        quantity:
+          type: string
+          description: Positive decimal string in the inventory item's fixed base unit.
+          pattern: '^(0|[1-9][0-9]{0,11})(\.[0-9]{1,6})?$'
+          example: "12.125"
+    ProcurementDraftCreate:
+      type: object
+      additionalProperties: false
+      required: [supplier_id, lines]
+      properties:
+        supplier_id: { type: integer, minimum: 1, example: 1 }
+        notes: { type: string, maxLength: 1000, nullable: true }
+        lines:
+          type: array
+          minItems: 1
+          maxItems: 100
+          description: One line per inventory item in the selected clinic.
+          items: { $ref: "#/components/schemas/ProcurementDraftLine" }
+    ProcurementDraftReplace:
+      type: object
+      additionalProperties: false
+      required: [version, lines]
+      properties:
+        version: { type: integer, minimum: 1, maximum: 2147483646, example: 1 }
+        notes: { type: string, maxLength: 1000, nullable: true }
+        lines:
+          type: array
+          minItems: 1
+          maxItems: 100
+          items: { $ref: "#/components/schemas/ProcurementDraftLine" }
+    ProcurementDraftSummary:
+      type: object
+      required: [id, supplier_id, status, version, notes, created_by_user_id, created_at]
+      properties:
+        id: { type: integer, minimum: 1 }
+        supplier_id: { type: integer, minimum: 1 }
+        status: { type: string, enum: [draft] }
+        version: { type: integer, minimum: 1 }
+        notes: { type: string, nullable: true }
+        created_by_user_id: { type: integer, minimum: 1 }
+        created_at: { type: string, format: date-time }
+    ProcurementDraft:
+      allOf:
+        - $ref: "#/components/schemas/ProcurementDraftSummary"
+        - type: object
+          required: [lines]
+          properties:
+            lines:
+              type: array
+              items: { $ref: "#/components/schemas/ProcurementDraftLine" }
+    ProcurementDraftResult:
+      type: object
+      required: [order, replayed]
+      properties:
+        order: { $ref: "#/components/schemas/ProcurementDraft" }
+        replayed: { type: boolean }
     InventoryItemInput:
       type: object
       required: [sku, name, base_unit]

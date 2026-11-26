@@ -13,6 +13,7 @@ use App\Http\Controllers\Api\PatientController;
 use App\Http\Controllers\Api\PatientDocumentController;
 use App\Http\Controllers\Api\PaymentController;
 use App\Http\Controllers\Api\PaymentLinkController;
+use App\Http\Controllers\Api\ProcurementController;
 use App\Http\Controllers\Api\ProviderAvailabilityController;
 use App\Http\Controllers\Api\ReferralController;
 use App\Http\Controllers\Api\ReportController;
@@ -63,6 +64,16 @@ Route::middleware('auth:sanctum')->get('tenants', function (Request $request) {
 Route::middleware('auth:sanctum')->delete('auth/token', [TokenController::class, 'destroy']);
 
 Route::middleware(['auth:sanctum', 'tenant'])->group(function () {
+    Route::prefix('procurement')->controller(ProcurementController::class)->group(function () {
+        Route::get('suppliers', 'suppliers');
+        Route::post('suppliers', 'createSupplier');
+        Route::patch('suppliers/{supplier}', 'updateSupplier')->whereNumber('supplier');
+        Route::get('purchase-orders', 'orders');
+        Route::post('purchase-orders', 'createOrder');
+        Route::get('purchase-orders/{order}', 'order')->whereNumber('order');
+        Route::put('purchase-orders/{order}', 'replaceOrder')->whereNumber('order');
+    });
+
     Route::prefix('inventory')->controller(InventoryController::class)->group(function () {
         foreach (['items', 'locations', 'lots'] as $resource) {
             Route::get($resource, 'definitions')->defaults('resource', $resource);

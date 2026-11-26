@@ -22,7 +22,7 @@ class PermissionSeederTest extends TestCase
         $this->seed(PermissionSeeder::class);
 
         $this->assertSame($originalIds, Permission::orderBy('slug')->pluck('id', 'slug')->all());
-        $this->assertDatabaseCount('permissions', 120);
+        $this->assertDatabaseCount('permissions', 124);
         foreach (['patient_insurance.view', 'patient_insurance.manage', 'patient_insurance.reveal', 'insurance_documents.view', 'insurance_documents.upload', 'insurance_documents.link', 'insurance_documents.tenant_view', 'insurance_documents.tenant_upload', 'insurance_claims.view', 'insurance_claims.prepare', 'insurance_claims.submit', 'insurance_claims.responses.record', 'insurance_claims.responses.view', 'insurance_claims.appeals.manage', 'insurance_claims.appeals.view', 'insurance_claims.corrections.prepare', 'insurance_prior_authorizations.view', 'insurance_prior_authorizations.manage', 'insurance_prior_authorizations.decide', 'insurance_prior_authorizations.evidence', 'insurance_remittances.view', 'insurance_remittances.record', 'insurance_remittances.correct', 'document_holds.manage', 'document_quarantine.manage'] as $slug) {
             $this->assertDatabaseHas('permissions', ['slug' => $slug]);
             $this->assertNotContains($slug, Role::where('slug', Role::ADMIN)->first()?->permissions()->pluck('slug')->all() ?? []);
@@ -126,7 +126,7 @@ class PermissionSeederTest extends TestCase
         foreach (['appointments.create', 'appointments.update', 'patients.medical.update', 'clinical_notes.create', 'tasks.update', 'audit_logs.view'] as $slug) {
             $this->assertContains($slug, $response->json('data.permissions'));
         }
-        $catalog = $this->getJson('/api/permissions')->assertOk()->assertJsonCount(120, 'data.permissions');
+        $catalog = $this->getJson('/api/permissions')->assertOk()->assertJsonCount(124, 'data.permissions');
         $this->assertContains('appointments.create', array_column($catalog->json('data.permissions'), 'slug'));
     }
 }
