@@ -3923,6 +3923,94 @@ paths:
         "409": { $ref: "#/components/responses/ProcurementConflict" }
         "422": { $ref: "#/components/responses/ValidationError" }
 
+  /api/procurement/supplier-receipts:
+    parameters:
+      - { $ref: "#/components/parameters/TenantHeader" }
+    get:
+      tags: [Procurement]
+      summary: List supplier receipts
+      description: Requires supplier_receipts.view.
+      parameters:
+        - { name: page, in: query, schema: { type: integer, minimum: 1, maximum: 1000000, default: 1 } }
+        - { name: per_page, in: query, schema: { type: integer, minimum: 1, maximum: 100, default: 15 } }
+        - { name: supplier_id, in: query, schema: { type: integer, minimum: 1 } }
+      responses:
+        "200":
+          description: Paginated receipt summaries.
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - { $ref: "#/components/schemas/ApiEnvelope" }
+                  - type: object
+                    properties:
+                      data:
+                        type: array
+                        items: { $ref: "#/components/schemas/SupplierReceiptSummary" }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "422": { $ref: "#/components/responses/ValidationError" }
+    post:
+      tags: [Procurement]
+      summary: Record a supplier receipt
+      description: Requires supplier_receipts.record. Records physical stock from an active supplier. Lots are existing catalog records.
+      parameters:
+        - { name: Idempotency-Key, in: header, required: true, schema: { type: string, format: uuid, example: "550e8400-e29b-41d4-a716-446655440000" } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/SupplierReceiptInput" }
+      responses:
+        "201":
+          description: Receipt and stock movement lines recorded.
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - { $ref: "#/components/schemas/ApiEnvelope" }
+                  - type: object
+                    properties:
+                      data: { $ref: "#/components/schemas/SupplierReceiptResult" }
+        "200":
+          description: Identical request replayed.
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - { $ref: "#/components/schemas/ApiEnvelope" }
+                  - type: object
+                    properties:
+                      data: { $ref: "#/components/schemas/SupplierReceiptResult" }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "409": { $ref: "#/components/responses/SupplierReceiptConflict" }
+        "422": { $ref: "#/components/responses/ValidationError" }
+  /api/procurement/supplier-receipts/{supplier_receipt}:
+    parameters:
+      - { $ref: "#/components/parameters/TenantHeader" }
+      - { name: supplier_receipt, in: path, required: true, schema: { type: integer, minimum: 1, example: 1 } }
+    get:
+      tags: [Procurement]
+      summary: Retrieve a supplier receipt
+      description: Requires supplier_receipts.view.
+      responses:
+        "200":
+          description: Receipt with its stock movement lines.
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - { $ref: "#/components/schemas/ApiEnvelope" }
+                  - type: object
+                    properties:
+                      data: { $ref: "#/components/schemas/SupplierReceipt" }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "422": { $ref: "#/components/responses/ValidationError" }
+
 components:
   securitySchemes:
     sanctumBearer:
@@ -4031,6 +4119,11 @@ components:
       required: true
       content: { application/json: { schema: { $ref: "#/components/schemas/ClinicalNoteUpdateRequest" } } }
   responses:
+    SupplierReceiptConflict:
+      description: Inactive supplier, duplicate supplier reference, or conflicting idempotency key.
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/ApiErrorEnvelope" }
     ProcurementConflict:
       description: Duplicate supplier code, inactive supplier, conflicting idempotency key, or stale draft version.
       content:
@@ -4428,6 +4521,73 @@ components:
                     properties:
                       clinicalNote: { $ref: "#/components/schemas/ClinicalNote" }
   schemas:
+    SupplierReceiptInput:
+      type: object
+      required: [supplier_id, reference, received_on, lines]
+      additionalProperties: false
+      properties:
+        supplier_id: { type: integer, minimum: 1, example: 1 }
+        reference:
+          type: string
+          pattern: '^[A-Z0-9][A-Z0-9._/-]{0,79}$'
+          description: Reference from the delivery or a local receiving reference, unique per supplier in the clinic.
+          example: DELIVERY-01
+        received_on: { type: string, format: date, description: Physical receipt date through today UTC., example: "2026-11-20" }
+        lines:
+          type: array
+          minItems: 1
+          maxItems: 100
+          description: One line per item, location and nullable lot.
+          items: { $ref: "#/components/schemas/SupplierReceiptLineInput" }
+    SupplierReceiptLineInput:
+      type: object
+      required: [item_id, location_id, quantity]
+      additionalProperties: false
+      properties:
+        item_id: { type: integer, minimum: 1, example: 1 }
+        location_id: { type: integer, minimum: 1, example: 1 }
+        lot_id: { type: integer, minimum: 1, nullable: true }
+        quantity:
+          type: string
+          description: Positive decimal string in the stock item's fixed base unit.
+          pattern: '^(0|[1-9][0-9]{0,11})(\.[0-9]{1,6})?$'
+          example: "12.125"
+    SupplierReceiptSummary:
+      type: object
+      required: [id, supplier_id, reference, received_on, recorded_by_user_id, recorded_at]
+      properties:
+        id: { type: integer, minimum: 1 }
+        supplier_id: { type: integer, minimum: 1 }
+        reference: { type: string }
+        received_on: { type: string, format: date }
+        recorded_by_user_id: { type: integer, minimum: 1 }
+        recorded_at: { type: string, format: date-time }
+    SupplierReceiptLine:
+      type: object
+      required: [movement_id, item_id, location_id, lot_id, quantity, lot_code, expires_on]
+      properties:
+        movement_id: { type: integer, minimum: 1 }
+        item_id: { type: integer, minimum: 1 }
+        location_id: { type: integer, minimum: 1 }
+        lot_id: { type: integer, minimum: 1, nullable: true }
+        quantity: { type: string, example: "12.125000" }
+        lot_code: { type: string, nullable: true }
+        expires_on: { type: string, format: date, nullable: true }
+    SupplierReceipt:
+      allOf:
+        - $ref: "#/components/schemas/SupplierReceiptSummary"
+        - type: object
+          required: [lines]
+          properties:
+            lines:
+              type: array
+              items: { $ref: "#/components/schemas/SupplierReceiptLine" }
+    SupplierReceiptResult:
+      type: object
+      required: [receipt, replayed]
+      properties:
+        receipt: { $ref: "#/components/schemas/SupplierReceipt" }
+        replayed: { type: boolean }
     ProcurementSupplierInput:
       type: object
       required: [code, name]
@@ -4597,6 +4757,7 @@ components:
         quantity_delta: { type: string, example: "-0.125000" }
         reason: { type: string }
         corrects_movement_id: { type: integer, minimum: 1, nullable: true }
+        supplier_receipt_id: { type: integer, minimum: 1, nullable: true }
         recorded_by_user_id: { type: integer, minimum: 1 }
         recorded_at: { type: string, format: date-time }
     InventoryMovementResult:
