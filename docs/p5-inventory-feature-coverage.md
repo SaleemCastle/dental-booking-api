@@ -12,8 +12,10 @@
 | Purchase order matching and stock valuation | Deferred | M3 records physical quantities directly from suppliers. |
 | M4 supplier invoice register | Merged | PR #80, [invoice register PostgreSQL tests](../tests/Feature/Api/SupplierInvoicePostgresTest.php), [invoice register migration](../database/migrations/2026_11_26_000005_create_supplier_invoice_register.php) |
 | Supplier payables and payments | Deferred | Invoice totals and due dates are recorded as supplier observations. |
-| M5 equipment registry, maintenance and warranties | In review | [Equipment PostgreSQL tests](../tests/Feature/Api/EquipmentPostgresTest.php), [OpenAPI](openapi.yaml), [equipment migration](../database/migrations/2026_11_26_000006_create_equipment_registry.php) |
-| M6–M7 | Later milestones | Reporting, alerts and end-to-end acceptance. |
+| M5 equipment registry, maintenance and warranties | Merged | PR #81, [equipment PostgreSQL tests](../tests/Feature/Api/EquipmentPostgresTest.php), [equipment migration](../database/migrations/2026_11_26_000006_create_equipment_registry.php) |
+| M6 on-demand low stock and lot expiry reports | In review | [Inventory reporting PostgreSQL tests](../tests/Feature/Api/InventoryReportsPostgresTest.php), [OpenAPI](openapi.yaml) |
+| Scheduled inventory notifications | Deferred | M6 surfaces current conditions through report requests. |
+| M7 | Later milestone | End-to-end acceptance. |
 
 ## M1 operations
 
@@ -72,3 +74,14 @@ Use `GET` and `POST` on the `maintenance` and `warranties` child paths. Maintena
 The PostgreSQL migration adds equipment and history tables with tenant-qualified equipment relationships, recorder validation, unique asset tags, status and version guards, and immutable history. Roll back only while the register is empty. Maintenance scheduling, reminders, warranty claims, depreciation and financial posting are outside this milestone.
 
 Focused equipment and permission checks passed 9 PostgreSQL tests with 249 assertions. They covered clinic isolation, exact permissions, stale versions, retirement, date ordering, idempotent and immutable history, audit rollback and separation from stock and billing. OpenAPI/Postman checks passed 12 tests with 768 assertions.
+
+## M6 on-demand inventory reports
+
+Grant the exact `inventory_reports.view` permission after reseeding the permission catalog. Each successful report appends an audit event for the report type and selected clinic. Report contents and thresholds are excluded from audit metadata. A failed audit aborts delivery of the report. Responses use private, no-store caching.
+
+- `GET /api/inventory/reports/low-stock` returns catalog items at or below the nonnegative decimal `threshold` supplied for that request. The default is zero. Quantities are usable stock, excluding lots whose expiry precedes the current UTC date. Lots expiring today are still usable. Items with no usable movements are included at zero. Compare quantities in each item's fixed base unit.
+- `GET /api/inventory/reports/expiry` returns dated lots that still have positive physical stock, grouped by item and location. It includes expired lots and those expiring from today through the inclusive `days` window. The window defaults to 30 days and accepts zero through 365. Expired lots remain visible for stock management.
+
+Both reports accept an optional clinic `location_id` and return their effective criteria. An omitted location reports across the clinic. Configure the thresholds on each request. The reports query the existing movement ledger and add no inventory tables. Paginated results reflect current ledger state per request. Release QA should check query time on a realistic movement history.
+
+Focused inventory reporting and permission checks passed 9 PostgreSQL tests with 236 assertions. Coverage includes exact threshold boundaries, zero and expired stock, expiry windows, location and clinic boundaries, wildcard denial, query validation, and audit failure. OpenAPI/Postman checks passed 12 tests with 772 assertions.
