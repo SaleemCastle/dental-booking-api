@@ -8,9 +8,11 @@
 | M1 movements and balances | Merged | Exact receipt, issue, adjustment and correction deltas. Balance queries sum the same movement history guarded by PostgreSQL. |
 | M1 permissions, audit and integrity | Merged | [Inventory PostgreSQL tests](../tests/Feature/Api/InventoryPostgresTest.php), [OpenAPI](openapi.yaml), [inventory migration](../database/migrations/2026_11_26_000001_create_stock_inventory.php) |
 | M2 supplier directory and draft purchase orders | Merged | PR #78, [Procurement PostgreSQL tests](../tests/Feature/Api/ProcurementPostgresTest.php), [procurement migration](../database/migrations/2026_11_26_000003_create_procurement_drafts.php) |
-| M3 direct supplier receiving with lot and expiry | In review | [Receiving PostgreSQL tests](../tests/Feature/Api/SupplierReceivingPostgresTest.php), [OpenAPI](openapi.yaml), [receipt migration](../database/migrations/2026_11_26_000004_create_supplier_receipts.php) |
+| M3 direct supplier receiving with lot and expiry | Merged | PR #79, [Receiving PostgreSQL tests](../tests/Feature/Api/SupplierReceivingPostgresTest.php), [receipt migration](../database/migrations/2026_11_26_000004_create_supplier_receipts.php) |
 | Purchase order matching and stock valuation | Deferred | M3 records physical quantities directly from suppliers. |
-| M4–M7 | Later milestones | Payables, equipment, reporting and end-to-end acceptance. |
+| M4 supplier invoice register | In review | [Invoice register PostgreSQL tests](../tests/Feature/Api/SupplierInvoicePostgresTest.php), [OpenAPI](openapi.yaml), [invoice register migration](../database/migrations/2026_11_26_000005_create_supplier_invoice_register.php) |
+| Supplier payables and payments | Deferred | Invoice totals and due dates are recorded as supplier observations. |
+| M5–M7 | Later milestones | Equipment, reporting and end-to-end acceptance. |
 
 ## M1 operations
 
@@ -51,3 +53,11 @@ Each line records a positive decimal quantity in the item's fixed base unit and 
 Receipt headers and their linked movements commit with their audit entries in one PostgreSQL transaction. The database seals movement membership after commit and requires at least one movement per receipt. Balance queries sum the same stock ledger. All line writes acquire item locks in a consistent order. Apply the additive migration before enabling the endpoints and roll it back only while the receipt register is empty. Receipt recording leaves purchase orders, invoices, payments and payable balances unchanged.
 
 The focused receiving, inventory and permission run passed 16 PostgreSQL tests with 391 assertions. It exercised expiry enforcement, balance reconciliation, duplicate and foreign clinic rejection, audit rollback, sealing after commit and the existing concurrent issue invariant. The OpenAPI/Postman run passed 12 tests with 739 assertions.
+
+## M4 supplier invoice register
+
+Use `GET` and `POST /api/procurement/supplier-invoices` and `GET /api/procurement/supplier-invoices/{supplier_invoice}`. Reseed permissions and explicitly grant `supplier_invoices.view` or `supplier_invoices.record` in each clinic. The register records a supplier reference, invoice date, optional reported due date, uppercase currency label, exact nonnegative reported total and recorder. An optional receipt link provides provenance and must reference the same clinic and supplier. Historical invoices can be recorded from an inactive supplier already in the clinic directory.
+
+The workflow preserves the invoice number's original case and detects case-insensitive duplicates per supplier and clinic. A clinic-scoped UUID idempotency key replays the same normalized observations for the original recorder. PostgreSQL enforces receipt lineage, exact decimals and append-only history. Recording commits with its audit event. Payable recognition, payments, matching, credit notes and corrections to recorded observations are outside this scope. Use a forward migration after invoice history exists.
+
+Focused supplier invoice, receiving and permission checks passed 13 PostgreSQL tests with 313 assertions. They covered exact totals, duplicate and replay rules, foreign clinic and wrong supplier links, immutable records, audit rollback and stock and billing boundaries. OpenAPI/Postman checks passed 12 tests with 748 assertions.
