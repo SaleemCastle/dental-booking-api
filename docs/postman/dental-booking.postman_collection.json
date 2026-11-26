@@ -9181,6 +9181,328 @@
                     "response": []
                 }
             ]
+        },
+        {
+            "name": "Procurement",
+            "item": [
+                {
+                    "name": "GET List suppliers",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            },
+                            {
+                                "key": "X-Tenant-Id",
+                                "value": "",
+                                "description": "Select an active clinic membership. Omit for default-clinic. Does not confer membership or bypass authorization.",
+                                "disabled": true
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/api/procurement/suppliers?page=1&per_page=15",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "procurement",
+                                "suppliers"
+                            ],
+                            "query": [
+                                {
+                                    "key": "page",
+                                    "value": "1",
+                                    "disabled": false,
+                                    "description": "Optional filter; enable its checkbox to send it."
+                                },
+                                {
+                                    "key": "per_page",
+                                    "value": "15",
+                                    "disabled": false,
+                                    "description": "Optional filter; enable its checkbox to send it."
+                                }
+                            ]
+                        },
+                        "description": "Requires suppliers.view.\n\nGET /api/procurement/suppliers\nDomain writes require allow_writes=true. Missing required variables skip requests rather than selecting real records automatically."
+                    },
+                    "response": []
+                },
+                {
+                    "name": "POST Create a supplier",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            },
+                            {
+                                "key": "X-Tenant-Id",
+                                "value": "",
+                                "description": "Select an active clinic membership. Omit for default-clinic. Does not confer membership or bypass authorization.",
+                                "disabled": true
+                            },
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/api/procurement/suppliers",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "procurement",
+                                "suppliers"
+                            ],
+                            "query": []
+                        },
+                        "description": "Requires suppliers.manage.\n\nPOST /api/procurement/suppliers\nDomain writes require allow_writes=true. Missing required variables skip requests rather than selecting real records automatically.",
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"code\": \"SUPPLY-01\",\n    \"name\": \"Example Supply\"\n}\n",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        }
+                    },
+                    "response": []
+                },
+                {
+                    "name": "PATCH Edit or deactivate a supplier",
+                    "request": {
+                        "method": "PATCH",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            },
+                            {
+                                "key": "X-Tenant-Id",
+                                "value": "",
+                                "description": "Select an active clinic membership. Omit for default-clinic. Does not confer membership or bypass authorization.",
+                                "disabled": true
+                            },
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/api/procurement/suppliers/{{supplier_id}}",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "procurement",
+                                "suppliers",
+                                "{{supplier_id}}"
+                            ],
+                            "query": []
+                        },
+                        "description": "Requires suppliers.manage.\n\nPATCH /api/procurement/suppliers/{supplier}\nDomain writes require allow_writes=true. Missing required variables skip requests rather than selecting real records automatically.",
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"name\": \"Example Dental Supply\",\n    \"active\": true\n}\n",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        }
+                    },
+                    "response": []
+                },
+                {
+                    "name": "GET List draft purchase orders",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            },
+                            {
+                                "key": "X-Tenant-Id",
+                                "value": "",
+                                "description": "Select an active clinic membership. Omit for default-clinic. Does not confer membership or bypass authorization.",
+                                "disabled": true
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/api/procurement/purchase-orders?page=1&per_page=15",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "procurement",
+                                "purchase-orders"
+                            ],
+                            "query": [
+                                {
+                                    "key": "page",
+                                    "value": "1",
+                                    "disabled": false,
+                                    "description": "Optional filter; enable its checkbox to send it."
+                                },
+                                {
+                                    "key": "per_page",
+                                    "value": "15",
+                                    "disabled": false,
+                                    "description": "Optional filter; enable its checkbox to send it."
+                                },
+                                {
+                                    "key": "supplier_id",
+                                    "value": "{{supplier_id}}",
+                                    "disabled": true,
+                                    "description": "Optional filter; enable its checkbox to send it."
+                                }
+                            ]
+                        },
+                        "description": "Requires purchase_orders.view.\n\nGET /api/procurement/purchase-orders\nDomain writes require allow_writes=true. Missing required variables skip requests rather than selecting real records automatically."
+                    },
+                    "response": []
+                },
+                {
+                    "name": "POST Create a draft purchase order",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            },
+                            {
+                                "key": "X-Tenant-Id",
+                                "value": "",
+                                "description": "Select an active clinic membership. Omit for default-clinic. Does not confer membership or bypass authorization.",
+                                "disabled": true
+                            },
+                            {
+                                "key": "Idempotency-Key",
+                                "value": "{{$guid}}",
+                                "description": "",
+                                "disabled": false
+                            },
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/api/procurement/purchase-orders",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "procurement",
+                                "purchase-orders"
+                            ],
+                            "query": []
+                        },
+                        "description": "Requires purchase_orders.manage. An identical retry returns the current draft with replayed set to true.\n\nPOST /api/procurement/purchase-orders\nDomain writes require allow_writes=true. Missing required variables skip requests rather than selecting real records automatically.",
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"supplier_id\": \"{{supplier_id}}\",\n    \"lines\": [\n        {\n            \"item_id\": \"{{item_id}}\",\n            \"quantity\": \"12.125\"\n        }\n    ]\n}\n",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        }
+                    },
+                    "response": []
+                },
+                {
+                    "name": "GET Retrieve a draft purchase order",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            },
+                            {
+                                "key": "X-Tenant-Id",
+                                "value": "",
+                                "description": "Select an active clinic membership. Omit for default-clinic. Does not confer membership or bypass authorization.",
+                                "disabled": true
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/api/procurement/purchase-orders/{{order_id}}",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "procurement",
+                                "purchase-orders",
+                                "{{order_id}}"
+                            ],
+                            "query": []
+                        },
+                        "description": "Requires purchase_orders.view.\n\nGET /api/procurement/purchase-orders/{order}\nDomain writes require allow_writes=true. Missing required variables skip requests rather than selecting real records automatically."
+                    },
+                    "response": []
+                },
+                {
+                    "name": "PUT Replace a draft purchase order",
+                    "request": {
+                        "method": "PUT",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            },
+                            {
+                                "key": "X-Tenant-Id",
+                                "value": "",
+                                "description": "Select an active clinic membership. Omit for default-clinic. Does not confer membership or bypass authorization.",
+                                "disabled": true
+                            },
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/api/procurement/purchase-orders/{{order_id}}",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "procurement",
+                                "purchase-orders",
+                                "{{order_id}}"
+                            ],
+                            "query": []
+                        },
+                        "description": "Requires purchase_orders.manage. Replaces all lines and notes at the supplied version while retaining the original supplier.\n\nPUT /api/procurement/purchase-orders/{order}\nDomain writes require allow_writes=true. Missing required variables skip requests rather than selecting real records automatically.",
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"version\": 1,\n    \"lines\": [\n        {\n            \"item_id\": \"{{item_id}}\",\n            \"quantity\": \"12.125\"\n        }\n    ]\n}\n",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        }
+                    },
+                    "response": []
+                }
+            ]
         }
     ],
     "variable": [
@@ -9511,6 +9833,16 @@
         },
         {
             "key": "movement_id",
+            "value": "",
+            "type": "string"
+        },
+        {
+            "key": "supplier_id",
+            "value": "",
+            "type": "string"
+        },
+        {
+            "key": "order_id",
             "value": "",
             "type": "string"
         }
