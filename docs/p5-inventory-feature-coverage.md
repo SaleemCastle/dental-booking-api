@@ -7,8 +7,10 @@
 | M1 lots and expiry | Merged | Optional item lots and dates. The expiry guard merged in PR #77. |
 | M1 movements and balances | Merged | Exact receipt, issue, adjustment and correction deltas. Balance queries sum the same movement history guarded by PostgreSQL. |
 | M1 permissions, audit and integrity | Merged | [Inventory PostgreSQL tests](../tests/Feature/Api/InventoryPostgresTest.php), [OpenAPI](openapi.yaml), [inventory migration](../database/migrations/2026_11_26_000001_create_stock_inventory.php) |
-| M2 supplier directory and draft purchase orders | In review | [Procurement PostgreSQL tests](../tests/Feature/Api/ProcurementPostgresTest.php), [OpenAPI](openapi.yaml), [procurement migration](../database/migrations/2026_11_26_000003_create_procurement_drafts.php) |
-| M3–M7 | Outside M2 | Receiving, valuation, payables, equipment, reporting and end-to-end acceptance are separate milestones. |
+| M2 supplier directory and draft purchase orders | Merged | PR #78, [Procurement PostgreSQL tests](../tests/Feature/Api/ProcurementPostgresTest.php), [procurement migration](../database/migrations/2026_11_26_000003_create_procurement_drafts.php) |
+| M3 direct supplier receiving with lot and expiry | In review | [Receiving PostgreSQL tests](../tests/Feature/Api/SupplierReceivingPostgresTest.php), [OpenAPI](openapi.yaml), [receipt migration](../database/migrations/2026_11_26_000004_create_supplier_receipts.php) |
+| Purchase order matching and stock valuation | Deferred | M3 records physical quantities directly from suppliers. |
+| M4–M7 | Later milestones | Payables, equipment, reporting and end-to-end acceptance. |
 
 ## M1 operations
 
@@ -39,3 +41,13 @@ Use `/api/procurement/suppliers` and `/api/procurement/purchase-orders` under Sa
 PostgreSQL enforces tenant-qualified supplier, order and stock item relationships, exact line quantities, unique supplier codes and unique command keys. Supplier writes and draft edits include an audit entry in the same transaction. Order approval, supplier dispatch, stock receiving, unit prices, tax, payable balances and payments are outside M2. Roll back the procurement migration only when no supplier or order data has been recorded.
 
 Focused PostgreSQL API and permission checks passed 8 tests with 256 assertions. They covered draft creation and replay, stale versions, same-clinic relationships, wildcard permission denial, input validation, audit rollback and the stock and billing boundaries. OpenAPI/Postman checks passed 12 tests with 729 assertions.
+
+## M3 physical goods receiving
+
+Use `GET` and `POST /api/procurement/supplier-receipts` and `GET /api/procurement/supplier-receipts/{supplier_receipt}`. Reseed the permission catalog and explicitly grant `supplier_receipts.view` or `supplier_receipts.record`. Receiving authority can record supplier deliveries without manual inventory adjustment authority. Record from an active supplier using a reference unique for that supplier and a physical receipt date through today UTC. The UUID idempotency key is clinic scoped and replays require the same actor and normalized request.
+
+Each line records a positive decimal quantity in the item's fixed base unit and names an existing clinic location. Where lot tracking applies, register the item's lot and expiry in the inventory catalog before receiving against it. The detail response includes original movement IDs, lot codes and expiry dates. Physical arrivals can include expired lots, and M1 continues to block issues from expired lots. Existing inventory correction authority can append a compensating stock movement against an original receipt movement.
+
+Receipt headers and their linked movements commit with their audit entries in one PostgreSQL transaction. The database seals movement membership after commit and requires at least one movement per receipt. Balance queries sum the same stock ledger. All line writes acquire item locks in a consistent order. Apply the additive migration before enabling the endpoints and roll it back only while the receipt register is empty. Receipt recording leaves purchase orders, invoices, payments and payable balances unchanged.
+
+The focused receiving, inventory and permission run passed 16 PostgreSQL tests with 391 assertions. It exercised expiry enforcement, balance reconciliation, duplicate and foreign clinic rejection, audit rollback, sealing after commit and the existing concurrent issue invariant. The OpenAPI/Postman run passed 12 tests with 739 assertions.
