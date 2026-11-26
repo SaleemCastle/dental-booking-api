@@ -9,6 +9,7 @@ use App\Http\Controllers\Api\DentalChartController;
 use App\Http\Controllers\Api\DentistController;
 use App\Http\Controllers\Api\EquipmentController;
 use App\Http\Controllers\Api\InventoryController;
+use App\Http\Controllers\Api\InventoryReportController;
 use App\Http\Controllers\Api\InvoiceController;
 use App\Http\Controllers\Api\PatientController;
 use App\Http\Controllers\Api\PatientDocumentController;
@@ -67,6 +68,11 @@ Route::middleware('auth:sanctum')->get('tenants', function (Request $request) {
 Route::middleware('auth:sanctum')->delete('auth/token', [TokenController::class, 'destroy']);
 
 Route::middleware(['auth:sanctum', 'tenant'])->group(function () {
+    Route::prefix('inventory/reports')->controller(InventoryReportController::class)->group(function () {
+        Route::get('low-stock', 'lowStock');
+        Route::get('expiry', 'expiry');
+    });
+
     Route::prefix('equipment')->controller(EquipmentController::class)->group(function () {
         Route::get('', 'index');
         Route::post('', 'store');

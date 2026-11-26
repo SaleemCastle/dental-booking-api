@@ -4330,6 +4330,77 @@ paths:
         "409": { $ref: "#/components/responses/EquipmentConflict" }
         "422": { $ref: "#/components/responses/ValidationError" }
 
+  /api/inventory/reports/low-stock:
+    parameters:
+      - { $ref: "#/components/parameters/TenantHeader" }
+    get:
+      tags: [Inventory]
+      summary: List items at or below a usable stock threshold
+      description: Requires inventory_reports.view and audits each successful read. Includes clinic catalog items with zero usable stock. Lots expiring today UTC are usable. The optional location narrows the ledger sum.
+      parameters:
+        - { name: threshold, in: query, schema: { type: string, default: '0', pattern: '^(0|[1-9][0-9]{0,11})(\.[0-9]{1,6})?$' } }
+        - { name: location_id, in: query, schema: { type: integer, minimum: 1 } }
+        - { name: page, in: query, schema: { type: integer, minimum: 1, maximum: 1000000, default: 1 } }
+        - { name: per_page, in: query, schema: { type: integer, minimum: 1, maximum: 100, default: 15 } }
+      responses:
+        "200":
+          description: Paginated report for the selected clinic.
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - { $ref: "#/components/schemas/ApiEnvelope" }
+                  - type: object
+                    properties:
+                      data:
+                        type: array
+                        items: { $ref: "#/components/schemas/InventoryLowStockRow" }
+                      meta:
+                        type: object
+                        required: [criteria, pagination]
+                        properties:
+                          criteria: { $ref: "#/components/schemas/InventoryLowStockCriteria" }
+                          pagination: { $ref: "#/components/schemas/InventoryReportPagination" }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "422": { $ref: "#/components/responses/ValidationError" }
+  /api/inventory/reports/expiry:
+    parameters:
+      - { $ref: "#/components/parameters/TenantHeader" }
+    get:
+      tags: [Inventory]
+      summary: List dated lots with positive physical stock
+      description: Requires inventory_reports.view and audits each successful read. Includes expired lots and dated lots expiring through the requested UTC window. Undated, unbatched, and zero balances are omitted.
+      parameters:
+        - { name: days, in: query, schema: { type: integer, minimum: 0, maximum: 365, default: 30 } }
+        - { name: location_id, in: query, schema: { type: integer, minimum: 1 } }
+        - { name: page, in: query, schema: { type: integer, minimum: 1, maximum: 1000000, default: 1 } }
+        - { name: per_page, in: query, schema: { type: integer, minimum: 1, maximum: 100, default: 15 } }
+      responses:
+        "200":
+          description: Paginated report for the selected clinic.
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - { $ref: "#/components/schemas/ApiEnvelope" }
+                  - type: object
+                    properties:
+                      data:
+                        type: array
+                        items: { $ref: "#/components/schemas/InventoryExpiryRow" }
+                      meta:
+                        type: object
+                        required: [criteria, pagination]
+                        properties:
+                          criteria: { $ref: "#/components/schemas/InventoryExpiryCriteria" }
+                          pagination: { $ref: "#/components/schemas/InventoryReportPagination" }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "422": { $ref: "#/components/responses/ValidationError" }
+
 components:
   securitySchemes:
     sanctumBearer:
@@ -4850,6 +4921,52 @@ components:
                     properties:
                       clinicalNote: { $ref: "#/components/schemas/ClinicalNote" }
   schemas:
+    InventoryReportPagination:
+      type: object
+      required: [currentPage, perPage, hasMorePages]
+      properties:
+        currentPage: { type: integer, minimum: 1 }
+        perPage: { type: integer, minimum: 1, maximum: 100 }
+        hasMorePages: { type: boolean }
+    InventoryLowStockCriteria:
+      type: object
+      required: [as_of, location_id, threshold]
+      properties:
+        as_of: { type: string, format: date, description: Current UTC date. }
+        location_id: { type: integer, minimum: 1, nullable: true }
+        threshold: { type: string, example: "0.300001" }
+    InventoryExpiryCriteria:
+      type: object
+      required: [as_of, location_id, days, through]
+      properties:
+        as_of: { type: string, format: date, description: Current UTC date. }
+        location_id: { type: integer, minimum: 1, nullable: true }
+        days: { type: integer, minimum: 0, maximum: 365 }
+        through: { type: string, format: date }
+    InventoryLowStockRow:
+      type: object
+      required: [item_id, sku, name, base_unit, usable_quantity]
+      properties:
+        item_id: { type: integer, minimum: 1 }
+        sku: { type: string }
+        name: { type: string }
+        base_unit: { type: string }
+        usable_quantity: { type: string, example: "0.300001" }
+    InventoryExpiryRow:
+      type: object
+      required: [item_id, sku, name, base_unit, location_id, location_code, lot_id, lot_code, expires_on, physical_quantity, status]
+      properties:
+        item_id: { type: integer, minimum: 1 }
+        sku: { type: string }
+        name: { type: string }
+        base_unit: { type: string }
+        location_id: { type: integer, minimum: 1 }
+        location_code: { type: string }
+        lot_id: { type: integer, minimum: 1 }
+        lot_code: { type: string }
+        expires_on: { type: string, format: date }
+        physical_quantity: { type: string, example: "0.125000" }
+        status: { type: string, enum: [expired, expiring] }
     EquipmentCreate:
       type: object
       required: [asset_tag, name]
