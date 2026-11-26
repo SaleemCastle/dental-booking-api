@@ -7,6 +7,7 @@ use App\Http\Controllers\Api\ClinicalNoteController;
 use App\Http\Controllers\Api\DashboardController;
 use App\Http\Controllers\Api\DentalChartController;
 use App\Http\Controllers\Api\DentistController;
+use App\Http\Controllers\Api\EquipmentController;
 use App\Http\Controllers\Api\InventoryController;
 use App\Http\Controllers\Api\InvoiceController;
 use App\Http\Controllers\Api\PatientController;
@@ -66,6 +67,17 @@ Route::middleware('auth:sanctum')->get('tenants', function (Request $request) {
 Route::middleware('auth:sanctum')->delete('auth/token', [TokenController::class, 'destroy']);
 
 Route::middleware(['auth:sanctum', 'tenant'])->group(function () {
+    Route::prefix('equipment')->controller(EquipmentController::class)->group(function () {
+        Route::get('', 'index');
+        Route::post('', 'store');
+        Route::get('{equipment}', 'show')->whereNumber('equipment');
+        Route::patch('{equipment}', 'update')->whereNumber('equipment');
+        foreach (['maintenance' => 'maintenance', 'warranties' => 'warranty'] as $path => $kind) {
+            Route::get("{equipment}/$path", 'history')->whereNumber('equipment')->defaults('kind', $kind);
+            Route::post("{equipment}/$path", 'record')->whereNumber('equipment')->defaults('kind', $kind);
+        }
+    });
+
     Route::prefix('procurement/supplier-invoices')->controller(SupplierInvoiceController::class)->group(function () {
         Route::get('', 'index');
         Route::post('', 'store');

@@ -28,7 +28,7 @@ class PermissionSeeder extends Seeder
                         ],
                     );
                     // Sensitive domain permissions require explicit clinic role grants.
-                    if (! in_array($resource, ['patient_insurance', 'insurance_catalog', 'insurance_documents', 'insurance_estimates', 'insurance_claims', 'insurance_prior_authorizations', 'insurance_remittances', 'insurance_receipts', 'insurance_obligations', 'insurance_reports', 'document_holds', 'document_quarantine', 'inventory', 'suppliers', 'purchase_orders', 'supplier_receipts', 'supplier_invoices'], true)) {
+                    if (! in_array($resource, ['patient_insurance', 'insurance_catalog', 'insurance_documents', 'insurance_estimates', 'insurance_claims', 'insurance_prior_authorizations', 'insurance_remittances', 'insurance_receipts', 'insurance_obligations', 'insurance_reports', 'document_holds', 'document_quarantine', 'inventory', 'suppliers', 'purchase_orders', 'supplier_receipts', 'supplier_invoices', 'equipment'], true)) {
                         $permissionIds[] = $permission->id;
                     }
                 }
@@ -81,6 +81,7 @@ class PermissionSeeder extends Seeder
             'purchase_orders' => ['view', 'manage'],
             'supplier_receipts' => ['view', 'record'],
             'supplier_invoices' => ['view', 'record'],
+            'equipment' => ['view', 'manage', 'record_history'],
             'insurance_obligations' => ['view', 'propose', 'approve'],
             'insurance_reports' => ['view'],
         ];
