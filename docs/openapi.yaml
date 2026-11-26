@@ -19,6 +19,7 @@ tags:
   - name: Treatments
   - name: Inventory
   - name: Procurement
+  - name: Equipment
   - name: Invoices
   - name: Payments
   - name: Payment Links
@@ -4099,6 +4100,236 @@ paths:
         "404": { $ref: "#/components/responses/NotFound" }
         "422": { $ref: "#/components/responses/ValidationError" }
 
+  /api/equipment:
+    parameters:
+      - { $ref: "#/components/parameters/TenantHeader" }
+    get:
+      tags: [Equipment]
+      summary: List equipment
+      description: Requires equipment.view.
+      parameters:
+        - { name: page, in: query, schema: { type: integer, minimum: 1, maximum: 1000000, default: 1 } }
+        - { name: per_page, in: query, schema: { type: integer, minimum: 1, maximum: 100, default: 15 } }
+        - { name: status, in: query, schema: { type: string, enum: [active, out_of_service, retired] } }
+      responses:
+        "200":
+          description: Paginated results.
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - { $ref: "#/components/schemas/ApiEnvelope" }
+                  - type: object
+                    properties:
+                      data:
+                        type: array
+                        items: { $ref: "#/components/schemas/EquipmentAsset" }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "422": { $ref: "#/components/responses/ValidationError" }
+    post:
+      tags: [Equipment]
+      summary: Register equipment
+      description: Requires equipment.manage.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/EquipmentCreate" }
+      responses:
+        "201":
+          description: Record created.
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - { $ref: "#/components/schemas/ApiEnvelope" }
+                  - type: object
+                    properties:
+                      data: { $ref: "#/components/schemas/EquipmentAsset" }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "409": { $ref: "#/components/responses/EquipmentConflict" }
+        "422": { $ref: "#/components/responses/ValidationError" }
+  /api/equipment/{equipment}:
+    parameters:
+      - { $ref: "#/components/parameters/TenantHeader" }
+      - { name: equipment, in: path, required: true, schema: { type: integer, minimum: 1, example: 1 } }
+    get:
+      tags: [Equipment]
+      summary: Retrieve equipment
+      description: Requires equipment.view.
+      responses:
+        "200":
+          description: Success.
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - { $ref: "#/components/schemas/ApiEnvelope" }
+                  - type: object
+                    properties:
+                      data: { $ref: "#/components/schemas/EquipmentAsset" }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "422": { $ref: "#/components/responses/ValidationError" }
+    patch:
+      tags: [Equipment]
+      summary: Edit equipment or record its status
+      description: Requires equipment.manage. Use the current asset version. A retired asset cannot return to service.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/EquipmentPatch" }
+      responses:
+        "200":
+          description: Success.
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - { $ref: "#/components/schemas/ApiEnvelope" }
+                  - type: object
+                    properties:
+                      data: { $ref: "#/components/schemas/EquipmentAsset" }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "409": { $ref: "#/components/responses/EquipmentConflict" }
+        "422": { $ref: "#/components/responses/ValidationError" }
+  /api/equipment/{equipment}/maintenance:
+    parameters:
+      - { $ref: "#/components/parameters/TenantHeader" }
+      - { name: equipment, in: path, required: true, schema: { type: integer, minimum: 1, example: 1 } }
+    get:
+      tags: [Equipment]
+      summary: List equipment maintenance
+      description: Requires equipment.view.
+      parameters:
+        - { name: page, in: query, schema: { type: integer, minimum: 1, maximum: 1000000, default: 1 } }
+        - { name: per_page, in: query, schema: { type: integer, minimum: 1, maximum: 100, default: 15 } }
+      responses:
+        "200":
+          description: Paginated results.
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - { $ref: "#/components/schemas/ApiEnvelope" }
+                  - type: object
+                    properties:
+                      data:
+                        type: array
+                        items: { $ref: "#/components/schemas/EquipmentRecord" }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "422": { $ref: "#/components/responses/ValidationError" }
+    post:
+      tags: [Equipment]
+      summary: Record completed maintenance
+      description: Requires equipment.record_history. Appends an immutable record. An identical retry returns the original record.
+      parameters:
+        - { name: Idempotency-Key, in: header, required: true, description: Clinic scoped UUID for the same author and request., schema: { type: string, format: uuid, example: "550e8400-e29b-41d4-a716-446655440000" } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/EquipmentMaintenance" }
+      responses:
+        "201":
+          description: Record created.
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - { $ref: "#/components/schemas/ApiEnvelope" }
+                  - type: object
+                    properties:
+                      data: { $ref: "#/components/schemas/EquipmentRecordResult" }
+        "200":
+          description: Identical request replayed.
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - { $ref: "#/components/schemas/ApiEnvelope" }
+                  - type: object
+                    properties:
+                      data: { $ref: "#/components/schemas/EquipmentRecordResult" }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "409": { $ref: "#/components/responses/EquipmentConflict" }
+        "422": { $ref: "#/components/responses/ValidationError" }
+  /api/equipment/{equipment}/warranties:
+    parameters:
+      - { $ref: "#/components/parameters/TenantHeader" }
+      - { name: equipment, in: path, required: true, schema: { type: integer, minimum: 1, example: 1 } }
+    get:
+      tags: [Equipment]
+      summary: List equipment warranties
+      description: Requires equipment.view.
+      parameters:
+        - { name: page, in: query, schema: { type: integer, minimum: 1, maximum: 1000000, default: 1 } }
+        - { name: per_page, in: query, schema: { type: integer, minimum: 1, maximum: 100, default: 15 } }
+      responses:
+        "200":
+          description: Paginated results.
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - { $ref: "#/components/schemas/ApiEnvelope" }
+                  - type: object
+                    properties:
+                      data:
+                        type: array
+                        items: { $ref: "#/components/schemas/EquipmentRecord" }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "422": { $ref: "#/components/responses/ValidationError" }
+    post:
+      tags: [Equipment]
+      summary: Record a warranty
+      description: Requires equipment.record_history. Appends an immutable record. An identical retry returns the original record.
+      parameters:
+        - { name: Idempotency-Key, in: header, required: true, description: Clinic scoped UUID for the same author and request., schema: { type: string, format: uuid, example: "550e8400-e29b-41d4-a716-446655440000" } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/EquipmentWarranty" }
+      responses:
+        "201":
+          description: Record created.
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - { $ref: "#/components/schemas/ApiEnvelope" }
+                  - type: object
+                    properties:
+                      data: { $ref: "#/components/schemas/EquipmentRecordResult" }
+        "200":
+          description: Identical request replayed.
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - { $ref: "#/components/schemas/ApiEnvelope" }
+                  - type: object
+                    properties:
+                      data: { $ref: "#/components/schemas/EquipmentRecordResult" }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "409": { $ref: "#/components/responses/EquipmentConflict" }
+        "422": { $ref: "#/components/responses/ValidationError" }
+
 components:
   securitySchemes:
     sanctumBearer:
@@ -4207,6 +4438,11 @@ components:
       required: true
       content: { application/json: { schema: { $ref: "#/components/schemas/ClinicalNoteUpdateRequest" } } }
   responses:
+    EquipmentConflict:
+      description: Duplicate asset tag, stale asset version, retired status conflict, or conflicting idempotency key.
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/ApiErrorEnvelope" }
     SupplierInvoiceConflict:
       description: Supplier invoice number already recorded or conflicting idempotency key.
       content:
@@ -4614,6 +4850,81 @@ components:
                     properties:
                       clinicalNote: { $ref: "#/components/schemas/ClinicalNote" }
   schemas:
+    EquipmentCreate:
+      type: object
+      required: [asset_tag, name]
+      additionalProperties: false
+      properties:
+        asset_tag: { type: string, pattern: '^[A-Z0-9][A-Z0-9._-]{0,63}$', example: CHAIR-01 }
+        name: { type: string, minLength: 1, maxLength: 160, example: Operatory chair }
+        serial_number: { type: string, maxLength: 120, nullable: true }
+        location_label: { type: string, maxLength: 160, nullable: true }
+    EquipmentPatch:
+      type: object
+      required: [version]
+      minProperties: 2
+      additionalProperties: false
+      properties:
+        version: { type: integer, minimum: 1, maximum: 2147483646, example: 1 }
+        name: { type: string, minLength: 1, maxLength: 160 }
+        serial_number: { type: string, maxLength: 120, nullable: true }
+        location_label: { type: string, maxLength: 160, nullable: true }
+        status: { type: string, enum: [active, out_of_service, retired], example: out_of_service }
+    EquipmentAsset:
+      type: object
+      required: [id, asset_tag, name, serial_number, location_label, status, version, recorded_by_user_id, recorded_at]
+      properties:
+        id: { type: integer, minimum: 1 }
+        asset_tag: { type: string }
+        name: { type: string }
+        serial_number: { type: string, nullable: true }
+        location_label: { type: string, nullable: true }
+        status: { type: string, enum: [active, out_of_service, retired] }
+        version: { type: integer, minimum: 1 }
+        recorded_by_user_id: { type: integer, minimum: 1 }
+        recorded_at: { type: string, format: date-time }
+    EquipmentMaintenance:
+      type: object
+      additionalProperties: false
+      required: [performed_on, details]
+      properties:
+        performed_on: { type: string, format: date, description: Date maintenance occurred through today UTC., example: "2026-11-20" }
+        next_due_on: { type: string, format: date, nullable: true, description: Informational date on or after performed_on., example: "2027-11-20" }
+        provider: { type: string, nullable: true, maxLength: 160 }
+        reference: { type: string, nullable: true, maxLength: 120 }
+        details: { type: string, minLength: 1, maxLength: 1000, example: Replaced seal and tested equipment. }
+    EquipmentWarranty:
+      type: object
+      additionalProperties: false
+      required: [starts_on, ends_on, provider]
+      properties:
+        starts_on: { type: string, format: date, example: "2026-11-20" }
+        ends_on: { type: string, format: date, description: Reported warranty end on or after starts_on., example: "2027-11-20" }
+        provider: { type: string, minLength: 1, maxLength: 160, example: Example equipment supplier }
+        reference: { type: string, nullable: true, maxLength: 120 }
+        details: { type: string, nullable: true, maxLength: 1000 }
+    EquipmentRecord:
+      type: object
+      required: [id, equipment_id, kind, performed_on, next_due_on, starts_on, ends_on, provider, reference, details, recorded_by_user_id, recorded_at]
+      properties:
+        id: { type: integer, minimum: 1 }
+        equipment_id: { type: integer, minimum: 1 }
+        kind: { type: string, enum: [maintenance, warranty] }
+        performed_on: { type: string, format: date, nullable: true }
+        next_due_on: { type: string, format: date, nullable: true }
+        starts_on: { type: string, format: date, nullable: true }
+        ends_on: { type: string, format: date, nullable: true }
+        provider: { type: string, nullable: true }
+        reference: { type: string, nullable: true }
+        details: { type: string, nullable: true }
+        recorded_by_user_id: { type: integer, minimum: 1 }
+        recorded_at: { type: string, format: date-time }
+    EquipmentRecordResult:
+      type: object
+      required: [record, replayed]
+      properties:
+        record: { $ref: "#/components/schemas/EquipmentRecord" }
+        replayed: { type: boolean }
     SupplierInvoiceInput:
       type: object
       required: [supplier_id, invoice_number, invoice_date, currency, reported_total]

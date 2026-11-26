@@ -9773,6 +9773,378 @@
                     "response": []
                 }
             ]
+        },
+        {
+            "name": "Equipment",
+            "item": [
+                {
+                    "name": "GET List equipment",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            },
+                            {
+                                "key": "X-Tenant-Id",
+                                "value": "",
+                                "description": "Select an active clinic membership. Omit for default-clinic. Does not confer membership or bypass authorization.",
+                                "disabled": true
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/api/equipment?page=1&per_page=15",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "equipment"
+                            ],
+                            "query": [
+                                {
+                                    "key": "page",
+                                    "value": "1",
+                                    "disabled": false,
+                                    "description": "Optional filter; enable its checkbox to send it."
+                                },
+                                {
+                                    "key": "per_page",
+                                    "value": "15",
+                                    "disabled": false,
+                                    "description": "Optional filter; enable its checkbox to send it."
+                                },
+                                {
+                                    "key": "status",
+                                    "value": "active",
+                                    "disabled": true,
+                                    "description": "Optional filter; enable its checkbox to send it."
+                                }
+                            ]
+                        },
+                        "description": "Requires equipment.view.\n\nGET /api/equipment\nDomain writes require allow_writes=true. Missing required variables skip requests rather than selecting real records automatically."
+                    },
+                    "response": []
+                },
+                {
+                    "name": "POST Register equipment",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            },
+                            {
+                                "key": "X-Tenant-Id",
+                                "value": "",
+                                "description": "Select an active clinic membership. Omit for default-clinic. Does not confer membership or bypass authorization.",
+                                "disabled": true
+                            },
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/api/equipment",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "equipment"
+                            ],
+                            "query": []
+                        },
+                        "description": "Requires equipment.manage.\n\nPOST /api/equipment\nDomain writes require allow_writes=true. Missing required variables skip requests rather than selecting real records automatically.",
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"asset_tag\": \"CHAIR-01\",\n    \"name\": \"Operatory chair\"\n}\n",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        }
+                    },
+                    "response": []
+                },
+                {
+                    "name": "GET Retrieve equipment",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            },
+                            {
+                                "key": "X-Tenant-Id",
+                                "value": "",
+                                "description": "Select an active clinic membership. Omit for default-clinic. Does not confer membership or bypass authorization.",
+                                "disabled": true
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/api/equipment/{{equipment_id}}",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "equipment",
+                                "{{equipment_id}}"
+                            ],
+                            "query": []
+                        },
+                        "description": "Requires equipment.view.\n\nGET /api/equipment/{equipment}\nDomain writes require allow_writes=true. Missing required variables skip requests rather than selecting real records automatically."
+                    },
+                    "response": []
+                },
+                {
+                    "name": "PATCH Edit equipment or record its status",
+                    "request": {
+                        "method": "PATCH",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            },
+                            {
+                                "key": "X-Tenant-Id",
+                                "value": "",
+                                "description": "Select an active clinic membership. Omit for default-clinic. Does not confer membership or bypass authorization.",
+                                "disabled": true
+                            },
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/api/equipment/{{equipment_id}}",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "equipment",
+                                "{{equipment_id}}"
+                            ],
+                            "query": []
+                        },
+                        "description": "Requires equipment.manage. Use the current asset version. A retired asset cannot return to service.\n\nPATCH /api/equipment/{equipment}\nDomain writes require allow_writes=true. Missing required variables skip requests rather than selecting real records automatically.",
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"version\": 1\n}\n",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        }
+                    },
+                    "response": []
+                },
+                {
+                    "name": "GET List equipment maintenance",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            },
+                            {
+                                "key": "X-Tenant-Id",
+                                "value": "",
+                                "description": "Select an active clinic membership. Omit for default-clinic. Does not confer membership or bypass authorization.",
+                                "disabled": true
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/api/equipment/{{equipment_id}}/maintenance?page=1&per_page=15",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "equipment",
+                                "{{equipment_id}}",
+                                "maintenance"
+                            ],
+                            "query": [
+                                {
+                                    "key": "page",
+                                    "value": "1",
+                                    "disabled": false,
+                                    "description": "Optional filter; enable its checkbox to send it."
+                                },
+                                {
+                                    "key": "per_page",
+                                    "value": "15",
+                                    "disabled": false,
+                                    "description": "Optional filter; enable its checkbox to send it."
+                                }
+                            ]
+                        },
+                        "description": "Requires equipment.view.\n\nGET /api/equipment/{equipment}/maintenance\nDomain writes require allow_writes=true. Missing required variables skip requests rather than selecting real records automatically."
+                    },
+                    "response": []
+                },
+                {
+                    "name": "POST Record completed maintenance",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            },
+                            {
+                                "key": "X-Tenant-Id",
+                                "value": "",
+                                "description": "Select an active clinic membership. Omit for default-clinic. Does not confer membership or bypass authorization.",
+                                "disabled": true
+                            },
+                            {
+                                "key": "Idempotency-Key",
+                                "value": "{{$guid}}",
+                                "description": "Clinic scoped UUID for the same author and request.",
+                                "disabled": false
+                            },
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/api/equipment/{{equipment_id}}/maintenance",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "equipment",
+                                "{{equipment_id}}",
+                                "maintenance"
+                            ],
+                            "query": []
+                        },
+                        "description": "Requires equipment.record_history. Appends an immutable record. An identical retry returns the original record.\n\nPOST /api/equipment/{equipment}/maintenance\nDomain writes require allow_writes=true. Missing required variables skip requests rather than selecting real records automatically.",
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"performed_on\": \"2026-11-20\",\n    \"details\": \"Replaced seal and tested equipment.\"\n}\n",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        }
+                    },
+                    "response": []
+                },
+                {
+                    "name": "GET List equipment warranties",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            },
+                            {
+                                "key": "X-Tenant-Id",
+                                "value": "",
+                                "description": "Select an active clinic membership. Omit for default-clinic. Does not confer membership or bypass authorization.",
+                                "disabled": true
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/api/equipment/{{equipment_id}}/warranties?page=1&per_page=15",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "equipment",
+                                "{{equipment_id}}",
+                                "warranties"
+                            ],
+                            "query": [
+                                {
+                                    "key": "page",
+                                    "value": "1",
+                                    "disabled": false,
+                                    "description": "Optional filter; enable its checkbox to send it."
+                                },
+                                {
+                                    "key": "per_page",
+                                    "value": "15",
+                                    "disabled": false,
+                                    "description": "Optional filter; enable its checkbox to send it."
+                                }
+                            ]
+                        },
+                        "description": "Requires equipment.view.\n\nGET /api/equipment/{equipment}/warranties\nDomain writes require allow_writes=true. Missing required variables skip requests rather than selecting real records automatically."
+                    },
+                    "response": []
+                },
+                {
+                    "name": "POST Record a warranty",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            },
+                            {
+                                "key": "X-Tenant-Id",
+                                "value": "",
+                                "description": "Select an active clinic membership. Omit for default-clinic. Does not confer membership or bypass authorization.",
+                                "disabled": true
+                            },
+                            {
+                                "key": "Idempotency-Key",
+                                "value": "{{$guid}}",
+                                "description": "Clinic scoped UUID for the same author and request.",
+                                "disabled": false
+                            },
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/api/equipment/{{equipment_id}}/warranties",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "equipment",
+                                "{{equipment_id}}",
+                                "warranties"
+                            ],
+                            "query": []
+                        },
+                        "description": "Requires equipment.record_history. Appends an immutable record. An identical retry returns the original record.\n\nPOST /api/equipment/{equipment}/warranties\nDomain writes require allow_writes=true. Missing required variables skip requests rather than selecting real records automatically.",
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"starts_on\": \"2026-11-20\",\n    \"ends_on\": \"2027-11-20\",\n    \"provider\": \"Example equipment supplier\"\n}\n",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        }
+                    },
+                    "response": []
+                }
+            ]
         }
     ],
     "variable": [
@@ -10123,6 +10495,11 @@
         },
         {
             "key": "supplier_invoice_id",
+            "value": "",
+            "type": "string"
+        },
+        {
+            "key": "equipment_id",
             "value": "",
             "type": "string"
         }

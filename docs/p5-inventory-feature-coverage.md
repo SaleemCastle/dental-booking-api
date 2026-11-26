@@ -10,9 +10,10 @@
 | M2 supplier directory and draft purchase orders | Merged | PR #78, [Procurement PostgreSQL tests](../tests/Feature/Api/ProcurementPostgresTest.php), [procurement migration](../database/migrations/2026_11_26_000003_create_procurement_drafts.php) |
 | M3 direct supplier receiving with lot and expiry | Merged | PR #79, [Receiving PostgreSQL tests](../tests/Feature/Api/SupplierReceivingPostgresTest.php), [receipt migration](../database/migrations/2026_11_26_000004_create_supplier_receipts.php) |
 | Purchase order matching and stock valuation | Deferred | M3 records physical quantities directly from suppliers. |
-| M4 supplier invoice register | In review | [Invoice register PostgreSQL tests](../tests/Feature/Api/SupplierInvoicePostgresTest.php), [OpenAPI](openapi.yaml), [invoice register migration](../database/migrations/2026_11_26_000005_create_supplier_invoice_register.php) |
+| M4 supplier invoice register | Merged | PR #80, [invoice register PostgreSQL tests](../tests/Feature/Api/SupplierInvoicePostgresTest.php), [invoice register migration](../database/migrations/2026_11_26_000005_create_supplier_invoice_register.php) |
 | Supplier payables and payments | Deferred | Invoice totals and due dates are recorded as supplier observations. |
-| M5–M7 | Later milestones | Equipment, reporting and end-to-end acceptance. |
+| M5 equipment registry, maintenance and warranties | In review | [Equipment PostgreSQL tests](../tests/Feature/Api/EquipmentPostgresTest.php), [OpenAPI](openapi.yaml), [equipment migration](../database/migrations/2026_11_26_000006_create_equipment_registry.php) |
+| M6–M7 | Later milestones | Reporting, alerts and end-to-end acceptance. |
 
 ## M1 operations
 
@@ -61,3 +62,13 @@ Use `GET` and `POST /api/procurement/supplier-invoices` and `GET /api/procuremen
 The workflow preserves the invoice number's original case and detects case-insensitive duplicates per supplier and clinic. A clinic-scoped UUID idempotency key replays the same normalized observations for the original recorder. PostgreSQL enforces receipt lineage, exact decimals and append-only history. Recording commits with its audit event. Payable recognition, payments, matching, credit notes and corrections to recorded observations are outside this scope. Use a forward migration after invoice history exists.
 
 Focused supplier invoice, receiving and permission checks passed 13 PostgreSQL tests with 313 assertions. They covered exact totals, duplicate and replay rules, foreign clinic and wrong supplier links, immutable records, audit rollback and stock and billing boundaries. OpenAPI/Postman checks passed 12 tests with 748 assertions.
+
+## M5 equipment registry
+
+Use `GET` and `POST /api/equipment` and `GET` or `PATCH /api/equipment/{equipment}`. Reseed the permission catalog and explicitly grant `equipment.view`, `equipment.manage` or `equipment.record_history` in the clinic. The registry assigns a clinic-unique fixed asset tag. Name, serial number and a free-text location label can be changed with the current record version. New assets start active. Staff may mark an asset out of service, return it to active use, or retire it. Retirement is terminal. The status records the clinic's observation and does not change appointment availability.
+
+Use `GET` and `POST` on the `maintenance` and `warranties` child paths. Maintenance records describe completed service and may include an informational next due date. A warranty records its provider and an ordered start and end date, with an optional reference and details. Entries may be added for retired assets to preserve historical documentation. Each history write uses a clinic-scoped UUID for idempotency and commits with its audit event. Maintenance and warranty entries are append-only.
+
+The PostgreSQL migration adds equipment and history tables with tenant-qualified equipment relationships, recorder validation, unique asset tags, status and version guards, and immutable history. Roll back only while the register is empty. Maintenance scheduling, reminders, warranty claims, depreciation and financial posting are outside this milestone.
+
+Focused equipment and permission checks passed 9 PostgreSQL tests with 249 assertions. They covered clinic isolation, exact permissions, stale versions, retirement, date ordering, idempotent and immutable history, audit rollback and separation from stock and billing. OpenAPI/Postman checks passed 12 tests with 768 assertions.
